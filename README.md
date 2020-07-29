@@ -1,3 +1,7 @@
+[![Build](https://github.com/sarmkadan/dotnet-job-scheduler/actions/workflows/build.yml/badge.svg)](https://github.com/sarmkadan/dotnet-job-scheduler/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
+
 # dotnet-job-scheduler
 
 A production-grade, distributed job scheduler for .NET with support for cron expressions, priority queues, automatic retries, concurrency control, and comprehensive job execution metrics. Built for reliability, scalability, and ease of integration.
