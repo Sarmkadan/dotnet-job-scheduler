@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <IsTestProject>true</IsTestProject>
+    <Authors>Vladyslav Zaiets</Authors>
+    <Description>Tests for distributed job scheduler for .NET</Description>
   </PropertyGroup>
 
   <ItemGroup>
