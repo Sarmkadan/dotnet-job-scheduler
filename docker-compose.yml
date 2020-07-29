@@ -1,0 +1,71 @@
+# =============================================================================
+# Author: Vladyslav Zaiets | https://sarmkadan.com
+# CTO & Software Architect
+# =============================================================================
+
+version: '3.8'
+
+services:
+  database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: job-scheduler-db
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: YourSafePassword123!ChangeMe
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost",
+             "-U", "sa", "-P", "YourSafePassword123!ChangeMe", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    networks:
+      - scheduler-network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: job-scheduler-app
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://0.0.0.0:5000
+      ConnectionStrings__DefaultConnection: "Server=database;Database=JobScheduler;User Id=sa;Password=YourSafePassword123!ChangeMe;TrustServerCertificate=true;"
+      JobScheduler__MaxConcurrentJobs: "20"
+      JobScheduler__DefaultTimeoutSeconds: "600"
+      JobScheduler__DefaultMaxRetries: "3"
+      JobScheduler__DefaultRetryBackoffSeconds: "5"
+      JobScheduler__QueuePollIntervalMs: "5000"
+      JobScheduler__EnableCleanup: "true"
+      JobScheduler__CleanupIntervalMs: "300000"
+      JobScheduler__ExecutionHistoryRetentionDays: "30"
+      Logging__LogLevel__Default: "Information"
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - scheduler-network
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  sqldata:
+    driver: local
+
+networks:
+  scheduler-network:
+    driver: bridge
