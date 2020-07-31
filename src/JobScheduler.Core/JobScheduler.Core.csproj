@@ -7,12 +7,16 @@
     <LangVersion>latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <PackageId>DotNet.JobScheduler.Core</PackageId>
+    <PackageId>Zaiets.dotnet.job.scheduler</PackageId>
     <Version>1.0.0</Version>
     <Authors>Vladyslav Zaiets</Authors>
-    <Description>Distributed job scheduler for .NET with cron expressions, priority queues, retries, and concurrency control</Description>
+    <Description>Distributed job scheduler for .NET - cron expressions, priority queues, retries, concurrency control, dashboard</Description>
+    <PackageTags>job-scheduler cron distributed-systems retry-logic priority-queue concurrency-control aspnet-core task-scheduling</PackageTags>
+    <PackageProjectUrl>https://github.com/sarmkadan/dotnet-job-scheduler</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sarmkadan/dotnet-job-scheduler</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +31,7 @@
 
   <ItemGroup>
     <None Include="..\..\LICENSE" Pack="true" PackagePath=""/>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 </Project>
