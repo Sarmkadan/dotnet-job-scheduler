@@ -142,7 +142,7 @@ A production-grade, distributed job scheduler for .NET with support for cron exp
 ### Method 1: NuGet Package
 
 ```bash
-dotnet add package DotNet.JobScheduler.Core
+dotnet add package Zaiets.dotnet.job.scheduler
 ```
 
 ### Method 2: From Source
