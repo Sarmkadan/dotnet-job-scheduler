@@ -219,7 +219,7 @@ public static class ParseUtility
     /// </summary>
     public static string FormatPercentage(double value, int decimals = 2)
     {
-        return $"{value:F{decimals}}%";
+        return value.ToString("F" + decimals) + "%";
     }
 
     /// <summary>
