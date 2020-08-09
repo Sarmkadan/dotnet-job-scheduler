@@ -4,6 +4,7 @@
 // =============================================================================
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using NCronTab;
 using JobScheduler.Core.Exceptions;
@@ -16,6 +17,11 @@ namespace JobScheduler.Core.Services;
 /// </summary>
 public class CronExpressionService
 {
+    // Parsed schedules are immutable and cheap to share; cache by expression string
+    // to avoid paying NCronTab parse cost on every evaluation cycle.
+    private static readonly ConcurrentDictionary<string, CrontabSchedule> _scheduleCache =
+        new(StringComparer.Ordinal);
+
     /// <summary>
     /// Validates a cron expression syntax.
     /// </summary>
@@ -26,7 +32,7 @@ public class CronExpressionService
 
         try
         {
-            CrontabSchedule.Parse(cronExpression);
+            ParseCronExpression(cronExpression);
             return true;
         }
         catch
@@ -37,20 +43,28 @@ public class CronExpressionService
 
     /// <summary>
     /// Parses a cron expression and throws if invalid.
+    /// Result is cached so repeated calls for the same expression are allocation-free.
     /// </summary>
     public CrontabSchedule ParseCronExpression(string cronExpression)
     {
         if (string.IsNullOrWhiteSpace(cronExpression))
             throw new CronExpressionException(cronExpression, "Expression cannot be null or empty");
 
+        if (_scheduleCache.TryGetValue(cronExpression, out var cached))
+            return cached;
+
+        CrontabSchedule parsed;
         try
         {
-            return CrontabSchedule.Parse(cronExpression);
+            parsed = CrontabSchedule.Parse(cronExpression);
         }
         catch (Exception ex)
         {
             throw new CronExpressionException(cronExpression, "Failed to parse expression", ex);
         }
+
+        // GetOrAdd(key, value) is thread-safe: returns the winner if two threads race.
+        return _scheduleCache.GetOrAdd(cronExpression, parsed);
     }
 
     /// <summary>
