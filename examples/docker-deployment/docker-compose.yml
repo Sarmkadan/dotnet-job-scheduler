@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: jobscheduler
+      POSTGRES_USER: scheduler
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-scheduler123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scheduler"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  scheduler:
+    build:
+      context: ../..
+    environment:
+      ASPNETCORE_ENVIRONMENT: production
+      DB_PASSWORD: ${DB_PASSWORD}
+      ConnectionStrings__DefaultConnection: "Server=database;Port=5432;Database=jobscheduler;User Id=scheduler;Password=${DB_PASSWORD:-scheduler123};"
+      JobScheduler__MaxConcurrentJobs: "10"
+    ports:
+      - "8080:8080"
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  postgres_data:
+    driver: local
