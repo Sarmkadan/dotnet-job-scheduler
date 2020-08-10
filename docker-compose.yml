@@ -3,15 +3,13 @@
 # CTO & Software Architect
 # =============================================================================
 
-version: '3.8'
-
 services:
   database:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: job-scheduler-db
     environment:
       ACCEPT_EULA: Y
-      SA_PASSWORD: YourSafePassword123!ChangeMe
+      SA_PASSWORD: ${DB_PASSWORD:-YourSafePassword123!ChangeMe}
       MSSQL_PID: Developer
     ports:
       - "1433:1433"
@@ -19,7 +17,7 @@ services:
       - sqldata:/var/opt/mssql
     healthcheck:
       test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost",
-             "-U", "sa", "-P", "YourSafePassword123!ChangeMe", "-Q", "SELECT 1"]
+             "-U", "sa", "-P", "${DB_PASSWORD:-YourSafePassword123!ChangeMe}", "-Q", "SELECT 1"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -37,8 +35,8 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://0.0.0.0:5000
-      ConnectionStrings__DefaultConnection: "Server=database;Database=JobScheduler;User Id=sa;Password=YourSafePassword123!ChangeMe;TrustServerCertificate=true;"
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ConnectionStrings__DefaultConnection: "Server=database;Database=JobScheduler;User Id=sa;Password=${DB_PASSWORD:-YourSafePassword123!ChangeMe};TrustServerCertificate=true;"
       JobScheduler__MaxConcurrentJobs: "20"
       JobScheduler__DefaultTimeoutSeconds: "600"
       JobScheduler__DefaultMaxRetries: "3"
@@ -49,10 +47,10 @@ services:
       JobScheduler__ExecutionHistoryRetentionDays: "30"
       Logging__LogLevel__Default: "Information"
     ports:
-      - "5000:5000"
+      - "8080:8080"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
