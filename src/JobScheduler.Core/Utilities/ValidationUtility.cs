@@ -203,7 +203,7 @@ public static class ValidationUtility
     }
 }
 
-public class ValidationResult
+public sealed class ValidationResult
 {
     public bool IsValid { get; }
     public string Message { get; }

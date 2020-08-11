@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -14,7 +16,7 @@ namespace JobScheduler.Benchmarks;
 /// truncation for log output, and credential masking for audit entries.
 /// </summary>
 [MemoryDiagnoser]
-public class StringProcessingBenchmarks
+public sealed class StringProcessingBenchmarks
 {
     // ToSlug inputs
     private const string ShortName   = "Daily Report Job";

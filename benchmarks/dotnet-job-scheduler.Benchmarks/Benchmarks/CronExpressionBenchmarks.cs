@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -14,7 +16,7 @@ namespace JobScheduler.Benchmarks;
 /// on every scheduler tick.
 /// </summary>
 [MemoryDiagnoser]
-public class CronExpressionBenchmarks
+public sealed class CronExpressionBenchmarks
 {
     private CronExpressionService _service = null!;
 

@@ -17,7 +17,7 @@ namespace JobScheduler.Core.Services;
 /// Service for handling job retry logic, backoff strategies, and retry scheduling.
 /// Manages exponential, linear, and fixed backoff delays.
 /// </summary>
-public class RetryService
+public sealed class RetryService
 {
     private readonly IJobRepository _jobRepository;
     private readonly IExecutionRepository _executionRepository;
@@ -185,7 +185,7 @@ public class RetryService
 /// <summary>
 /// Statistics about retry behavior for a job.
 /// </summary>
-public class RetryStatistics
+public sealed class RetryStatistics
 {
     public Guid JobId { get; set; }
     public int TotalExecutions { get; set; }

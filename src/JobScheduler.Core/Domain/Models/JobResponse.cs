@@ -13,7 +13,7 @@ namespace JobScheduler.Core.Domain.Models;
 /// Response model for job data in API responses.
 /// Serializable representation of job information.
 /// </summary>
-public class JobResponse
+public sealed class JobResponse
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;

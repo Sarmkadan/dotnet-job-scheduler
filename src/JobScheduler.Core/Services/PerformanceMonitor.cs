@@ -14,7 +14,7 @@ namespace JobScheduler.Core.Services;
 /// Monitors scheduler performance metrics including execution times, throughput, and resource usage.
 /// WHY: Performance monitoring is essential for capacity planning and bottleneck identification.
 /// </summary>
-public class PerformanceMonitor
+public sealed class PerformanceMonitor
 {
     private readonly ILogger<PerformanceMonitor> _logger;
     private readonly ConcurrentQueue<PerformanceMetric> _metrics;
@@ -213,7 +213,7 @@ public class PerformanceMonitor
     }
 }
 
-public class PerformanceMetric
+public sealed class PerformanceMetric
 {
     public Guid JobId { get; set; }
     public string JobName { get; set; } = string.Empty;
@@ -222,7 +222,7 @@ public class PerformanceMetric
     public DateTime Timestamp { get; set; }
 }
 
-public class MetricsSummary
+public sealed class MetricsSummary
 {
     public int TotalExecutions { get; set; }
     public int SuccessfulExecutions { get; set; }
@@ -235,7 +235,7 @@ public class MetricsSummary
     public double SuccessRate => TotalExecutions == 0 ? 0 : (double)SuccessfulExecutions / TotalExecutions * 100;
 }
 
-public class PerformanceTimelinePoint
+public sealed class PerformanceTimelinePoint
 {
     public DateTime Timestamp { get; set; }
     public int ExecutionCount { get; set; }

@@ -16,7 +16,7 @@ namespace JobScheduler.Core.Middleware;
 /// Prevents abuse and ensures fair resource allocation across clients.
 /// Uses a sliding window algorithm for accurate rate limiting.
 /// </summary>
-public class RateLimitMiddleware
+public sealed class RateLimitMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<RateLimitMiddleware> _logger;
@@ -87,7 +87,7 @@ public class RateLimitMiddleware
     }
 }
 
-public class RateLimitBucket
+public sealed class RateLimitBucket
 {
     private readonly int _maxRequests;
     private readonly int _windowSizeSeconds;
@@ -123,7 +123,7 @@ public class RateLimitBucket
     }
 }
 
-public class RateLimitSettings
+public sealed class RateLimitSettings
 {
     public int RequestsPerWindow { get; set; } = 1000;
     public int WindowSizeSeconds { get; set; } = 60;
