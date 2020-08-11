@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -34,7 +35,7 @@ public class WebhookNotificationService
     /// </summary>
     public async Task SendExecutionNotificationAsync(Job job, JobExecution execution, WebhookConfig config)
     {
-        if (config == null || string.IsNullOrEmpty(config.WebhookUrl))
+        if (config is null || string.IsNullOrEmpty(config.WebhookUrl))
             return;
 
         var payload = new WebhookPayload

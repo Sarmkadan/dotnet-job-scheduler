@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -38,7 +39,7 @@ public class ExecutionStatisticsService
         try
         {
             var job = await _jobRepository.GetByIdAsync(jobId);
-            if (job == null)
+            if (job is null)
                 return null;
 
             var executions = await _executionRepository.GetByJobIdAsync(jobId);

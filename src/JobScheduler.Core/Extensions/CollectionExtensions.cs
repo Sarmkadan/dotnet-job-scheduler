@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -41,7 +42,7 @@ public static class CollectionExtensions
     /// </summary>
     public static T? SafeGetAt<T>(this IList<T>? list, int index) where T : class
     {
-        if (list == null || index < 0 || index >= list.Count)
+        if (list is null || index < 0 || index >= list.Count)
             return null;
 
         return list[index];
@@ -53,7 +54,7 @@ public static class CollectionExtensions
     /// </summary>
     public static bool IsEmpty<T>(this IEnumerable<T>? source)
     {
-        return source == null || !source.Any();
+        return source is null || !source.Any();
     }
 
     /// <summary>

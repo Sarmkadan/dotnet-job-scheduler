@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -50,14 +51,14 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null)
     {
-        return predicate == null
+        return predicate is null
             ? await _dbSet.CountAsync()
             : await _dbSet.CountAsync(predicate);
     }
 
     public virtual async Task AddAsync(T entity)
     {
-        if (entity == null)
+        if (entity is null)
             throw new ArgumentNullException(nameof(entity));
 
         await _dbSet.AddAsync(entity);
@@ -65,7 +66,7 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task AddRangeAsync(IEnumerable<T> entities)
     {
-        if (entities == null)
+        if (entities is null)
             throw new ArgumentNullException(nameof(entities));
 
         await _dbSet.AddRangeAsync(entities);
@@ -73,7 +74,7 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual void Update(T entity)
     {
-        if (entity == null)
+        if (entity is null)
             throw new ArgumentNullException(nameof(entity));
 
         _dbSet.Update(entity);
@@ -81,7 +82,7 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual void UpdateRange(IEnumerable<T> entities)
     {
-        if (entities == null)
+        if (entities is null)
             throw new ArgumentNullException(nameof(entities));
 
         _dbSet.UpdateRange(entities);
@@ -89,7 +90,7 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual void Remove(T entity)
     {
-        if (entity == null)
+        if (entity is null)
             throw new ArgumentNullException(nameof(entity));
 
         _dbSet.Remove(entity);
@@ -97,7 +98,7 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual void RemoveRange(IEnumerable<T> entities)
     {
-        if (entities == null)
+        if (entities is null)
             throw new ArgumentNullException(nameof(entities));
 
         _dbSet.RemoveRange(entities);
