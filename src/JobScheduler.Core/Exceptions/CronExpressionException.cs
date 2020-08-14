@@ -11,7 +11,7 @@ namespace JobScheduler.Core.Exceptions;
 /// <summary>
 /// Thrown when a cron expression is invalid or cannot be parsed.
 /// </summary>
-public class CronExpressionException : JobSchedulerException
+public sealed class CronExpressionException : JobSchedulerException
 {
     public string CronExpression { get; set; }
 

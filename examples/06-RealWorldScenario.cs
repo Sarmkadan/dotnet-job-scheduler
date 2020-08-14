@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -17,7 +19,7 @@ using JobScheduler.Core.Services;
 /// reporting, inventory sync, and customer notifications.
 /// </summary>
 
-public class DailySalesReportJobHandler : IJobHandler
+public sealed class DailySalesReportJobHandler : IJobHandler
 {
     private readonly ILogger<DailySalesReportJobHandler> _logger;
 
@@ -48,7 +50,7 @@ public class DailySalesReportJobHandler : IJobHandler
     }
 }
 
-public class InventorySyncJobHandler : IJobHandler
+public sealed class InventorySyncJobHandler : IJobHandler
 {
     private readonly ILogger<InventorySyncJobHandler> _logger;
 
@@ -75,7 +77,7 @@ public class InventorySyncJobHandler : IJobHandler
     }
 }
 
-public class CustomerNotificationJobHandler : IJobHandler
+public sealed class CustomerNotificationJobHandler : IJobHandler
 {
     private readonly ILogger<CustomerNotificationJobHandler> _logger;
 
@@ -105,7 +107,7 @@ public class CustomerNotificationJobHandler : IJobHandler
     }
 }
 
-public class RealWorldScenarioExample
+public sealed class RealWorldScenarioExample
 {
     /// Demonstrates a realistic business scenario with multiple scheduled jobs
     public static async Task Main(string[] args)

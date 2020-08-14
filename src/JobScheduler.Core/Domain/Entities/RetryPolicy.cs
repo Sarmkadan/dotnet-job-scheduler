@@ -13,7 +13,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// Defines the retry behavior and backoff strategy for failed job executions.
 /// Supports exponential, linear, and fixed backoff strategies.
 /// </summary>
-public class RetryPolicy
+public sealed class RetryPolicy
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

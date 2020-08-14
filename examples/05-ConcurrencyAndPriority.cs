@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -17,7 +19,7 @@ using JobScheduler.Core.Services;
 /// to ensure critical jobs execute first.
 /// </summary>
 
-public class LongRunningJobHandler : IJobHandler
+public sealed class LongRunningJobHandler : IJobHandler
 {
     private readonly ILogger<LongRunningJobHandler> _logger;
 
@@ -42,7 +44,7 @@ public class LongRunningJobHandler : IJobHandler
     }
 }
 
-public class CriticalJobHandler : IJobHandler
+public sealed class CriticalJobHandler : IJobHandler
 {
     private readonly ILogger<CriticalJobHandler> _logger;
 
@@ -60,7 +62,7 @@ public class CriticalJobHandler : IJobHandler
     }
 }
 
-public class QuickTaskJobHandler : IJobHandler
+public sealed class QuickTaskJobHandler : IJobHandler
 {
     private readonly ILogger<QuickTaskJobHandler> _logger;
 
@@ -77,7 +79,7 @@ public class QuickTaskJobHandler : IJobHandler
     }
 }
 
-public class ConcurrencyAndPriorityExample
+public sealed class ConcurrencyAndPriorityExample
 {
     /// Demonstrates concurrency limits and job priority execution
     public static async Task Main(string[] args)

@@ -136,7 +136,7 @@ public abstract class BaseController : ControllerBase
 /// <summary>
 /// Standard API success response envelope.
 /// </summary>
-public class ApiSuccessResponse<T>
+public sealed class ApiSuccessResponse<T>
 {
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
@@ -147,7 +147,7 @@ public class ApiSuccessResponse<T>
 /// <summary>
 /// Standard API error response envelope.
 /// </summary>
-public class ApiErrorResponse
+public sealed class ApiErrorResponse
 {
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
@@ -158,7 +158,7 @@ public class ApiErrorResponse
 /// <summary>
 /// Validation error response with field-level errors.
 /// </summary>
-public class ApiValidationErrorResponse : ApiErrorResponse
+public sealed class ApiValidationErrorResponse : ApiErrorResponse
 {
     public Dictionary<string, string[]> Errors { get; set; } = new();
 }

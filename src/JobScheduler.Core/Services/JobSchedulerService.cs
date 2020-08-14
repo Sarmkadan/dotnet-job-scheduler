@@ -21,7 +21,7 @@ namespace JobScheduler.Core.Services;
 /// Central orchestrator for the job scheduler system.
 /// Manages job scheduling, execution, retries, and monitoring.
 /// </summary>
-public class JobSchedulerService
+public sealed class JobSchedulerService
 {
     private readonly IJobRepository _jobRepository;
     private readonly IExecutionRepository _executionRepository;
@@ -298,7 +298,7 @@ public class JobSchedulerService
     }
 }
 
-public class JobDetailsDto
+public sealed class JobDetailsDto
 {
     public Job Job { get; set; } = null!;
     public ExecutionStatistics ExecutionStatistics { get; set; } = null!;
@@ -307,7 +307,7 @@ public class JobDetailsDto
     public DateTime? NextScheduledTime { get; set; }
 }
 
-public class SchedulerStatisticsDto
+public sealed class SchedulerStatisticsDto
 {
     public int TotalJobs { get; set; }
     public int ActiveJobs { get; set; }

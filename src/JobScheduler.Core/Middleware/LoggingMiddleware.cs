@@ -16,7 +16,7 @@ namespace JobScheduler.Core.Middleware;
 /// Records request/response details including headers, body, and execution time.
 /// Critical for debugging and audit trail purposes.
 /// </summary>
-public class LoggingMiddleware
+public sealed class LoggingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<LoggingMiddleware> _logger;
@@ -157,7 +157,7 @@ public class LoggingMiddleware
     }
 }
 
-public class RequestDetails
+public sealed class RequestDetails
 {
     public string Method { get; set; } = string.Empty;
     public string Path { get; set; } = string.Empty;
@@ -167,7 +167,7 @@ public class RequestDetails
     public DateTime Timestamp { get; set; }
 }
 
-public class ResponseDetails
+public sealed class ResponseDetails
 {
     public int StatusCode { get; set; }
     public Dictionary<string, string> Headers { get; set; } = new();
