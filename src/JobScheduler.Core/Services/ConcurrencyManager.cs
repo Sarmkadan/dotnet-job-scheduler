@@ -82,10 +82,7 @@ public sealed class ConcurrencyManager
     /// </summary>
     public void DecrementConcurrencyCount(Guid jobId)
     {
-        if (_jobConcurrencyCache.TryGetValue(jobId, out var count) && count > 0)
-        {
-            _jobConcurrencyCache.AddOrUpdate(jobId, 0, (_, _) => count - 1);
-        }
+        _jobConcurrencyCache.AddOrUpdate(jobId, 0, (_, current) => Math.Max(0, current - 1));
 
         if (_globalRunningCount > 0)
             Interlocked.Decrement(ref _globalRunningCount);
