@@ -145,24 +145,28 @@ public sealed class RetryService
     }
 
     /// <summary>
-    /// Gets retry statistics for a job.
+    /// Gets retry statistics for a job. Returns zero-initialized statistics
+    /// if the job has no executions or no failed executions.
     /// </summary>
     public async Task<RetryStatistics> GetRetryStatisticsAsync(Guid jobId)
     {
         var executions = await _executionRepository.GetExecutionsByJobAsync(jobId);
-        var failedExecutions = executions.Where(e => e.Status == ExecutionStatus.Failed).ToList();
+        var executionsList = executions.ToList();
+        var failedExecutions = executionsList.Where(e => e.Status == ExecutionStatus.Failed).ToList();
 
         var stats = new RetryStatistics
         {
             JobId = jobId,
-            TotalExecutions = executions.Count(),
+            TotalExecutions = executionsList.Count,
             TotalFailures = failedExecutions.Count,
-            TotalRetries = failedExecutions.Sum(e => e.AttemptNumber - 1),
+            TotalRetries = failedExecutions.Sum(e => Math.Max(0, e.AttemptNumber - 1)),
             AverageRetriesPerFailure = failedExecutions.Count > 0
-                ? failedExecutions.Average(e => e.AttemptNumber - 1)
+                ? failedExecutions.Average(e => Math.Max(0, e.AttemptNumber - 1))
                 : 0,
-            LastFailureTime = failedExecutions.Max(e => (DateTime?)e.CompletedAt),
-            RecentFailureRate = CalculateRecentFailureRate(executions)
+            LastFailureTime = failedExecutions.Count > 0
+                ? failedExecutions.Max(e => (DateTime?)e.CompletedAt)
+                : null,
+            RecentFailureRate = CalculateRecentFailureRate(executionsList)
         };
 
         return stats;
