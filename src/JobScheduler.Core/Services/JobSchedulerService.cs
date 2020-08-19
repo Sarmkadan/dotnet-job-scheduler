@@ -18,9 +18,25 @@ using JobScheduler.Core.Exceptions;
 namespace JobScheduler.Core.Services;
 
 /// <summary>
-/// Central orchestrator for the job scheduler system.
-/// Manages job scheduling, execution, retries, and monitoring.
+/// Central orchestrator for the job scheduler system. Coordinates job scheduling,
+/// execution, retry logic, concurrency management, and lifecycle transitions.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The scheduler supports multiple scheduling modes:
+/// <list type="bullet">
+///   <item>Cron-based recurring schedules (via <see cref="CronExpressionService"/>)</item>
+///   <item>One-time delayed execution</item>
+///   <item>Immediate execution</item>
+///   <item>Dependency-based execution chains</item>
+/// </list>
+/// </para>
+/// <para>
+/// Concurrency is managed per job via <see cref="ConcurrencyManager"/> - each job can define
+/// a maximum number of parallel executions. Failed jobs are retried according to the
+/// configured <see cref="RetryService"/> policy (fixed delay, exponential backoff, or none).
+/// </para>
+/// </remarks>
 public sealed class JobSchedulerService
 {
     private readonly IJobRepository _jobRepository;
