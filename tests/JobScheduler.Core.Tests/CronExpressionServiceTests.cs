@@ -146,4 +146,18 @@ public sealed class CronExpressionServiceTests
         Assert.False(string.IsNullOrWhiteSpace(description));
         Assert.NotEqual("Invalid cron expression", description);
     }
+
+    [Fact]
+    public void GetNextExecutionTime_LeapYearExpressionInNonLeapYear_FindsNextLeapYear()
+    {
+        // Arrange
+        var cron = "0 0 29 2 *"; // Feb 29th
+        var nonLeapYear = new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc); // Start of a non-leap year
+
+        // Act
+        var nextLeapYearOccurrence = _service.GetNextExecutionTime(cron, nonLeapYear);
+
+        // Assert
+        Assert.Equal(new DateTime(2024, 2, 29, 0, 0, 0, DateTimeKind.Utc), nextLeapYearOccurrence);
+    }
 }
