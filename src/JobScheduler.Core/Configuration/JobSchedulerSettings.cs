@@ -125,6 +125,17 @@ public sealed class DistributedSettings
     public bool EnableServiceDiscovery { get; set; } = false;
     public string? ServiceRegistryUrl { get; set; }
     public int HeartbeatIntervalSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Enables database-backed distributed leader election so only one node fires
+    /// jobs at each scheduled interval.
+    /// </summary>
+    public bool EnableLeaderElection { get; set; } = false;
+
+    /// <summary>
+    /// Seconds before an un-renewed leader lease expires and another node may take over.
+    /// </summary>
+    public int LeaderElectionLeaseDurationSeconds { get; set; } = 30;
 }
 
 /// <summary>

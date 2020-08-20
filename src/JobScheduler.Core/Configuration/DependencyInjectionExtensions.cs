@@ -86,6 +86,16 @@ public static class DependencyInjectionExtensions
         // Phase 3: Dependency graph
         services.AddScoped<IJobDependencyService, JobDependencyService>();
 
+        // Leader election (opt-in)
+        if (options.EnableLeaderElection)
+        {
+            services.AddScoped<ILeaderElectionService>(sp => new DatabaseLeaderElectionService(
+                sp.GetRequiredService<JobSchedulerContext>(),
+                options.LeaderElectionInstanceId,
+                options.LeaderElectionLeaseDurationSeconds,
+                sp.GetService<Microsoft.Extensions.Logging.ILogger<DatabaseLeaderElectionService>>()));
+        }
+
         // Phase 2: Middleware registration
         services.AddScoped<GlobalExceptionMiddleware>();
         services.AddScoped<LoggingMiddleware>();
@@ -182,4 +192,24 @@ public sealed class JobSchedulerOptions
 
     /// <summary>Cleanup interval in milliseconds</summary>
     public int CleanupIntervalMs { get; set; } = SchedulerConstants.CleanupIntervalMs;
+
+    // ---- Leader election (opt-in) ----
+
+    /// <summary>
+    /// Enables distributed leader election so that only one scheduler node executes
+    /// jobs at a time in multi-instance deployments.  Defaults to <c>false</c>.
+    /// </summary>
+    public bool EnableLeaderElection { get; set; } = false;
+
+    /// <summary>
+    /// Unique identifier for this scheduler instance.
+    /// Defaults to <c>Environment.MachineName</c> when left null or empty.
+    /// </summary>
+    public string? LeaderElectionInstanceId { get; set; }
+
+    /// <summary>
+    /// How many seconds a leadership lease is valid before it must be renewed.
+    /// Defaults to 30 s.
+    /// </summary>
+    public int LeaderElectionLeaseDurationSeconds { get; set; } = 30;
 }
