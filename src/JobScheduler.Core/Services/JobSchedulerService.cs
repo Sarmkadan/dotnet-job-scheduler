@@ -73,7 +73,9 @@ public sealed class JobSchedulerService
 
         job.CreatedBy = createdBy;
         job.Status = JobStatus.Scheduled;
-        job.NextExecutionAt = _cronService.GetNextExecutionTime(job.CronExpression);
+        job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
+            ? _cronService.GetNextExecutionTime(job.CronExpression)
+            : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId);
 
         await _jobRepository.AddAsync(job);
         await _jobRepository.SaveChangesAsync();
@@ -105,7 +107,9 @@ public sealed class JobSchedulerService
                 // Schedule next execution
                 if (job.IsActive && job.Status != JobStatus.FailedPermanently)
                 {
-                    job.NextExecutionAt = _cronService.GetNextExecutionTime(job.CronExpression, DateTime.UtcNow);
+                    job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
+                        ? _cronService.GetNextExecutionTime(job.CronExpression, DateTime.UtcNow)
+                        : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId, DateTime.UtcNow);
                     _jobRepository.Update(job);
                     await _jobRepository.SaveChangesAsync();
                 }
@@ -227,7 +231,9 @@ public sealed class JobSchedulerService
             throw new ArgumentException("ResumedBy cannot be an empty or whitespace string if provided.", nameof(resumedBy));
 
         job.Status = JobStatus.Scheduled;
-        job.NextExecutionAt = _cronService.GetNextExecutionTime(job.CronExpression);
+        job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
+            ? _cronService.GetNextExecutionTime(job.CronExpression)
+            : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId);
         job.MarkAsUpdated(resumedBy);
 
         _jobRepository.Update(job);
@@ -295,6 +301,24 @@ public sealed class JobSchedulerService
             AverageSuccessRate = allJobs.Any() ? allJobs.Average(j => j.GetSuccessRate()) : 0,
             ConcurrencyStats = concurrencyStats
         };
+    }
+
+    /// <summary>
+    /// Returns the most recent execution records for a job, newest first.
+    /// </summary>
+    /// <param name="jobId">The job identifier.</param>
+    /// <param name="limit">Maximum number of records to return. Defaults to 20.</param>
+    public async Task<IEnumerable<JobExecution>> GetExecutionHistoryAsync(Guid jobId, int limit = 20)
+    {
+        if (limit <= 0)
+            limit = 20;
+
+        var job = await _jobRepository.GetByIdAsync(jobId);
+        if (job is null)
+            throw new JobNotFoundException(jobId);
+
+        var executions = await _executionRepository.GetExecutionsByJobAsync(jobId);
+        return executions.Take(limit);
     }
 }
 

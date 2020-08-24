@@ -26,6 +26,13 @@ public sealed class CreateJobRequest
     [StringLength(100, MinimumLength = 5)]
     public string CronExpression { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Optional IANA or Windows timezone ID (e.g. "America/New_York", "Eastern Standard Time").
+    /// When provided, the cron expression fires at local time in that timezone.
+    /// </summary>
+    [StringLength(100)]
+    public string? TimeZoneId { get; set; }
+
     [Required]
     [StringLength(512)]
     public string HandlerType { get; set; } = string.Empty;
@@ -65,6 +72,7 @@ public sealed class CreateJobRequest
             Name = Name,
             Description = Description ?? string.Empty,
             CronExpression = CronExpression,
+            TimeZoneId = TimeZoneId,
             HandlerType = HandlerType,
             HandlerParameters = HandlerParameters,
             Priority = Priority,

@@ -160,4 +160,32 @@ public sealed class CronExpressionServiceTests
         // Assert
         Assert.Equal(new DateTime(2024, 2, 29, 0, 0, 0, DateTimeKind.Utc), nextLeapYearOccurrence);
     }
+
+    [Fact]
+    public void GetNextExecutionTimeInZone_ReturnsCorrectUtcTime()
+    {
+        // "0 9 * * *" in Eastern Standard Time (UTC-5) should return 14:00 UTC.
+        var cron = "0 9 * * *";
+        // Use a known EST date (no DST) to keep the test deterministic.
+        var baseUtc = new DateTime(2024, 1, 10, 10, 0, 0, DateTimeKind.Utc); // 05:00 EST
+
+        var nextUtc = _service.GetNextExecutionTimeInZone(cron, "Eastern Standard Time", baseUtc);
+
+        // 09:00 EST on 2024-01-10 = 14:00 UTC
+        Assert.Equal(new DateTime(2024, 1, 10, 14, 0, 0, DateTimeKind.Utc), nextUtc);
+    }
+
+    [Fact]
+    public void GetNextExecutionTimeInZone_WithNullTimezone_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            _service.GetNextExecutionTimeInZone("0 9 * * *", null!));
+    }
+
+    [Fact]
+    public void GetNextExecutionTimeInZone_WithUnknownTimezone_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            _service.GetNextExecutionTimeInZone("0 9 * * *", "Unknown/NotReal_TZ"));
+    }
 }

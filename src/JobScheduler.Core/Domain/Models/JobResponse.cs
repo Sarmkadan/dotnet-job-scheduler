@@ -19,6 +19,7 @@ public sealed class JobResponse
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string CronExpression { get; set; } = string.Empty;
+    public string? TimeZoneId { get; set; }
     public JobPriority Priority { get; set; }
     public JobStatus Status { get; set; }
     public bool IsActive { get; set; }
@@ -41,6 +42,7 @@ public sealed class JobResponse
             Name = job.Name,
             Description = job.Description,
             CronExpression = job.CronExpression,
+            TimeZoneId = job.TimeZoneId,
             Priority = job.Priority,
             Status = job.Status,
             IsActive = job.IsActive,

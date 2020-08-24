@@ -23,6 +23,14 @@ public class Job
 
     public string CronExpression { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Optional IANA or Windows timezone ID (e.g. "America/New_York", "Eastern Standard Time").
+    /// When set, the cron expression is evaluated in this timezone so that schedules like
+    /// "0 9 * * *" fire at 09:00 local time regardless of DST transitions.
+    /// When null or empty the cron expression is evaluated in UTC.
+    /// </summary>
+    public string? TimeZoneId { get; set; }
+
     public JobPriority Priority { get; set; } = JobPriority.Normal;
 
     public JobStatus Status { get; set; } = JobStatus.Pending;
