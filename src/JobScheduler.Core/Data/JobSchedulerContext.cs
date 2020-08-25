@@ -120,7 +120,8 @@ public sealed class JobSchedulerContext : DbContext
             .WithMany()
             .HasForeignKey(d => d.DependsOnJobId)
             .OnDelete(DeleteBehavior.Restrict);
-    }
+
+
 
     /// <summary>
     /// Saves all changes to the database asynchronously.

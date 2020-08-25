@@ -45,6 +45,9 @@ A production-grade, distributed job scheduler for .NET with support for cron exp
 - **Slack Notifications**: Direct Slack integration for job alerts and status updates
 - **Rate Limiting**: Request throttling to prevent API abuse
 - **Performance Monitoring**: Built-in performance tracking and metrics collection
+- **Job History Viewer**: Rich, filterable execution history with per-job and system-wide aggregated statistics
+- **Job Chain / Pipeline Support**: Define named, ordered pipelines of jobs where each step waits for the previous step to succeed
+- **Distributed Job Locking**: Database-backed exclusive locks prevent multiple scheduler instances from running the same job concurrently
 
 ## Architecture
 
@@ -1080,6 +1083,66 @@ The above copyright notice and this permission notice shall be included in all c
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
+---
+
+## Job History Viewer
+
+`JobHistoryService` provides rich, filterable access to job execution records with both per-job and system-wide views.
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/history/jobs/{jobId}` | Paginated execution history for a specific job |
+| `GET` | `/api/history/jobs/{jobId}/summary` | Aggregated statistics for a specific job |
+| `GET` | `/api/history` | Paginated system-wide execution history |
+| `GET` | `/api/history/summary` | Aggregated system-wide statistics |
+
+### Query Parameters
+
+All history endpoints accept:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | `ExecutionStatus` | Filter by execution status (Running, Success, Failed, …) |
+| `from` | `DateTime` | Include only executions starting on or after this UTC timestamp |
+| `to` | `DateTime` | Include only executions starting before or on this UTC timestamp |
+| `pageNumber` | `int` | 1-based page number (default: 1) |
+| `pageSize` | `int` | Records per page, capped at 200 (default: 20) |
+
+### Summary Response
+
+```json
+{
+  "jobId": "...",
+  "jobName": "daily-report",
+  "totalExecutions": 30,
+  "successCount": 27,
+  "failureCount": 3,
+  "successRate": 90.0,
+  "averageDurationMs": 1450,
+  "minDurationMs": 800,
+  "maxDurationMs": 3200,
+  "lastExecutedAt": "2025-01-15T09:00:00Z",
+  "lastStatus": "Success"
+}
+```
+
+### Programmatic Usage
+
+```csharp
+// Inject JobHistoryService
+var query = new JobHistoryQuery
+{
+    Status = ExecutionStatus.Failed,
+    From = DateTime.UtcNow.AddDays(-7),
+    PageSize = 50
+};
+
+var history = await historyService.GetJobHistoryAsync(jobId, query);
+var summary = await historyService.GetJobSummaryAsync(jobId);
+```
 
 ---
 
