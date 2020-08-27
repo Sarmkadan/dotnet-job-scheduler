@@ -92,6 +92,9 @@ public static class DependencyInjectionExtensions
         // Phase 3: Job chain/pipeline support
         services.AddScoped<JobPipelineService>();
 
+        // Phase 3: Distributed job locking
+        services.AddScoped<IDistributedJobLockService, DistributedJobLockService>();
+
         // Leader election (opt-in)
         if (options.EnableLeaderElection)
         {
