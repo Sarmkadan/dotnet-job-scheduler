@@ -89,6 +89,9 @@ public static class DependencyInjectionExtensions
         // Phase 3: Job history viewer
         services.AddScoped<JobHistoryService>();
 
+        // Phase 3: Job chain/pipeline support
+        services.AddScoped<JobPipelineService>();
+
         // Leader election (opt-in)
         if (options.EnableLeaderElection)
         {
