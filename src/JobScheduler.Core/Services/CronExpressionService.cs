@@ -56,6 +56,7 @@ public class CronExpressionService
     /// <summary>
     /// Calculates the next execution time based on cron expression.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public DateTime GetNextExecutionTime(string cronExpression, DateTime? baseTime = null)
     {
         var schedule = ParseCronExpression(cronExpression);
