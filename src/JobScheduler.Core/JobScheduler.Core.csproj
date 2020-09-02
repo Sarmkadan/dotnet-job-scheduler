@@ -8,7 +8,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageId>Zaiets.dotnet.job.scheduler</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>Vladyslav Zaiets</Authors>
     <Description>Distributed job scheduler for .NET - cron expressions, priority queues, retries, concurrency control, dashboard</Description>
     <PackageTags>job-scheduler cron distributed-systems retry-logic priority-queue concurrency-control aspnet-core task-scheduling</PackageTags>
