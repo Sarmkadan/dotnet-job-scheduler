@@ -35,27 +35,25 @@ public class RetryService
     /// <summary>
     /// Determines if a failed execution should be retried.
     /// </summary>
-    public async Task<bool> ShouldRetryAsync(Job job, JobExecution execution)
+    public ValueTask<bool> ShouldRetryAsync(Job job, JobExecution execution)
     {
         if (job == null || execution == null)
-            return false;
+            return ValueTask.FromResult(false);
 
-        // Check if max retries exceeded
         if (execution.AttemptNumber > job.MaxRetries)
         {
             _logger?.LogInformation("Job {JobId} execution {ExecutionId} exceeded max retries ({MaxRetries})",
                 job.Id, execution.Id, job.MaxRetries);
-            return false;
+            return ValueTask.FromResult(false);
         }
 
-        // Only retry if execution was marked as retryable
         if (!execution.IsRetryable)
         {
             _logger?.LogWarning("Job {JobId} execution {ExecutionId} marked as not retryable", job.Id, execution.Id);
-            return false;
+            return ValueTask.FromResult(false);
         }
 
-        return true;
+        return ValueTask.FromResult(true);
     }
 
     /// <summary>
