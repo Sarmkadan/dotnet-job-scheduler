@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -132,13 +133,13 @@ public class CacheService
     public async Task<T?> GetOrSetAsync<T>(string key, Func<Task<T?>> factory, TimeSpan? expiration = null) where T : class
     {
         var cached = await GetAsync<T>(key);
-        if (cached != null)
+        if (cached is not null)
             return cached;
 
         try
         {
             var value = await factory();
-            if (value != null)
+            if (value is not null)
             {
                 await SetAsync(key, value, expiration);
             }

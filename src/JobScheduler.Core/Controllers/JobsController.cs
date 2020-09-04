@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -88,7 +89,7 @@ public class JobsController : ControllerBase
         try
         {
             var job = await _schedulerService.GetJobByIdAsync(id);
-            if (job == null)
+            if (job is null)
             {
                 _logger.LogWarning("Job not found: {JobId}", id);
                 return NotFound(new { error = "Job not found" });
@@ -149,7 +150,7 @@ public class JobsController : ControllerBase
         try
         {
             var updated = await _schedulerService.UpdateJobAsync(id, request, User?.Identity?.Name);
-            if (updated == null)
+            if (updated is null)
                 return NotFound(new { error = "Job not found" });
 
             _logger.LogInformation("Job updated: {JobId}", id);
@@ -204,7 +205,7 @@ public class JobsController : ControllerBase
         try
         {
             var job = await _schedulerService.SuspendJobAsync(id, request?.Reason, User?.Identity?.Name);
-            if (job == null)
+            if (job is null)
                 return NotFound(new { error = "Job not found" });
 
             _logger.LogInformation("Job suspended: {JobId}", id);
@@ -228,7 +229,7 @@ public class JobsController : ControllerBase
         try
         {
             var job = await _schedulerService.ResumeJobAsync(id, User?.Identity?.Name);
-            if (job == null)
+            if (job is null)
                 return NotFound(new { error = "Job not found" });
 
             _logger.LogInformation("Job resumed: {JobId}", id);
@@ -254,7 +255,7 @@ public class JobsController : ControllerBase
         try
         {
             var execution = await _schedulerService.TriggerJobExecutionAsync(id);
-            if (execution == null)
+            if (execution is null)
                 return NotFound(new { error = "Job not found" });
 
             _logger.LogInformation("Job triggered for execution: {JobId}", id);
