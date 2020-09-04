@@ -78,7 +78,7 @@ public sealed class CronExpressionService
         var reference = baseTime ?? DateTime.UtcNow;
         var next = schedule.GetNextOccurrence(reference);
 
-        if (next == DateTime.MaxValue)
+        if (next == DateTime.MaxValue || next.Year < 2024)
             throw new CronExpressionException(cronExpression, "Could not calculate next occurrence");
 
         return next;
