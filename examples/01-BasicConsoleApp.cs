@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -18,7 +20,7 @@ using JobScheduler.Core.Services;
 /// in a controlled manner.
 /// </summary>
 
-public class HelloWorldJobHandler : IJobHandler
+public sealed class HelloWorldJobHandler : IJobHandler
 {
     private readonly ILogger<HelloWorldJobHandler> _logger;
 
@@ -35,7 +37,7 @@ public class HelloWorldJobHandler : IJobHandler
     }
 }
 
-public class CounterJobHandler : IJobHandler
+public sealed class CounterJobHandler : IJobHandler
 {
     private readonly ILogger<CounterJobHandler> _logger;
 
@@ -58,7 +60,7 @@ public class CounterJobHandler : IJobHandler
     }
 }
 
-public class BasicConsoleExample
+public sealed class BasicConsoleExample
 {
     public static async Task Main(string[] args)
     {

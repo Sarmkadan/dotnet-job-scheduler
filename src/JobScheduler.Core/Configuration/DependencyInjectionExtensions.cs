@@ -157,7 +157,7 @@ public static class DependencyInjectionExtensions
 /// <summary>
 /// Configuration options for the job scheduler.
 /// </summary>
-public class JobSchedulerOptions
+public sealed class JobSchedulerOptions
 {
     /// <summary>Database connection string (defaults to SQLite in-memory)</summary>
     public string? ConnectionString { get; set; }

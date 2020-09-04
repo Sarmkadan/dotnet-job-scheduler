@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -14,7 +16,7 @@ namespace JobScheduler.Core.Tests;
 /// Unit tests for CronExpressionService.
 /// Validates cron expression parsing, validation, and execution time calculation.
 /// </summary>
-public class CronExpressionServiceTests
+public sealed class CronExpressionServiceTests
 {
     private readonly CronExpressionService _service = new();
 

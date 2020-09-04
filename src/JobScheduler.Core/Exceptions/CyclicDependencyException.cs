@@ -10,7 +10,7 @@ namespace JobScheduler.Core.Exceptions;
 /// Thrown when adding a job dependency would introduce a cycle in the dependency graph,
 /// violating the directed acyclic graph (DAG) invariant required for deterministic execution ordering.
 /// </summary>
-public class CyclicDependencyException : JobSchedulerException
+public sealed class CyclicDependencyException : JobSchedulerException
 {
     /// <summary>Gets the ID of the job that was requested to be made dependent.</summary>
     public Guid JobId { get; }

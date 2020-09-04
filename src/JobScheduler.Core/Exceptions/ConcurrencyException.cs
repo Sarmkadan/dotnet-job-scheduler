@@ -11,7 +11,7 @@ namespace JobScheduler.Core.Exceptions;
 /// <summary>
 /// Thrown when a job execution is rejected due to concurrency control limits.
 /// </summary>
-public class ConcurrencyException : JobSchedulerException
+public sealed class ConcurrencyException : JobSchedulerException
 {
     public Guid JobId { get; set; }
 

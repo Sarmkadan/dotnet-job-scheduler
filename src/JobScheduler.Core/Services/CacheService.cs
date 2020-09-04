@@ -16,7 +16,7 @@ namespace JobScheduler.Core.Services;
 /// Reduces database queries and improves response times for hot data.
 /// WHY: Caching is critical for performance when dealing with large job sets.
 /// </summary>
-public class CacheService
+public sealed class CacheService
 {
     private readonly IMemoryCache _cache;
     private readonly ILogger<CacheService> _logger;
@@ -204,7 +204,7 @@ public static class CacheKeyGenerator
     public static string ExecutionKey(Guid executionId) => $"execution:{executionId}";
 }
 
-public class CacheStatistics
+public sealed class CacheStatistics
 {
     public int TotalKeys { get; set; }
     public DateTime Timestamp { get; set; }

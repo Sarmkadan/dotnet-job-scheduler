@@ -13,7 +13,7 @@ namespace JobScheduler.Core.Domain.Models;
 /// Response model for job execution data in API responses.
 /// Contains execution status, timing, and error information.
 /// </summary>
-public class ExecutionResponse
+public sealed class ExecutionResponse
 {
     public Guid Id { get; set; }
     public Guid JobId { get; set; }

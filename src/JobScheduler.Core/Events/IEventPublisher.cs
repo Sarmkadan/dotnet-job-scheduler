@@ -49,7 +49,7 @@ public interface ISchedulerEvent
 }
 
 // Domain event classes
-public class JobCreatedEvent : ISchedulerEvent
+public sealed class JobCreatedEvent : ISchedulerEvent
 {
     public Guid EventId { get; set; } = Guid.NewGuid();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -59,7 +59,7 @@ public class JobCreatedEvent : ISchedulerEvent
     public string CreatedBy { get; set; } = string.Empty;
 }
 
-public class JobExecutionStartedEvent : ISchedulerEvent
+public sealed class JobExecutionStartedEvent : ISchedulerEvent
 {
     public Guid EventId { get; set; } = Guid.NewGuid();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -69,7 +69,7 @@ public class JobExecutionStartedEvent : ISchedulerEvent
     public string JobName { get; set; } = string.Empty;
 }
 
-public class JobExecutionCompletedEvent : ISchedulerEvent
+public sealed class JobExecutionCompletedEvent : ISchedulerEvent
 {
     public Guid EventId { get; set; } = Guid.NewGuid();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -82,7 +82,7 @@ public class JobExecutionCompletedEvent : ISchedulerEvent
     public string? ErrorMessage { get; set; }
 }
 
-public class JobExecutionFailedEvent : ISchedulerEvent
+public sealed class JobExecutionFailedEvent : ISchedulerEvent
 {
     public Guid EventId { get; set; } = Guid.NewGuid();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -95,7 +95,7 @@ public class JobExecutionFailedEvent : ISchedulerEvent
     public bool WillRetry { get; set; }
 }
 
-public class JobSuspendedEvent : ISchedulerEvent
+public sealed class JobSuspendedEvent : ISchedulerEvent
 {
     public Guid EventId { get; set; } = Guid.NewGuid();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -106,7 +106,7 @@ public class JobSuspendedEvent : ISchedulerEvent
     public string? SuspendedBy { get; set; }
 }
 
-public class JobResumedEvent : ISchedulerEvent
+public sealed class JobResumedEvent : ISchedulerEvent
 {
     public Guid EventId { get; set; } = Guid.NewGuid();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -116,7 +116,7 @@ public class JobResumedEvent : ISchedulerEvent
     public string? ResumedBy { get; set; }
 }
 
-public class JobDeletedEvent : ISchedulerEvent
+public sealed class JobDeletedEvent : ISchedulerEvent
 {
     public Guid EventId { get; set; } = Guid.NewGuid();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -126,7 +126,7 @@ public class JobDeletedEvent : ISchedulerEvent
     public string? DeletedBy { get; set; }
 }
 
-public class SchedulerErrorEvent : ISchedulerEvent
+public sealed class SchedulerErrorEvent : ISchedulerEvent
 {
     public Guid EventId { get; set; } = Guid.NewGuid();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;

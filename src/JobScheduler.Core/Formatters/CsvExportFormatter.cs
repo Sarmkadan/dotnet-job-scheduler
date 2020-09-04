@@ -15,7 +15,7 @@ namespace JobScheduler.Core.Formatters;
 /// Provides options for field selection and custom headers.
 /// WHY: CSV export enables data analysis in Excel and other business intelligence tools.
 /// </summary>
-public class CsvExportFormatter
+public sealed class CsvExportFormatter
 {
     /// <summary>
     /// Exports jobs to CSV format.
@@ -166,7 +166,7 @@ public class CsvExportFormatter
     }
 }
 
-public class JobCsvRow
+public sealed class JobCsvRow
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;

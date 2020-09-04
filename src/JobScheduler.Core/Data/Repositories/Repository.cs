@@ -18,7 +18,7 @@ namespace JobScheduler.Core.Data.Repositories;
 /// Works with any entity type inheriting from the base class.
 /// </summary>
 /// <typeparam name="T">The entity type</typeparam>
-public class Repository<T> : IRepository<T> where T : class
+public sealed class Repository<T> : IRepository<T> where T : class
 {
     protected readonly JobSchedulerContext _context;
     protected readonly DbSet<T> _dbSet;
