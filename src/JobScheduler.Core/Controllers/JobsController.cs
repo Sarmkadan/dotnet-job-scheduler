@@ -273,6 +273,33 @@ public sealed class JobsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Returns past execution records for a job, newest first.
+    /// Useful for monitoring and debugging job behaviour over time.
+    /// </summary>
+    [HttpGet("{id:guid}/history")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<ExecutionResponse>>> GetJobExecutionHistory(
+        Guid id,
+        [FromQuery] int limit = 20)
+    {
+        try
+        {
+            var executions = await _schedulerService.GetExecutionHistoryAsync(id, limit);
+            return Ok(executions.Select(ExecutionResponse.FromExecution));
+        }
+        catch (JobNotFoundException)
+        {
+            return NotFound(new { error = "Job not found" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving execution history for job: {JobId}", id);
+            return StatusCode(500, new { error = "Failed to retrieve execution history" });
+        }
+    }
+
     private JobResponse MapToResponse(Job job) =>
         new JobResponse
         {
