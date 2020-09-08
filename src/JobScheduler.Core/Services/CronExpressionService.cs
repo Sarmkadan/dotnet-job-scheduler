@@ -107,6 +107,75 @@ public sealed class CronExpressionService
     }
 
     /// <summary>
+    /// Calculates the next execution time in the specified IANA or Windows timezone.
+    /// The cron expression is evaluated as if the clock were in that timezone, so
+    /// a schedule of "0 9 * * *" with timezone "America/New_York" fires at 09:00 EST/EDT
+    /// regardless of DST transitions.  The returned <see cref="DateTime"/> is UTC.
+    /// </summary>
+    /// <param name="cronExpression">Standard five-field cron expression.</param>
+    /// <param name="timezoneId">
+    /// IANA (e.g. "America/New_York") or Windows (e.g. "Eastern Standard Time") timezone ID.
+    /// </param>
+    /// <param name="baseTimeUtc">
+    /// Reference point in UTC.  Defaults to <see cref="DateTime.UtcNow"/>.
+    /// </param>
+    public DateTime GetNextExecutionTimeInZone(string cronExpression, string timezoneId, DateTime? baseTimeUtc = null)
+    {
+        if (string.IsNullOrWhiteSpace(timezoneId))
+            throw new ArgumentException("Timezone ID cannot be null or empty.", nameof(timezoneId));
+
+        TimeZoneInfo tz;
+        try
+        {
+            tz = TimeZoneInfo.FindSystemTimeZoneById(timezoneId);
+        }
+        catch (TimeZoneNotFoundException ex)
+        {
+            throw new ArgumentException($"Unknown timezone '{timezoneId}'.", nameof(timezoneId), ex);
+        }
+
+        var schedule = ParseCronExpression(cronExpression);
+        var referenceUtc = DateTime.SpecifyKind(baseTimeUtc ?? DateTime.UtcNow, DateTimeKind.Utc);
+
+        // Convert the UTC reference to local wall-clock time so NCrontab evaluates
+        // the expression in the target timezone.
+        var referenceLocal = TimeZoneInfo.ConvertTimeFromUtc(referenceUtc, tz);
+
+        for (int attempt = 0; attempt < 8; attempt++)
+        {
+            DateTime nextLocal;
+            try
+            {
+                nextLocal = schedule.GetNextOccurrence(referenceLocal);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                referenceLocal = new DateTime(referenceLocal.Year + 1, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+                continue;
+            }
+
+            if (nextLocal == DateTime.MaxValue)
+                break;
+
+            // Convert the local occurrence back to UTC.  If the local time falls in a
+            // DST gap (a time that does not exist on the wall clock) advance by one
+            // minute and retry so we always land in a valid instant.
+            var nextLocalUnspecified = DateTime.SpecifyKind(nextLocal, DateTimeKind.Unspecified);
+            if (tz.IsInvalidTime(nextLocalUnspecified))
+            {
+                referenceLocal = nextLocal.AddMinutes(1);
+                continue;
+            }
+
+            return TimeZoneInfo.ConvertTimeToUtc(nextLocalUnspecified, tz);
+        }
+
+        throw new CronExpressionException(cronExpression,
+            $"Could not calculate next occurrence in timezone '{timezoneId}'. " +
+            "The expression may target a date that never exists (e.g. Feb 29 with no upcoming leap year in range).");
+    }
+
+    /// <summary>
     /// Calculates the next N execution times.
     /// </summary>
     public IEnumerable<DateTime> GetNextExecutionTimes(string cronExpression, int count, DateTime? baseTime = null)
