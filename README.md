@@ -1146,6 +1146,68 @@ var summary = await historyService.GetJobSummaryAsync(jobId);
 
 ---
 
+## Job Chain / Pipeline Support
+
+`JobPipelineService` allows you to define named, ordered sequences of jobs (pipelines). Each step only starts after the previous step has completed successfully. Internally, pipelines use `JobDependencyService` to register sequential dependency edges.
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/pipelines` | Create a new pipeline |
+| `GET` | `/api/pipelines` | List all pipelines |
+| `GET` | `/api/pipelines/{id}` | Get a specific pipeline |
+| `DELETE` | `/api/pipelines/{id}` | Delete a pipeline (jobs are preserved) |
+| `GET` | `/api/pipelines/{id}/status` | Get current execution status of each step |
+
+### Create Pipeline Request
+
+```json
+{
+  "name": "etl-pipeline",
+  "description": "Daily ETL: extract → transform → load",
+  "steps": [
+    { "jobId": "<extract-job-id>", "stopOnFailure": true },
+    { "jobId": "<transform-job-id>", "stopOnFailure": true },
+    { "jobId": "<load-job-id>", "stopOnFailure": false }
+  ]
+}
+```
+
+### Pipeline Status Response
+
+```json
+{
+  "pipelineId": "...",
+  "pipelineName": "etl-pipeline",
+  "stepStatuses": [
+    { "stepOrder": 0, "jobName": "extract", "status": "Success", "isReady": true },
+    { "stepOrder": 1, "jobName": "transform", "status": "Running", "isReady": true },
+    { "stepOrder": 2, "jobName": "load", "status": "NotStarted", "isReady": false }
+  ]
+}
+```
+
+### Programmatic Usage
+
+```csharp
+var request = new CreatePipelineRequest
+{
+    Name = "etl-pipeline",
+    Steps = new List<PipelineStepRequest>
+    {
+        new() { JobId = extractJobId },
+        new() { JobId = transformJobId },
+        new() { JobId = loadJobId }
+    }
+};
+
+var pipeline = await pipelineService.CreatePipelineAsync(request, createdBy: "admin");
+var status = await pipelineService.GetPipelineStatusAsync(pipeline.Id);
+```
+
+---
+
 **Built by [Vladyslav Zaiets](https://sarmkadan.com) - CTO & Software Architect**
 
 [Portfolio](https://sarmkadan.com) | [GitHub](https://github.com/Sarmkadan) | [Telegram](https://t.me/sarmkadan)

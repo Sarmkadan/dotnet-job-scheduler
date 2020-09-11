@@ -25,6 +25,8 @@ public sealed class JobSchedulerContext : DbContext
     public DbSet<ExecutionMetrics> ExecutionMetrics { get; set; } = null!;
     public DbSet<JobDependency> JobDependencies { get; set; } = null!;
     public DbSet<SchedulerLeaderLock> SchedulerLeaderLocks { get; set; } = null!;
+    public DbSet<JobPipeline> JobPipelines { get; set; } = null!;
+    public DbSet<JobPipelineStep> JobPipelineSteps { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -96,6 +98,23 @@ public sealed class JobSchedulerContext : DbContext
             entity.Property(e => e.LeaderInstanceId).HasMaxLength(256).IsRequired();
         });
 
+        // Configure JobPipeline entity
+        modelBuilder.Entity<JobPipeline>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.Property(e => e.Name).HasMaxLength(256).IsRequired();
+        });
+
+        // Configure JobPipelineStep entity
+        modelBuilder.Entity<JobPipelineStep>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.PipelineId);
+            entity.HasIndex(e => new { e.PipelineId, e.StepOrder }).IsUnique();
+        });
+
+
         // Configure relationships
         modelBuilder.Entity<Job>()
             .HasMany(j => j.Executions)
@@ -121,7 +140,19 @@ public sealed class JobSchedulerContext : DbContext
             .HasForeignKey(d => d.DependsOnJobId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Configure JobPipeline relationships
+        modelBuilder.Entity<JobPipeline>()
+            .HasMany(p => p.Steps)
+            .WithOne(s => s.Pipeline)
+            .HasForeignKey(s => s.PipelineId)
+            .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<JobPipelineStep>()
+            .HasOne(s => s.Job)
+            .WithMany()
+            .HasForeignKey(s => s.JobId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
 
     /// <summary>
     /// Saves all changes to the database asynchronously.
