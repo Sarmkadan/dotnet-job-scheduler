@@ -27,6 +27,7 @@ public sealed class JobSchedulerContext : DbContext
     public DbSet<SchedulerLeaderLock> SchedulerLeaderLocks { get; set; } = null!;
     public DbSet<JobPipeline> JobPipelines { get; set; } = null!;
     public DbSet<JobPipelineStep> JobPipelineSteps { get; set; } = null!;
+    public DbSet<DistributedJobLock> DistributedJobLocks { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -114,6 +115,13 @@ public sealed class JobSchedulerContext : DbContext
             entity.HasIndex(e => new { e.PipelineId, e.StepOrder }).IsUnique();
         });
 
+        // Configure DistributedJobLock entity
+        modelBuilder.Entity<DistributedJobLock>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.JobId).IsUnique();
+            entity.Property(e => e.HolderInstanceId).HasMaxLength(256).IsRequired();
+        });
 
         // Configure relationships
         modelBuilder.Entity<Job>()
