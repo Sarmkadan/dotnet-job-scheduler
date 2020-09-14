@@ -11,7 +11,7 @@ namespace JobScheduler.Core.Exceptions;
 /// <summary>
 /// Base exception for all job scheduler-related errors.
 /// </summary>
-public sealed class JobSchedulerException : Exception
+public class JobSchedulerException : Exception
 {
     public string? ErrorCode { get; set; }
 
