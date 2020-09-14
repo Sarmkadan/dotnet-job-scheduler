@@ -7,11 +7,11 @@
     <LangVersion>latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <PackageId>Zaiets.dotnet.job.scheduler</PackageId>
-    <Version>2.0.2</Version>
+    <PackageId>dotnet-job-scheduler</PackageId>
+    <Version>1.0.0</Version>
     <Authors>Vladyslav Zaiets</Authors>
-    <Description>Distributed job scheduler for .NET - cron expressions, priority queues, retries, concurrency control, dashboard</Description>
-    <PackageTags>job-scheduler cron distributed-systems retry-logic priority-queue concurrency-control aspnet-core task-scheduling</PackageTags>
+    <Description>A robust and efficient .NET job scheduling library for managing background tasks, pipelines, and distributed execution.</Description>
+    <PackageTags>dotnet, job-scheduler, background-tasks, distributed-scheduling, cron</PackageTags>
     <PackageProjectUrl>https://github.com/sarmkadan/dotnet-job-scheduler</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sarmkadan/dotnet-job-scheduler</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
