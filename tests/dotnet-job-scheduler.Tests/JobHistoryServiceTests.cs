@@ -90,7 +90,7 @@ public sealed class JobHistoryServiceTests
 
         // Assert
         result.TotalCount.Should().Be(1);
-        result.Items.Should().AllSatisfy(e => e.Status.Should().Be(ExecutionStatus.Failed));
+        result.Items.Should().AllSatisfy(e => e.Status.Should().Be(ExecutionStatus.Failed.ToString()));
     }
 
     [Fact]

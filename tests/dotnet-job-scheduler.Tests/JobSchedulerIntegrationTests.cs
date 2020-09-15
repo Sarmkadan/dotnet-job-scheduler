@@ -77,7 +77,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
             MaxRetries = 3,
             ExecutionTimeoutSeconds = 300,
             MaxConcurrentExecutions = 1,
-            Priority = JobPriority.Medium
+            Priority = JobPriority.Normal
         };
 
         // Act
@@ -229,7 +229,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
         canExecuteFirst.Should().BeTrue();
 
         var stats = concurrencyManager.GetConcurrencyStats();
-        stats.GlobalRunningCount.Should().Be(1);
+        stats["GlobalRunning"].Should().Be(1);
     }
 
     [Fact]
@@ -363,9 +363,9 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
 
         // Assert
         jobDetails.Should().NotBeNull();
-        jobDetails?.Name.Should().Be("complete-workflow");
-        jobDetails?.Status.Should().Be(JobStatus.Scheduled);
-        jobDetails?.Priority.Should().Be(JobPriority.High);
+        jobDetails?.Job.Name.Should().Be("complete-workflow");
+        jobDetails?.Job.Status.Should().Be(JobStatus.Scheduled);
+        jobDetails?.Job.Priority.Should().Be(JobPriority.High);
     }
 
     [Fact]

@@ -11,8 +11,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using JobScheduler.Core.Constants;
+using JobScheduler.Core.Controllers;
 using JobScheduler.Core.Data.Repositories;
 using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Domain.Models;
 using JobScheduler.Core.Exceptions;
 
 namespace JobScheduler.Core.Services;
@@ -290,6 +292,9 @@ public sealed class JobSchedulerService
         var runningExecutions = await _executionRepository.GetRunningExecutionsAsync();
         var concurrencyStats = _concurrencyManager.GetConcurrencyStats();
 
+        var allExecutions = await _executionRepository.GetAllAsync();
+        var successfulExecutions = allExecutions.Where(e => e.Status == ExecutionStatus.Success).ToList();
+
         return new SchedulerStatisticsDto
         {
             TotalJobs = allJobs.Count(),
@@ -299,9 +304,15 @@ public sealed class JobSchedulerService
             SuccessfulExecutions = allJobs.Sum(j => j.SuccessfulExecutions),
             FailedExecutions = allJobs.Sum(j => j.FailedExecutions),
             AverageSuccessRate = allJobs.Any() ? allJobs.Average(j => j.GetSuccessRate()) : 0,
+            AverageExecutionTimeMs = successfulExecutions.Any() ? (long)successfulExecutions.Average(e => e.DurationMilliseconds) : 0,
             ConcurrencyStats = concurrencyStats
         };
     }
+
+    /// <summary>
+    /// Alias for <see cref="GetSchedulerStatisticsAsync"/> used by dashboard and health endpoints.
+    /// </summary>
+    public Task<SchedulerStatisticsDto> GetSystemStatisticsAsync() => GetSchedulerStatisticsAsync();
 
     /// <summary>
     /// Returns the most recent execution records for a job, newest first.
@@ -319,6 +330,284 @@ public sealed class JobSchedulerService
 
         var executions = await _executionRepository.GetExecutionsByJobAsync(jobId);
         return executions.Take(limit);
+    }
+
+    /// <summary>
+    /// Retrieves a single job by ID, or null if it does not exist.
+    /// </summary>
+    public Task<Job?> GetJobByIdAsync(Guid jobId) => _jobRepository.GetByIdAsync(jobId);
+
+    /// <summary>
+    /// Retrieves a page of jobs, optionally filtered by status.
+    /// </summary>
+    public async Task<IEnumerable<Job>> GetJobsAsync(JobStatus? status, int pageNumber = 1, int pageSize = 10)
+    {
+        var jobs = status.HasValue
+            ? await _jobRepository.GetJobsByStatusAsync(status.Value)
+            : await _jobRepository.GetAllAsync();
+
+        if (pageNumber < 1)
+            pageNumber = 1;
+        if (pageSize < 1)
+            pageSize = 10;
+
+        return jobs
+            .OrderByDescending(j => j.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize);
+    }
+
+    /// <summary>
+    /// Counts jobs, optionally filtered by status.
+    /// </summary>
+    public async Task<int> GetTotalJobCountAsync(JobStatus? status)
+    {
+        var jobs = status.HasValue
+            ? await _jobRepository.GetJobsByStatusAsync(status.Value)
+            : await _jobRepository.GetAllAsync();
+
+        return jobs.Count();
+    }
+
+    /// <summary>
+    /// Updates an existing job's configuration from a create/update request.
+    /// Returns null if the job does not exist.
+    /// </summary>
+    public async Task<Job?> UpdateJobAsync(Guid jobId, CreateJobRequest request, string? updatedBy = null)
+    {
+        if (request is null)
+            throw new ArgumentNullException(nameof(request));
+
+        var job = await _jobRepository.GetByIdAsync(jobId);
+        if (job is null)
+            return null;
+
+        if (!_cronService.IsValidCronExpression(request.CronExpression))
+            throw new CronExpressionException(request.CronExpression, "Invalid cron expression");
+
+        job.Name = request.Name;
+        job.Description = request.Description ?? string.Empty;
+        job.CronExpression = request.CronExpression;
+        job.TimeZoneId = request.TimeZoneId;
+        job.HandlerType = request.HandlerType;
+        job.HandlerParameters = request.HandlerParameters;
+        job.Priority = request.Priority;
+        job.MaxRetries = request.MaxRetries;
+        job.RetryBackoffSeconds = request.RetryBackoffSeconds;
+        job.ExecutionTimeoutSeconds = request.ExecutionTimeoutSeconds;
+        job.MaxConcurrentExecutions = request.MaxConcurrentExecutions;
+        job.IsActive = request.IsActive;
+
+        if (!job.IsValidForScheduling())
+            throw new JobValidationException("Job configuration is invalid");
+
+        job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
+            ? _cronService.GetNextExecutionTime(job.CronExpression)
+            : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId);
+
+        job.MarkAsUpdated(updatedBy);
+
+        _jobRepository.Update(job);
+        await _jobRepository.SaveChangesAsync();
+
+        _logger?.LogInformation("Job {JobId} updated", jobId);
+
+        return job;
+    }
+
+    /// <summary>
+    /// Deletes a job and reports whether it existed.
+    /// </summary>
+    public async Task<bool> DeleteJobAsync(Guid jobId, string? deletedBy)
+    {
+        var job = await _jobRepository.GetByIdAsync(jobId);
+        if (job is null)
+            return false;
+
+        _jobRepository.Remove(job);
+        await _jobRepository.SaveChangesAsync();
+
+        _logger?.LogInformation("Job {JobId} deleted by {DeletedBy}", jobId, deletedBy ?? "unknown");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Immediately executes a job outside of its normal cron schedule.
+    /// Returns null if the job does not exist.
+    /// </summary>
+    public async Task<JobExecution?> TriggerJobExecutionAsync(Guid jobId)
+    {
+        var job = await _jobRepository.GetByIdAsync(jobId);
+        if (job is null)
+            return null;
+
+        return await _executorService.ExecuteJobAsync(job);
+    }
+
+    /// <summary>
+    /// Retrieves a page of executions for a job, or null if the job does not exist.
+    /// </summary>
+    public async Task<IEnumerable<JobExecution>?> GetJobExecutionsAsync(Guid jobId, int pageNumber = 1, int pageSize = 20)
+    {
+        var job = await _jobRepository.GetByIdAsync(jobId);
+        if (job is null)
+            return null;
+
+        if (pageNumber < 1)
+            pageNumber = 1;
+        if (pageSize < 1)
+            pageSize = 20;
+
+        var executions = await _executionRepository.GetExecutionsByJobAsync(jobId);
+        return executions.Skip((pageNumber - 1) * pageSize).Take(pageSize);
+    }
+
+    /// <summary>
+    /// Counts executions recorded for a job.
+    /// </summary>
+    public async Task<int> GetJobExecutionCountAsync(Guid jobId)
+    {
+        var executions = await _executionRepository.GetExecutionsByJobAsync(jobId);
+        return executions.Count();
+    }
+
+    /// <summary>
+    /// Retrieves a single execution by ID, or null if it does not exist.
+    /// </summary>
+    public Task<JobExecution?> GetExecutionByIdAsync(Guid executionId) => _executionRepository.GetByIdAsync(executionId);
+
+    /// <summary>
+    /// Retrieves the most recent failed executions across all jobs, since the given cutoff.
+    /// </summary>
+    public async Task<IEnumerable<JobExecution>> GetRecentFailedExecutionsAsync(DateTime cutoffDate, int limit = 50)
+    {
+        var failed = await _executionRepository.GetExecutionsByStatusAsync(ExecutionStatus.Failed);
+        return failed
+            .Where(e => e.StartedAt >= cutoffDate)
+            .OrderByDescending(e => e.StartedAt)
+            .Take(limit);
+    }
+
+    /// <summary>
+    /// Deletes execution records older than the given cutoff date.
+    /// Returns the number of deleted records.
+    /// </summary>
+    public async Task<int> DeleteExecutionsOlderThanAsync(DateTime cutoffDate)
+    {
+        var oldExecutions = (await _executionRepository.FindAsync(e => e.StartedAt < cutoffDate)).ToList();
+        if (oldExecutions.Count == 0)
+            return 0;
+
+        _executionRepository.RemoveRange(oldExecutions);
+        await _executionRepository.SaveChangesAsync();
+
+        return oldExecutions.Count;
+    }
+
+    /// <summary>
+    /// Counts jobs currently in the Running state, used for live dashboard metrics.
+    /// </summary>
+    public Task<int> GetRunningJobCountAsync() => _executionRepository.GetConcurrentRunningCountAsync();
+
+    /// <summary>
+    /// Counts jobs in a failed state (Failed or FailedPermanently).
+    /// </summary>
+    public async Task<int> GetFailedJobCountAsync()
+    {
+        var failedJobs = await _jobRepository.GetFailedJobsAsync();
+        return failedJobs.Count();
+    }
+
+    /// <summary>
+    /// Returns a snapshot of job counts grouped by lifecycle state.
+    /// </summary>
+    public async Task<QueueStatus> GetQueueStatusAsync()
+    {
+        var allJobs = (await _jobRepository.GetAllAsync()).ToList();
+
+        return new QueueStatus
+        {
+            PendingCount = allJobs.Count(j => j.Status == JobStatus.Pending || j.Status == JobStatus.Scheduled),
+            RunningCount = allJobs.Count(j => j.Status == JobStatus.Running),
+            FailedCount = allJobs.Count(j => j.Status == JobStatus.Failed || j.Status == JobStatus.FailedPermanently),
+            CompletedCount = allJobs.Count(j => j.Status == JobStatus.Completed),
+            SuspendedCount = allJobs.Count(j => j.Status == JobStatus.Suspended)
+        };
+    }
+
+    /// <summary>
+    /// Returns the number of jobs at each priority level.
+    /// </summary>
+    public async Task<Dictionary<string, int>> GetJobPriorityDistributionAsync()
+    {
+        var allJobs = await _jobRepository.GetAllAsync();
+
+        return new Dictionary<string, int>
+        {
+            ["Critical"] = allJobs.Count(j => j.Priority == JobPriority.Critical),
+            ["High"] = allJobs.Count(j => j.Priority == JobPriority.High),
+            ["Normal"] = allJobs.Count(j => j.Priority == JobPriority.Normal),
+            ["Low"] = allJobs.Count(j => j.Priority == JobPriority.Low)
+        };
+    }
+
+    /// <summary>
+    /// Returns the jobs with the highest average execution time.
+    /// </summary>
+    public async Task<List<JobPerformanceSummary>> GetSlowestJobsAsync(int count = 10)
+    {
+        var allJobs = await _jobRepository.GetAllAsync();
+        var allExecutions = await _executionRepository.GetAllAsync();
+        var executionsByJob = allExecutions.GroupBy(e => e.JobId).ToDictionary(g => g.Key, g => g.ToList());
+
+        var summaries = allJobs.Select(job =>
+        {
+            executionsByJob.TryGetValue(job.Id, out var jobExecutions);
+            jobExecutions ??= new List<JobExecution>();
+
+            return new JobPerformanceSummary
+            {
+                Id = job.Id,
+                Name = job.Name,
+                AverageExecutionTimeMs = jobExecutions.Count > 0 ? (long)jobExecutions.Average(e => e.DurationMilliseconds) : 0,
+                MaxExecutionTimeMs = jobExecutions.Count > 0 ? jobExecutions.Max(e => e.DurationMilliseconds) : 0,
+                TotalExecutions = job.TotalExecutions
+            };
+        });
+
+        return summaries
+            .OrderByDescending(s => s.AverageExecutionTimeMs)
+            .Take(count)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Returns the jobs with the highest number of failed executions.
+    /// </summary>
+    public async Task<List<Job>> GetMostFailingJobsAsync(int count = 10)
+    {
+        var allJobs = await _jobRepository.GetAllAsync();
+        return allJobs
+            .OrderByDescending(j => j.FailedExecutions)
+            .Take(count)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Verifies database connectivity by issuing a lightweight query.
+    /// </summary>
+    public async Task<bool> IsDatabaseConnectedAsync()
+    {
+        try
+        {
+            await _jobRepository.CountAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
 
@@ -340,5 +629,18 @@ public sealed class SchedulerStatisticsDto
     public int SuccessfulExecutions { get; set; }
     public int FailedExecutions { get; set; }
     public double AverageSuccessRate { get; set; }
+    public long AverageExecutionTimeMs { get; set; }
     public Dictionary<string, int> ConcurrencyStats { get; set; } = new();
+}
+
+/// <summary>
+/// Aggregated performance data for a single job, used by dashboard reporting.
+/// </summary>
+public sealed class JobPerformanceSummary
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public long AverageExecutionTimeMs { get; set; }
+    public long MaxExecutionTimeMs { get; set; }
+    public int TotalExecutions { get; set; }
 }

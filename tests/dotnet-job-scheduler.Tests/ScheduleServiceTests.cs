@@ -207,7 +207,7 @@ public sealed class ScheduleServiceTests
                     executionCount++;
                     return current.AddMinutes(5);
                 }
-                return null;
+                return DateTime.MaxValue;
             });
 
         var service = CreateService();

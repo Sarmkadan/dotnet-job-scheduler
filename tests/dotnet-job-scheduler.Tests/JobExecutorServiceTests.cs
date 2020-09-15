@@ -134,7 +134,7 @@ public sealed class JobExecutorServiceTests
         var execution = await service.ExecuteJobAsync(job);
 
         // Assert
-        execution.StartedAt.Should().NotBeNull();
+        execution.StartedAt.Should().NotBe(default(DateTime));
         execution.StartedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 

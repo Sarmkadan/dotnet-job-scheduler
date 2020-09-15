@@ -6,6 +6,7 @@
 
 using System;
 using JobScheduler.Core.Constants;
+using JobScheduler.Core.Domain.Entities;
 
 namespace JobScheduler.Core.Domain.Models;
 
@@ -20,8 +21,10 @@ public sealed class JobResponse
     public string Description { get; set; } = string.Empty;
     public string CronExpression { get; set; } = string.Empty;
     public string? TimeZoneId { get; set; }
-    public JobPriority Priority { get; set; }
-    public JobStatus Status { get; set; }
+    public string Priority { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string HandlerType { get; set; } = string.Empty;
+    public int ExecutionTimeoutSeconds { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -43,8 +46,10 @@ public sealed class JobResponse
             Description = job.Description,
             CronExpression = job.CronExpression,
             TimeZoneId = job.TimeZoneId,
-            Priority = job.Priority,
-            Status = job.Status,
+            Priority = job.Priority.ToString(),
+            Status = job.Status.ToString(),
+            HandlerType = job.HandlerType,
+            ExecutionTimeoutSeconds = job.ExecutionTimeoutSeconds,
             IsActive = job.IsActive,
             CreatedAt = job.CreatedAt,
             UpdatedAt = job.UpdatedAt,

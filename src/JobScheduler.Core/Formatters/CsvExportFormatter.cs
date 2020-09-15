@@ -77,7 +77,7 @@ public sealed class CsvExportFormatter
                 ParseUtility.EscapeCsvField(execution.Id.ToString()),
                 ParseUtility.EscapeCsvField(execution.JobId.ToString()),
                 ParseUtility.EscapeCsvField(execution.Status.ToString()),
-                ParseUtility.EscapeCsvField(execution.StartedAt?.ToString("o") ?? string.Empty),
+                ParseUtility.EscapeCsvField(execution.StartedAt.ToString("o")),
                 ParseUtility.EscapeCsvField(execution.CompletedAt?.ToString("o") ?? string.Empty),
                 ParseUtility.EscapeCsvField(execution.ExecutionTimeMs.ToString()),
                 ParseUtility.EscapeCsvField(execution.ErrorMessage ?? string.Empty),

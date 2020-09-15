@@ -5,7 +5,10 @@
 // CTO & Software Architect
 // ====================================================================
 
+using System.Linq.Expressions;
 using BenchmarkDotNet.Attributes;
+using JobScheduler.Core.Constants;
+using JobScheduler.Core.Data.Repositories;
 using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,88 +35,86 @@ public sealed class ConcurrencyManagerBenchmarks
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Error));
 
-        // Mock repository
-        services.AddSingleton<IJobRepository>(new MockJobRepository());
+        // Mock repositories
+        services.AddSingleton<IJobRepository>(new ConcurrencyMockJobRepository());
+        services.AddSingleton<IExecutionRepository>(new MockExecutionRepository());
 
         _serviceProvider = services.BuildServiceProvider();
-        _concurrencyManager = new ConcurrencyManager(_serviceProvider.GetRequiredService<IJobRepository>());
+        _concurrencyManager = new ConcurrencyManager(_serviceProvider.GetRequiredService<IExecutionRepository>());
     }
 
     [Benchmark]
-    public bool CanExecuteJob_GlobalLimitNotReached()
+    public async Task<bool> CanExecuteJob_GlobalLimitNotReached()
     {
         var job = new Job
         {
-            Id = 1,
             Name = "TestJob1",
             MaxConcurrentExecutions = 1,
             IsActive = true
         };
 
-        return _concurrencyManager!.CanExecuteJob(job);
+        return await _concurrencyManager!.CanExecuteAsync(job);
     }
 
     [Benchmark]
-    public bool CanExecuteJob_GlobalLimitReached()
+    public async Task<bool> CanExecuteJob_GlobalLimitReached()
     {
         var job = new Job
         {
-            Id = 2,
             Name = "TestJob2",
             MaxConcurrentExecutions = 1,
             IsActive = true
         };
 
         // Simulate global limit reached
-        _concurrencyManager!.TrackExecutionStart(job.Id);
-        _concurrencyManager!.TrackExecutionStart(job.Id); // Should exceed limit
+        _concurrencyManager!.IncrementConcurrencyCount(job.Id);
+        _concurrencyManager!.IncrementConcurrencyCount(job.Id); // Should exceed limit
 
-        return _concurrencyManager.CanExecuteJob(job);
+        return await _concurrencyManager.CanExecuteAsync(job);
     }
 
     [Benchmark]
-    public bool CanExecuteJob_PerJobLimit()
+    public async Task<bool> CanExecuteJob_PerJobLimit()
     {
         var job = new Job
         {
-            Id = 3,
             Name = "TestJob3",
             MaxConcurrentExecutions = 2,
             IsActive = true
         };
 
         // Track some executions for this job
-        _concurrencyManager!.TrackExecutionStart(job.Id);
-        _concurrencyManager!.TrackExecutionStart(job.Id);
+        _concurrencyManager!.IncrementConcurrencyCount(job.Id);
+        _concurrencyManager!.IncrementConcurrencyCount(job.Id);
 
-        return _concurrencyManager.CanExecuteJob(job);
+        return await _concurrencyManager.CanExecuteAsync(job);
     }
 
     [Benchmark]
     public void TrackExecutionStart()
     {
-        var jobId = 100;
-        _concurrencyManager!.TrackExecutionStart(jobId);
+        var jobId = Guid.NewGuid();
+        _concurrencyManager!.IncrementConcurrencyCount(jobId);
     }
 
     [Benchmark]
     public void TrackExecutionEnd()
     {
-        var jobId = 200;
-        _concurrencyManager!.TrackExecutionStart(jobId);
-        _concurrencyManager!.TrackExecutionEnd(jobId);
+        var jobId = Guid.NewGuid();
+        _concurrencyManager!.IncrementConcurrencyCount(jobId);
+        _concurrencyManager!.DecrementConcurrencyCount(jobId);
     }
 
     [Benchmark]
     public int GetCurrentConcurrencyCount()
     {
-        var jobId = 300;
-        _concurrencyManager!.TrackExecutionStart(jobId);
-        _concurrencyManager!.TrackExecutionStart(jobId);
+        var jobId = Guid.NewGuid();
+        _concurrencyManager!.IncrementConcurrencyCount(jobId);
+        _concurrencyManager!.IncrementConcurrencyCount(jobId);
 
-        var count = _concurrencyManager.GetCurrentConcurrencyCount(jobId);
-        _concurrencyManager!.TrackExecutionEnd(jobId);
-        _concurrencyManager!.TrackExecutionEnd(jobId);
+        var count = _concurrencyManager.GetJobConcurrencyCount(jobId);
+        _concurrencyManager!.DecrementConcurrencyCount(jobId);
+        _concurrencyManager!.DecrementConcurrencyCount(jobId);
 
         return count;
     }
@@ -121,26 +122,30 @@ public sealed class ConcurrencyManagerBenchmarks
     [Benchmark]
     public int GetGlobalConcurrencyCount()
     {
-        _concurrencyManager!.TrackExecutionStart(1);
-        _concurrencyManager!.TrackExecutionStart(2);
-        _concurrencyManager!.TrackExecutionStart(3);
+        var jobId1 = Guid.NewGuid();
+        var jobId2 = Guid.NewGuid();
+        var jobId3 = Guid.NewGuid();
+
+        _concurrencyManager!.IncrementConcurrencyCount(jobId1);
+        _concurrencyManager!.IncrementConcurrencyCount(jobId2);
+        _concurrencyManager!.IncrementConcurrencyCount(jobId3);
 
         var count = _concurrencyManager.GetGlobalConcurrencyCount();
 
-        _concurrencyManager!.TrackExecutionEnd(1);
-        _concurrencyManager!.TrackExecutionEnd(2);
-        _concurrencyManager!.TrackExecutionEnd(3);
+        _concurrencyManager!.DecrementConcurrencyCount(jobId1);
+        _concurrencyManager!.DecrementConcurrencyCount(jobId2);
+        _concurrencyManager!.DecrementConcurrencyCount(jobId3);
 
         return count;
     }
 
     [Benchmark]
-    public void Reset()
+    public Dictionary<string, int> Reset()
     {
-        _concurrencyManager!.TrackExecutionStart(1);
-        _concurrencyManager!.TrackExecutionStart(2);
+        _concurrencyManager!.IncrementConcurrencyCount(Guid.NewGuid());
+        _concurrencyManager!.IncrementConcurrencyCount(Guid.NewGuid());
 
-        _concurrencyManager!.Reset();
+        return _concurrencyManager!.GetConcurrencyStats();
     }
 }
 
@@ -149,66 +154,146 @@ public sealed class ConcurrencyManagerBenchmarks
 /// </summary>
 internal sealed class ConcurrencyMockJobRepository : IJobRepository
 {
-    private readonly Dictionary<int, Job> _jobs = new();
+    private readonly Dictionary<Guid, Job> _jobs = new();
 
-    public Task<Job?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public Task<Job?> GetByIdAsync(Guid id)
     {
         _jobs.TryGetValue(id, out var job);
         return Task.FromResult(job);
     }
 
-    public Task<Job?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Job>> GetAllAsync()
+    {
+        return Task.FromResult<IEnumerable<Job>>(_jobs.Values.ToList());
+    }
+
+    public Task<IEnumerable<Job>> FindAsync(Expression<Func<Job, bool>> predicate)
+    {
+        return Task.FromResult(_jobs.Values.AsQueryable().Where(predicate).AsEnumerable());
+    }
+
+    public Task<Job?> FirstOrDefaultAsync(Expression<Func<Job, bool>> predicate)
+    {
+        return Task.FromResult(_jobs.Values.AsQueryable().FirstOrDefault(predicate));
+    }
+
+    public Task<int> CountAsync(Expression<Func<Job, bool>>? predicate = null)
+    {
+        var count = predicate is null ? _jobs.Count : _jobs.Values.AsQueryable().Count(predicate);
+        return Task.FromResult(count);
+    }
+
+    public Task<Job?> GetByNameAsync(string name)
     {
         var job = _jobs.Values.FirstOrDefault(j => j.Name == name);
         return Task.FromResult(job);
     }
 
-    public Task<List<Job>> GetActiveJobsAsync(CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Job>> GetActiveJobsAsync()
     {
         var activeJobs = _jobs.Values.Where(j => j.IsActive).ToList();
-        return Task.FromResult(activeJobs);
+        return Task.FromResult<IEnumerable<Job>>(activeJobs);
     }
 
-    public Task<List<Job>> GetScheduledJobsForExecutionAsync(CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Job>> GetJobsByStatusAsync(JobStatus status)
+    {
+        return Task.FromResult<IEnumerable<Job>>(_jobs.Values.Where(j => j.Status == status).ToList());
+    }
+
+    public Task<IEnumerable<Job>> GetJobsByPriorityAsync(JobPriority priority)
+    {
+        return Task.FromResult<IEnumerable<Job>>(_jobs.Values.Where(j => j.Priority == priority).ToList());
+    }
+
+    public Task<IEnumerable<Job>> GetScheduledJobsForExecutionAsync()
     {
         var dueJobs = _jobs.Values
             .Where(j => j.IsActive && j.Status == JobStatus.Scheduled)
             .ToList();
-        return Task.FromResult(dueJobs);
+        return Task.FromResult<IEnumerable<Job>>(dueJobs);
     }
 
-    public Task<Job> AddAsync(Job entity, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Job>> GetFailedJobsAsync()
     {
-        entity.Id = _jobs.Count + 1;
+        return Task.FromResult<IEnumerable<Job>>(
+            _jobs.Values.Where(j => j.Status == JobStatus.Failed || j.Status == JobStatus.FailedPermanently).ToList());
+    }
+
+    public Task<IEnumerable<Job>> GetLongRunningJobsAsync(int thresholdSeconds)
+    {
+        var now = DateTime.UtcNow;
+        var longRunning = _jobs.Values
+            .Where(j => j.Status == JobStatus.Running && j.LastExecutedAt.HasValue &&
+                        (now - j.LastExecutedAt.Value).TotalSeconds > thresholdSeconds)
+            .ToList();
+        return Task.FromResult<IEnumerable<Job>>(longRunning);
+    }
+
+    public Task<IEnumerable<Job>> GetJobsWithoutRecentExecutionAsync(int minutesThreshold)
+    {
+        var threshold = DateTime.UtcNow.AddMinutes(-minutesThreshold);
+        var jobs = _jobs.Values
+            .Where(j => j.IsActive && (!j.LastExecutedAt.HasValue || j.LastExecutedAt < threshold))
+            .ToList();
+        return Task.FromResult<IEnumerable<Job>>(jobs);
+    }
+
+    public Task AddAsync(Job entity)
+    {
+        if (entity.Id == Guid.Empty)
+            entity.Id = Guid.NewGuid();
         entity.CreatedAt = DateTime.UtcNow;
         _jobs[entity.Id] = entity;
-        return Task.FromResult(entity);
+        return Task.CompletedTask;
     }
 
-    public Task UpdateAsync(Job entity, CancellationToken cancellationToken = default)
+    public Task AddRangeAsync(IEnumerable<Job> entities)
     {
-        if (_jobs.ContainsKey(entity.Id))
+        foreach (var entity in entities)
         {
+            if (entity.Id == Guid.Empty)
+                entity.Id = Guid.NewGuid();
+            entity.CreatedAt = DateTime.UtcNow;
             _jobs[entity.Id] = entity;
         }
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public void Update(Job entity)
     {
-        _jobs.Remove(id);
-        return Task.CompletedTask;
+        if (_jobs.ContainsKey(entity.Id))
+        {
+            _jobs[entity.Id] = entity;
+        }
     }
 
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public void UpdateRange(IEnumerable<Job> entities)
     {
-        return Task.FromResult(1);
+        foreach (var entity in entities)
+            Update(entity);
     }
 
-    public Task<JobQueryResult> QueryAsync(JobQuery query, CancellationToken cancellationToken = default)
+    public void Remove(Job entity)
     {
-        var results = _jobs.Values.AsQueryable();
-        var items = results.ToList();
-        return Task.FromResult(new JobQueryResult(items, items.Count));
+        _jobs.Remove(entity.Id);
+    }
+
+    public void RemoveRange(IEnumerable<Job> entities)
+    {
+        foreach (var entity in entities)
+            Remove(entity);
+    }
+
+    public Task<bool> AnyAsync(Expression<Func<Job, bool>> predicate)
+    {
+        return Task.FromResult(_jobs.Values.AsQueryable().Any(predicate));
+    }
+
+    public Task SaveChangesAsync() => Task.CompletedTask;
+
+    public Task<JobQueryResult> QueryAsync(JobQuery query)
+    {
+        var results = _jobs.Values.ToList();
+        return Task.FromResult(new JobQueryResult(results, results.Count));
     }
 }
