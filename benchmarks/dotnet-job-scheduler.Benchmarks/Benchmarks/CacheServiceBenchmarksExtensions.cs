@@ -27,18 +27,19 @@ public static class CacheServiceBenchmarksExtensions
     /// <param name="count">Number of items to add to cache.</param>
     /// <param name="keyPrefix">Prefix for cache keys.</param>
     /// <returns>Task representing the operation.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="benchmarks"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is less than 1.</exception>
     public static async Task BulkInsert_ParallelAsync(this CacheServiceBenchmarks benchmarks, int count, string keyPrefix = "bulk")
     {
-        if (benchmarks is null)
-        {
-            throw new ArgumentNullException(nameof(benchmarks));
-        }
+        ArgumentNullException.ThrowIfNull(benchmarks);
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
 
         var tasks = new List<Task<string?>>(count);
         for (int i = 0; i < count; i++)
         {
             int index = i; // Capture for async lambda
-            tasks.Add(benchmarks.GetOrAdd_CacheMissThenHit());
+            string key = $"{keyPrefix}-{index}";
+            tasks.Add(benchmarks.GetOrAdd_CacheMissThenHit(key));
         }
 
         await Task.WhenAll(tasks);
@@ -52,20 +53,18 @@ public static class CacheServiceBenchmarksExtensions
     /// <param name="totalRequests">Total number of cache requests.</param>
     /// <param name="missRatio">Ratio of requests that should result in cache misses (0.0 to 1.0).</param>
     /// <returns>Tuple containing hit count, miss count, and hit ratio.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="benchmarks"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="totalRequests"/> is less than 1.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="missRatio"/> is not between 0.0 and 1.0.</exception>
     public static async Task<(int Hits, int Misses, double HitRatio)> MeasureHitRatioAsync(
         this CacheServiceBenchmarks benchmarks,
         int totalRequests,
         double missRatio)
     {
-        if (benchmarks is null)
-        {
-            throw new ArgumentNullException(nameof(benchmarks));
-        }
-
-        if (missRatio < 0 || missRatio > 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(missRatio), "Must be between 0.0 and 1.0");
-        }
+        ArgumentNullException.ThrowIfNull(benchmarks);
+        ArgumentOutOfRangeException.ThrowIfLessThan(totalRequests, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(1.0 - missRatio, 0.0);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(missRatio, 1.0);
 
         var random = new Random();
         int hits = 0;
@@ -76,7 +75,7 @@ public static class CacheServiceBenchmarksExtensions
             bool shouldMiss = random.NextDouble() < missRatio;
             string key = shouldMiss ? $"miss-key-{i}" : $"hit-key-{i % 100}";
 
-            string? result = await benchmarks.GetOrAdd_CacheHit();
+            string? result = await benchmarks.GetOrAdd_CacheHit(key);
             if (result != null)
             {
                 hits++;
@@ -99,21 +98,21 @@ public static class CacheServiceBenchmarksExtensions
     /// <param name="expirationTime">Expiration time for cache entries.</param>
     /// <param name="iterations">Number of cache operations to perform.</param>
     /// <returns>Average time per operation in milliseconds.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="benchmarks"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="iterations"/> is less than 1.</exception>
     public static async Task<double> MeasureExpirationImpactAsync(
         this CacheServiceBenchmarks benchmarks,
         TimeSpan expirationTime,
         int iterations = 100)
     {
-        if (benchmarks is null)
-        {
-            throw new ArgumentNullException(nameof(benchmarks));
-        }
+        ArgumentNullException.ThrowIfNull(benchmarks);
+        ArgumentOutOfRangeException.ThrowIfLessThan(iterations, 1);
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
         for (int i = 0; i < iterations; i++)
         {
-            await benchmarks.GetOrAdd_WithExpiration();
+            await benchmarks.GetOrAdd_WithExpiration(expirationTime);
         }
 
         stopwatch.Stop();
@@ -128,15 +127,17 @@ public static class CacheServiceBenchmarksExtensions
     /// <param name="initialSize">Initial number of items to add to cache.</param>
     /// <param name="evictionThreshold">Number of items that should trigger eviction.</param>
     /// <returns>Task representing the operation.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="benchmarks"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="initialSize"/> is less than 0.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="evictionThreshold"/> is less than 1.</exception>
     public static async Task MeasureSizeLimitedEvictionAsync(
         this CacheServiceBenchmarks benchmarks,
         int initialSize,
         int evictionThreshold)
     {
-        if (benchmarks is null)
-        {
-            throw new ArgumentNullException(nameof(benchmarks));
-        }
+        ArgumentNullException.ThrowIfNull(benchmarks);
+        ArgumentOutOfRangeException.ThrowIfLessThan(initialSize, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThan(evictionThreshold, 1);
 
         // Add initial items
         for (int i = 0; i < initialSize; i++)
