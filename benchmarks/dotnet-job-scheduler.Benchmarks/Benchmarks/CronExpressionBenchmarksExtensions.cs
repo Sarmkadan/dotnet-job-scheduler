@@ -5,6 +5,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System;
 using BenchmarkDotNet.Running;
 using JobScheduler.Core.Services;
 
@@ -20,8 +21,14 @@ public static class CronExpressionBenchmarksExtensions
     /// Benchmarks parallel execution of multiple cron expression validations.
     /// Tests the overhead of concurrent validation requests which can occur in web scenarios.
     /// </summary>
+    /// <param name="benchmarks">The benchmark instance.</param>
+    /// <param name="iterations">Number of iterations to run.</param>
+    /// <returns>True if all validations passed.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="benchmarks"/> is null.</exception>
     public static bool IsValidCronExpression_Parallel(this CronExpressionBenchmarks benchmarks, int iterations = 1000)
     {
+        ArgumentNullException.ThrowIfNull(benchmarks);
+
         var service = new CronExpressionService();
         var expressions = new[] { "* * * * *", "0 9 * * *", "0 8 * * 1-5", "0 0 1 * *", "*/5 * * * *" };
 
@@ -41,8 +48,13 @@ public static class CronExpressionBenchmarksExtensions
     /// Benchmarks getting next execution times for multiple expressions simultaneously.
     /// Measures the overhead of creating multiple schedule objects in parallel.
     /// </summary>
+    /// <param name="benchmarks">The benchmark instance.</param>
+    /// <returns>The last calculated next execution time.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="benchmarks"/> is null.</exception>
     public static DateTime GetNextExecutionTime_MultipleExpressions(this CronExpressionBenchmarks benchmarks)
     {
+        ArgumentNullException.ThrowIfNull(benchmarks);
+
         var service = new CronExpressionService();
         var expressions = new[] { "* * * * *", "0 9 * * *", "0 8 * * 1-5", "0 0 1 * *" };
 
@@ -59,8 +71,14 @@ public static class CronExpressionBenchmarksExtensions
     /// Benchmarks the generation of multiple upcoming execution times for different expressions.
     /// Tests the performance of batch operations which are common in reporting scenarios.
     /// </summary>
+    /// <param name="benchmarks">The benchmark instance.</param>
+    /// <param name="count">Number of execution times to generate per expression.</param>
+    /// <returns>Collection of execution times.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="benchmarks"/> is null.</exception>
     public static IEnumerable<DateTime> GetNextExecutionTimes_Multiple(this CronExpressionBenchmarks benchmarks, int count = 20)
     {
+        ArgumentNullException.ThrowIfNull(benchmarks);
+
         var service = new CronExpressionService();
         var expressions = new[] { "* * * * *", "0 9 * * *", "0 8 * * 1-5", "0 0 1 * *" };
 
@@ -77,8 +95,13 @@ public static class CronExpressionBenchmarksExtensions
     /// Benchmarks the ShouldExecuteAt check with various time ranges.
     /// Tests the scheduler's decision logic under different temporal conditions.
     /// </summary>
+    /// <param name="benchmarks">The benchmark instance.</param>
+    /// <returns>True if any expression matched any test time.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="benchmarks"/> is null.</exception>
     public static bool ShouldExecuteAt_RangeCheck(this CronExpressionBenchmarks benchmarks)
     {
+        ArgumentNullException.ThrowIfNull(benchmarks);
+
         var service = new CronExpressionService();
         var expressions = new[] { "* * * * *", "0 9 * * *", "0 8 * * 1-5", "0 0 1 * *", "*/15 * * * *" };
         var testTimes = new[] {
