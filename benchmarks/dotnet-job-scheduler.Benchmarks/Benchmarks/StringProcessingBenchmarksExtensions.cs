@@ -10,8 +10,8 @@ using System.Text;
 namespace JobScheduler.Benchmarks;
 
 /// <summary>
-/// Extension methods for <see cref="StringProcessingBenchmarks"/> that provide additional
-/// string processing utilities commonly needed in job scheduling scenarios.
+/// Extension methods for string processing utilities commonly needed in job scheduling scenarios.
+/// Provides methods for URL slug generation, JSON escaping, string truncation, and sensitive data masking.
 /// </summary>
 public static class StringProcessingBenchmarksExtensions
 {
@@ -21,8 +21,11 @@ public static class StringProcessingBenchmarksExtensions
     /// </summary>
     /// <param name="input">The input string to convert.</param>
     /// <returns>A URL-friendly slug representation.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/></exception>
     public static string ToSlugUrlFriendly(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (string.IsNullOrEmpty(input))
             return string.Empty;
 
@@ -36,7 +39,7 @@ public static class StringProcessingBenchmarksExtensions
                 sb.Append(char.ToLowerInvariant(c));
                 previousIsHyphen = false;
             }
-            else if (c == ' ' || c == '_' || c == '-')
+            else if (c is ' ' or '_' or '-')
             {
                 if (!previousIsHyphen && sb.Length > 0)
                 {
@@ -73,34 +76,29 @@ public static class StringProcessingBenchmarksExtensions
     /// </summary>
     /// <param name="input">The input string to escape.</param>
     /// <returns>An escaped JSON string.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/></exception>
     public static string JsonEscapeFull(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (string.IsNullOrEmpty(input))
             return string.Empty;
 
         var sb = new StringBuilder(input.Length * 2);
         foreach (char c in input)
         {
-            switch (c)
+            _ = c switch
             {
-                case '"': sb.Append("\\\""); break;
-                case '\\': sb.Append("\\\\"); break;
-                case '\b': sb.Append("\\b"); break;
-                case '\f': sb.Append("\\f"); break;
-                case '\n': sb.Append("\\n"); break;
-                case '\r': sb.Append("\\r"); break;
-                case '\t': sb.Append("\\t"); break;
-                default:
-                    if (char.IsControl(c))
-                    {
-                        sb.AppendFormat("\\u{0:x4}", (int)c);
-                    }
-                    else
-                    {
-                        sb.Append(c);
-                    }
-                    break;
-            }
+                '"' => sb.Append("\\\""),
+                '\\' => sb.Append("\\\\"),
+                '\b' => sb.Append("\\b"),
+                '\f' => sb.Append("\\f"),
+                '\n' => sb.Append("\\n"),
+                '\r' => sb.Append("\\r"),
+                '\t' => sb.Append("\\t"),
+                _ when char.IsControl(c) => sb.AppendFormat("\\u{0:x4}", (int)c),
+                _ => sb.Append(c)
+            };
         }
 
         return sb.ToString();
@@ -112,15 +110,17 @@ public static class StringProcessingBenchmarksExtensions
     /// <param name="input">The input string.</param>
     /// <param name="maxLength">Maximum length including ellipsis.</param>
     /// <returns>The truncated string with ellipsis if needed.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxLength"/> is less than 0</exception>
     public static string TruncateWithEllipsis(this string input, int maxLength)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(maxLength);
+
         if (string.IsNullOrEmpty(input) || input.Length <= maxLength)
             return input;
 
-        if (maxLength <= 3)
-            return new string('.', maxLength);
-
-        return input[..(maxLength - 3)] + "...";
+        return maxLength <= 3
+            ? new string('.', maxLength)
+            : input[..(maxLength - 3)] + "...";
     }
 
     /// <summary>
@@ -129,8 +129,11 @@ public static class StringProcessingBenchmarksExtensions
     /// <param name="input">The input string to mask.</param>
     /// <param name="keepChars">Number of characters to keep at start and end.</param>
     /// <returns>A masked version of the input.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="keepChars"/> is less than 0</exception>
     public static string MaskSensitive(this string input, int keepChars = 4)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(keepChars);
+
         if (string.IsNullOrEmpty(input) || input.Length <= keepChars * 2)
             return new string('*', Math.Max(4, input?.Length ?? 4));
 
