@@ -21,10 +21,10 @@ public static class RetryPolicyExtensions
     /// <param name="policy">The retry policy instance.</param>
     /// <param name="attemptNumber">The current attempt number (1-based).</param>
     /// <returns>True if another retry should be attempted; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="policy"/> is null.</exception>
     public static bool ShouldRetry(this RetryPolicy policy, int attemptNumber)
     {
-        if (policy == null)
-            throw new ArgumentNullException(nameof(policy));
+        ArgumentNullException.ThrowIfNull(policy);
 
         return attemptNumber <= policy.MaxRetries;
     }
@@ -35,13 +35,15 @@ public static class RetryPolicyExtensions
     /// </summary>
     /// <param name="policy">The retry policy instance.</param>
     /// <returns>The total accumulated delay in seconds across all retry attempts.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="policy"/> is null.</exception>
     public static int GetTotalAccumulatedDelay(this RetryPolicy policy)
     {
-        if (policy == null)
-            throw new ArgumentNullException(nameof(policy));
+        ArgumentNullException.ThrowIfNull(policy);
 
         if (policy.MaxRetries <= 0)
+        {
             return 0;
+        }
 
         int totalDelay = 0;
         for (int attempt = 1; attempt <= policy.MaxRetries; attempt++)
@@ -58,10 +60,10 @@ public static class RetryPolicyExtensions
     /// </summary>
     /// <param name="policy">The retry policy instance.</param>
     /// <returns>A formatted string describing the retry configuration.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="policy"/> is null.</exception>
     public static string GetRetrySummary(this RetryPolicy policy)
     {
-        if (policy == null)
-            throw new ArgumentNullException(nameof(policy));
+        ArgumentNullException.ThrowIfNull(policy);
 
         return $"RetryPolicy: {policy.Strategy} - MaxRetries: {policy.MaxRetries}, " +
                $"InitialBackoff: {policy.InitialBackoffSeconds}s, " +
@@ -76,16 +78,26 @@ public static class RetryPolicyExtensions
     /// <param name="policy">The retry policy instance.</param>
     /// <param name="maxRetries">Optional new max retries value. If null, keeps current value.</param>
     /// <param name="initialBackoffSeconds">Optional new initial backoff in seconds. If null, keeps current value.</param>
+    /// <param name="maxBackoffSeconds">Optional new maximum backoff in seconds. If null, keeps current value.</param>
     /// <param name="strategy">Optional new backoff strategy. If null, keeps current value.</param>
+    /// <param name="backoffMultiplier">Optional new backoff multiplier. If null, keeps current value.</param>
+    /// <param name="retryOnTimeout">Optional new timeout retry flag. If null, keeps current value.</param>
+    /// <param name="retryOnCancellation">Optional new cancellation retry flag. If null, keeps current value.</param>
+    /// <param name="retryableExceptions">Optional new retryable exceptions list. If null, keeps current value.</param>
     /// <returns>A new RetryPolicy instance with the specified adjustments.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="policy"/> is null.</exception>
     public static RetryPolicy WithAdjustedParameters(
         this RetryPolicy policy,
         int? maxRetries = null,
         int? initialBackoffSeconds = null,
-        BackoffStrategy? strategy = null)
+        int? maxBackoffSeconds = null,
+        double? backoffMultiplier = null,
+        BackoffStrategy? strategy = null,
+        bool? retryOnTimeout = null,
+        bool? retryOnCancellation = null,
+        string? retryableExceptions = null)
     {
-        if (policy == null)
-            throw new ArgumentNullException(nameof(policy));
+        ArgumentNullException.ThrowIfNull(policy);
 
         return new RetryPolicy
         {
@@ -93,12 +105,12 @@ public static class RetryPolicyExtensions
             JobId = policy.JobId,
             MaxRetries = maxRetries ?? policy.MaxRetries,
             InitialBackoffSeconds = initialBackoffSeconds ?? policy.InitialBackoffSeconds,
-            MaxBackoffSeconds = policy.MaxBackoffSeconds,
+            MaxBackoffSeconds = maxBackoffSeconds ?? policy.MaxBackoffSeconds,
             Strategy = strategy ?? policy.Strategy,
-            BackoffMultiplier = policy.BackoffMultiplier,
-            RetryOnTimeout = policy.RetryOnTimeout,
-            RetryOnCancellation = policy.RetryOnCancellation,
-            RetryableExceptions = policy.RetryableExceptions,
+            BackoffMultiplier = backoffMultiplier ?? policy.BackoffMultiplier,
+            RetryOnTimeout = retryOnTimeout ?? policy.RetryOnTimeout,
+            RetryOnCancellation = retryOnCancellation ?? policy.RetryOnCancellation,
+            RetryableExceptions = retryableExceptions ?? policy.RetryableExceptions,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
