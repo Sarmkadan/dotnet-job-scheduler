@@ -12,7 +12,7 @@ public static class CreatePipelineRequestExtensions
     /// </summary>
     /// <param name="request">The pipeline request to validate</param>
     /// <returns>True if valid, false otherwise</returns>
-    /// <exception cref="ArgumentNullException">Thrown if request is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="request"/> is null</exception>
     public static bool IsValid(this CreatePipelineRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -33,7 +33,7 @@ public static class CreatePipelineRequestExtensions
     /// <param name="jobId">The job ID to add as a step</param>
     /// <param name="stopOnFailure">Whether to stop pipeline on failure (default: true)</param>
     /// <returns>The updated pipeline request</returns>
-    /// <exception cref="ArgumentNullException">Thrown if request is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="request"/> is null</exception>
     public static CreatePipelineRequest AddStep(this CreatePipelineRequest request, Guid jobId, bool stopOnFailure = true)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -54,7 +54,8 @@ public static class CreatePipelineRequestExtensions
     /// <param name="jobIds">Collection of job IDs to add as steps</param>
     /// <param name="stopOnFailure">Whether to stop pipeline on failure (default: true)</param>
     /// <returns>The updated pipeline request</returns>
-    /// <exception cref="ArgumentNullException">Thrown if request or jobIds is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="request"/> is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="jobIds"/> is null</exception>
     public static CreatePipelineRequest AddSteps(this CreatePipelineRequest request, IEnumerable<Guid> jobIds, bool stopOnFailure = true)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -78,14 +79,16 @@ public static class CreatePipelineRequestExtensions
     /// <param name="request">The pipeline request</param>
     /// <param name="description">The description to set</param>
     /// <returns>The updated pipeline request</returns>
-    /// <exception cref="ArgumentNullException">Thrown if request is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="request"/> is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="description"/> is null</exception>
     public static CreatePipelineRequest SetDescriptionIfEmpty(this CreatePipelineRequest request, string description)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(description);
 
         if (string.IsNullOrEmpty(request.Description))
         {
-            request.Description = description ?? string.Empty;
+            request.Description = description;
         }
 
         return request;
@@ -96,7 +99,7 @@ public static class CreatePipelineRequestExtensions
     /// </summary>
     /// <param name="request">The pipeline request to copy</param>
     /// <returns>A new instance with copied values</returns>
-    /// <exception cref="ArgumentNullException">Thrown if request is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="request"/> is null</exception>
     public static CreatePipelineRequest Clone(this CreatePipelineRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
