@@ -24,13 +24,13 @@ public static class JobPipelineServiceExtensions
     /// <param name="id">Pipeline identifier to check.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><c>true</c> if the pipeline exists; otherwise, <c>false</c>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="service"/> is <c>null</c>.</exception>
     public static async Task<bool> ExistsAsync(
         this JobPipelineService service,
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
+        ArgumentNullException.ThrowIfNull(service);
 
         return await service.GetPipelineAsync(id, cancellationToken) is not null;
     }
@@ -42,21 +42,18 @@ public static class JobPipelineServiceExtensions
     /// <param name="name">Pipeline name to search for.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The pipeline if found; otherwise, <c>null</c>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="service"/> or <paramref name="name"/> is <c>null</c>.</exception>
     public static async Task<JobPipeline?> GetPipelineByNameAsync(
         this JobPipelineService service,
         string name,
         CancellationToken cancellationToken = default)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
+        ArgumentNullException.ThrowIfNull(service);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Pipeline name cannot be null or empty.", nameof(name));
-
-        return await service.GetAllPipelinesAsync(cancellationToken)
-            .ContinueWith(t => t.Result.FirstOrDefault(p =>
-                p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)),
-                cancellationToken);
+        var allPipelines = await service.GetAllPipelinesAsync(cancellationToken);
+        return allPipelines.FirstOrDefault(p =>
+            p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -65,12 +62,12 @@ public static class JobPipelineServiceExtensions
     /// <param name="service">The pipeline service instance.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Read-only list of active pipelines.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="service"/> is <c>null</c>.</exception>
     public static async Task<IReadOnlyList<JobPipeline>> GetActivePipelinesAsync(
         this JobPipelineService service,
         CancellationToken cancellationToken = default)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
+        ArgumentNullException.ThrowIfNull(service);
 
         var allPipelines = await service.GetAllPipelinesAsync(cancellationToken);
         return allPipelines.Where(p => p.IsActive).ToList().AsReadOnly();
@@ -84,13 +81,13 @@ public static class JobPipelineServiceExtensions
     /// <param name="id">Pipeline identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Pipeline status response with execution statistics; or <c>null</c> if pipeline not found.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="service"/> is <c>null</c>.</exception>
     public static async Task<PipelineStatusWithStatsResponse?> GetPipelineStatusWithStatsAsync(
         this JobPipelineService service,
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
+        ArgumentNullException.ThrowIfNull(service);
 
         var statusResponse = await service.GetPipelineStatusAsync(id, cancellationToken);
         if (statusResponse is null)
@@ -147,11 +144,11 @@ public static class JobPipelineServiceExtensions
     /// </summary>
     /// <param name="service">The pipeline service instance.</param>
     /// <returns>The Entity Framework DbContext.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="service"/> is <c>null</c>.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the service's context is not available.</exception>
     public static JobSchedulerContext GetDbContext(this JobPipelineService service)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
+        ArgumentNullException.ThrowIfNull(service);
 
         var contextField = typeof(JobPipelineService).GetField(
             "_context",
