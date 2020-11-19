@@ -7,6 +7,7 @@
 
 using System.Diagnostics;
 using JobScheduler.Core.Data;
+using Microsoft.Extensions.Logging;
 
 namespace JobScheduler.Core.Services;
 
@@ -23,10 +24,13 @@ public static class DistributedJobLockServiceExtensions
     /// <param name="jobId">The job identifier.</param>
     /// <param name="holderInstanceId">The instance identifier holding the lock.</param>
     /// <param name="lockDuration">The duration for which the lock should be held.</param>
-    /// <param name="maxAttempts">Maximum number of retry attempts (default: 3).</param>
-    /// <param name="retryDelay">Delay between retry attempts (default: 100ms).</param>
+    /// <param name="maxAttempts">Maximum number of retry attempts. Must be at least 1.</param>
+    /// <param name="retryDelay">Delay between retry attempts. Defaults to 100ms.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if lock was acquired, false otherwise.</returns>
+    /// <returns>True if lock was acquired within the retry limit, false otherwise.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxAttempts"/> is less than 1.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="holderInstanceId"/> is null.</exception>
     public static async Task<bool> TryAcquireLockWithRetryAsync(
         this DistributedJobLockService service,
         Guid jobId,
@@ -36,8 +40,8 @@ public static class DistributedJobLockServiceExtensions
         TimeSpan? retryDelay = null,
         CancellationToken cancellationToken = default)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
+        ArgumentNullException.ThrowIfNull(service);
+        ArgumentNullException.ThrowIfNull(holderInstanceId);
 
         if (maxAttempts < 1)
             throw new ArgumentOutOfRangeException(nameof(maxAttempts), "Must be at least 1");
@@ -72,6 +76,9 @@ public static class DistributedJobLockServiceExtensions
     /// <param name="action">The action to execute while holding the lock.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if the action was executed successfully, false if lock could not be acquired.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="action"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="holderInstanceId"/> is null.</exception>
     public static async Task<bool> ExecuteWithLockAsync(
         this DistributedJobLockService service,
         Guid jobId,
@@ -80,11 +87,9 @@ public static class DistributedJobLockServiceExtensions
         Func<Task> action,
         CancellationToken cancellationToken = default)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
-
-        if (action is null)
-            throw new ArgumentNullException(nameof(action));
+        ArgumentNullException.ThrowIfNull(service);
+        ArgumentNullException.ThrowIfNull(action);
+        ArgumentNullException.ThrowIfNull(holderInstanceId);
 
         var acquired = await service.TryAcquireLockAsync(jobId, holderInstanceId, lockDuration, cancellationToken);
 
@@ -110,14 +115,16 @@ public static class DistributedJobLockServiceExtensions
     /// <param name="holderInstanceId">The instance identifier to check for.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if the specified instance holds the lock, false otherwise.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="holderInstanceId"/> is null.</exception>
     public static async Task<bool> IsHeldByAsync(
         this DistributedJobLockService service,
         Guid jobId,
         string holderInstanceId,
         CancellationToken cancellationToken = default)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
+        ArgumentNullException.ThrowIfNull(service);
+        ArgumentNullException.ThrowIfNull(holderInstanceId);
 
         var isLocked = await service.IsLockedAsync(jobId, cancellationToken);
 
@@ -139,17 +146,17 @@ public static class DistributedJobLockServiceExtensions
     /// <returns>
     /// TimeSpan representing the remaining lock duration, or TimeSpan.Zero if the lock is not held.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is null.</exception>
     public static async Task<TimeSpan> GetRemainingLockTimeAsync(
         this DistributedJobLockService service,
         Guid jobId,
         CancellationToken cancellationToken = default)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
+        ArgumentNullException.ThrowIfNull(service);
 
         var now = DateTime.UtcNow;
-        var lockInfo = await service.GetActiveLocksAsync(cancellationToken)
-            .ContinueWith(t => t.Result.FirstOrDefault(l => l.JobId == jobId), cancellationToken);
+        var lockInfo = (await service.GetActiveLocksAsync(cancellationToken))
+            .FirstOrDefault(l => l.JobId == jobId);
 
         if (lockInfo is null || lockInfo.IsExpired(now))
             return TimeSpan.Zero;
