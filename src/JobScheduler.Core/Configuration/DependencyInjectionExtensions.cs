@@ -1,8 +1,9 @@
 #nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using System;
 using Microsoft.EntityFrameworkCore;
@@ -28,24 +29,24 @@ public static class DependencyInjectionExtensions
     /// Adds all job scheduler services to the service collection with full Phase 2 features.
     /// Includes caching, monitoring, webhooks, events, and advanced functionality.
     /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/> to add services to.</param>
+    /// <param name="configureOptions">Optional configuration action for <see cref="JobSchedulerOptions"/>.</param>
+    /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/>.</exception>
     public static IServiceCollection AddJobScheduler(
         this IServiceCollection services,
         Action<JobSchedulerOptions>? configureOptions = null)
     {
+        ArgumentNullException.ThrowIfNull(services);
+
         var options = new JobSchedulerOptions();
         configureOptions?.Invoke(options);
 
         // Configure database
         services.AddDbContext<JobSchedulerContext>(dbOptions =>
         {
-            if (string.IsNullOrWhiteSpace(options.ConnectionString))
-            {
-                dbOptions.UseSqlite("Data Source=scheduler.db");
-            }
-            else
-            {
-                dbOptions.UseSqlite(options.ConnectionString);
-            }
+            ArgumentException.ThrowIfNullOrWhiteSpace(options.ConnectionString);
+            dbOptions.UseSqlite(options.ConnectionString);
         });
 
         // Register repositories
@@ -100,9 +101,11 @@ public static class DependencyInjectionExtensions
         {
             services.AddScoped<ILeaderElectionService>(sp => new DatabaseLeaderElectionService(
                 sp.GetRequiredService<JobSchedulerContext>(),
-                options.LeaderElectionInstanceId,
+                string.IsNullOrWhiteSpace(options.LeaderElectionInstanceId)
+                    ? Environment.MachineName
+                    : options.LeaderElectionInstanceId,
                 options.LeaderElectionLeaseDurationSeconds,
-                sp.GetService<Microsoft.Extensions.Logging.ILogger<DatabaseLeaderElectionService>>()));
+                sp.GetService<ILogger<DatabaseLeaderElectionService>>()));
         }
 
         // Phase 2: Middleware registration
@@ -119,8 +122,13 @@ public static class DependencyInjectionExtensions
     /// Adds middleware to the application pipeline in the correct order.
     /// WHY: Middleware order matters - exception handling must be first, then logging, then rate limiting.
     /// </summary>
+    /// <param name="app">The <see cref="IApplicationBuilder"/> to configure.</param>
+    /// <returns>The <see cref="IApplicationBuilder"/> so that additional calls can be chained.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="app"/> is <see langword="null"/>.</exception>
     public static IApplicationBuilder UseJobSchedulerMiddleware(this IApplicationBuilder app)
     {
+        ArgumentNullException.ThrowIfNull(app);
+
         app.UseMiddleware<GlobalExceptionMiddleware>();
         app.UseMiddleware<LoggingMiddleware>();
         app.UseMiddleware<RateLimitMiddleware>();
@@ -130,8 +138,13 @@ public static class DependencyInjectionExtensions
     /// <summary>
     /// Applies database migrations and initializes the scheduler.
     /// </summary>
+    /// <param name="serviceProvider">The <see cref="IServiceProvider"/> to resolve services from.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="serviceProvider"/> is <see langword="null"/>.</exception>
     public static async Task InitializeDatabaseAsync(this IServiceProvider serviceProvider)
     {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<JobSchedulerContext>();
 
@@ -142,29 +155,34 @@ public static class DependencyInjectionExtensions
     /// Validates that all required services are properly registered.
     /// Checks both Phase 1 core services and Phase 2 feature services.
     /// </summary>
+    /// <param name="serviceProvider">The <see cref="IServiceProvider"/> to validate.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="serviceProvider"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when required services are not registered.</exception>
     public static void ValidateSchedulerConfiguration(this IServiceProvider serviceProvider)
     {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
         try
         {
             // Phase 1 core services
-            serviceProvider.GetRequiredService<JobSchedulerContext>();
-            serviceProvider.GetRequiredService<IJobRepository>();
-            serviceProvider.GetRequiredService<IExecutionRepository>();
-            serviceProvider.GetRequiredService<CronExpressionService>();
-            serviceProvider.GetRequiredService<ConcurrencyManager>();
-            serviceProvider.GetRequiredService<RetryService>();
-            serviceProvider.GetRequiredService<JobExecutorService>();
-            serviceProvider.GetRequiredService<JobSchedulerService>();
+            _ = serviceProvider.GetRequiredService<JobSchedulerContext>();
+            _ = serviceProvider.GetRequiredService<IJobRepository>();
+            _ = serviceProvider.GetRequiredService<IExecutionRepository>();
+            _ = serviceProvider.GetRequiredService<CronExpressionService>();
+            _ = serviceProvider.GetRequiredService<ConcurrencyManager>();
+            _ = serviceProvider.GetRequiredService<RetryService>();
+            _ = serviceProvider.GetRequiredService<JobExecutorService>();
+            _ = serviceProvider.GetRequiredService<JobSchedulerService>();
 
             // Phase 2 services
-            serviceProvider.GetRequiredService<CacheService>();
-            serviceProvider.GetRequiredService<PerformanceMonitor>();
-            serviceProvider.GetRequiredService<ExecutionStatisticsService>();
-            serviceProvider.GetRequiredService<IEventPublisher>();
-            serviceProvider.GetRequiredService<WebhookNotificationService>();
-            serviceProvider.GetRequiredService<SlackNotificationService>();
-            serviceProvider.GetRequiredService<ScheduleService>();
-            serviceProvider.GetRequiredService<AuditLogger>();
+            _ = serviceProvider.GetRequiredService<CacheService>();
+            _ = serviceProvider.GetRequiredService<PerformanceMonitor>();
+            _ = serviceProvider.GetRequiredService<ExecutionStatisticsService>();
+            _ = serviceProvider.GetRequiredService<IEventPublisher>();
+            _ = serviceProvider.GetRequiredService<WebhookNotificationService>();
+            _ = serviceProvider.GetRequiredService<SlackNotificationService>();
+            _ = serviceProvider.GetRequiredService<ScheduleService>();
+            _ = serviceProvider.GetRequiredService<AuditLogger>();
         }
         catch (Exception ex)
         {
@@ -206,7 +224,7 @@ public sealed class JobSchedulerOptions
 
     /// <summary>
     /// Enables distributed leader election so that only one scheduler node executes
-    /// jobs at a time in multi-instance deployments.  Defaults to <c>false</c>.
+    /// jobs at a time in multi-instance deployments. Defaults to <c>false</c>.
     /// </summary>
     public bool EnableLeaderElection { get; set; } = false;
 
