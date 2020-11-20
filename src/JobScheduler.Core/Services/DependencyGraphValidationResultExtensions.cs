@@ -3,7 +3,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using JobScheduler.Core.Domain.Entities;
 
@@ -20,6 +20,7 @@ public static class DependencyGraphValidationResultExtensions
     /// </summary>
     /// <param name="result">The validation result to check.</param>
     /// <returns>True if the graph is valid; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="result"/> is <see langword="null"/>.</exception>
     public static bool IsGraphValid(this DependencyGraphValidationResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -31,6 +32,7 @@ public static class DependencyGraphValidationResultExtensions
     /// </summary>
     /// <param name="result">The validation result.</param>
     /// <returns>A formatted error message if invalid; otherwise empty string.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="result"/> is <see langword="null"/>.</exception>
     public static string GetErrorMessage(this DependencyGraphValidationResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -42,6 +44,7 @@ public static class DependencyGraphValidationResultExtensions
     /// </summary>
     /// <param name="result">The validation result to check.</param>
     /// <returns>True if a cycle was detected; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="result"/> is <see langword="null"/>.</exception>
     public static bool HasCycle(this DependencyGraphValidationResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -53,6 +56,7 @@ public static class DependencyGraphValidationResultExtensions
     /// </summary>
     /// <param name="result">The validation result.</param>
     /// <returns>The count of jobs in the cycle, or 0.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="result"/> is <see langword="null"/>.</exception>
     public static int CycleCount(this DependencyGraphValidationResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -64,6 +68,7 @@ public static class DependencyGraphValidationResultExtensions
     /// </summary>
     /// <param name="result">The validation result.</param>
     /// <returns>A formatted string showing the cycle nodes in order, or empty string if no cycle.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="result"/> is <see langword="null"/>.</exception>
     public static string FormatCycle(this DependencyGraphValidationResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -79,7 +84,10 @@ public static class DependencyGraphValidationResultExtensions
     /// <param name="result">The current validation result.</param>
     /// <param name="other">Another validation result to combine with.</param>
     /// <returns>A combined validation result.</returns>
-    public static DependencyGraphValidationResult CombineWith(this DependencyGraphValidationResult result, DependencyGraphValidationResult other)
+    /// <exception cref="ArgumentNullException"><paramref name="result"/> or <paramref name="other"/> is <see langword="null"/>.</exception>
+    public static DependencyGraphValidationResult CombineWith(
+        this DependencyGraphValidationResult result,
+        DependencyGraphValidationResult other)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(other);
