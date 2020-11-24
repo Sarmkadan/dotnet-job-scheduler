@@ -11,6 +11,9 @@ using Xunit;
 
 namespace DotnetJobScheduler.Tests;
 
+/// <summary>
+/// Contains unit tests for the <see cref="JobSchedulerService"/> class, ensuring correct job scheduling, management, and execution logic.
+/// </summary>
 public sealed class JobSchedulerServiceTests
 {
     private readonly Mock<IJobRepository> _jobRepoMock = new();
@@ -43,6 +46,10 @@ public sealed class JobSchedulerServiceTests
         Status = JobStatus.Scheduled
     };
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.CreateJobAsync(Job, string?)"/> persists a valid job and returns the created job instance.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task CreateJobAsync_WithValidJob_PersistsAndReturnsJob()
     {
@@ -67,6 +74,10 @@ public sealed class JobSchedulerServiceTests
         _jobRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.CreateJobAsync(Job, string?)"/> throws an <see cref="ArgumentNullException"/> when the job is null.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task CreateJobAsync_WithNullJob_ThrowsArgumentNullException()
     {
@@ -77,6 +88,10 @@ public sealed class JobSchedulerServiceTests
         await Assert.ThrowsAsync<ArgumentNullException>(() => service.CreateJobAsync(null!));
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.CreateJobAsync(Job, string?)"/> throws an <see cref="ArgumentException"/> when the job name is empty.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task CreateJobAsync_WithEmptyJobName_ThrowsArgumentException()
     {
@@ -89,6 +104,10 @@ public sealed class JobSchedulerServiceTests
         await Assert.ThrowsAsync<ArgumentException>(() => service.CreateJobAsync(job));
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.CreateJobAsync(Job, string?)"/> throws a <see cref="CronExpressionException"/> when the cron expression is invalid.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task CreateJobAsync_WithInvalidCronExpression_ThrowsCronExpressionException()
     {
@@ -103,6 +122,10 @@ public sealed class JobSchedulerServiceTests
         await Assert.ThrowsAsync<CronExpressionException>(() => service.CreateJobAsync(job));
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.CreateJobAsync(Job, string?)"/> throws a <see cref="JobValidationException"/> when a job with the same name already exists.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task CreateJobAsync_WithDuplicateJobName_ThrowsJobValidationException()
     {
@@ -118,6 +141,10 @@ public sealed class JobSchedulerServiceTests
         ex.Message.Should().Contain(job.Name);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.CreateJobAsync(Job, string?)"/> correctly calculates the next execution time when a timezone is specified.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task CreateJobAsync_WithTimeZone_CalculatesNextExecutionInTimeZone()
     {
@@ -140,6 +167,10 @@ public sealed class JobSchedulerServiceTests
             job.CronExpression, job.TimeZoneId, It.IsAny<DateTime>()), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.CreateJobAsync(Job, string?)"/> throws a <see cref="JobValidationException"/> when the job configuration is invalid.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task CreateJobAsync_WithInvalidJobConfiguration_ThrowsJobValidationException()
     {
@@ -152,6 +183,10 @@ public sealed class JobSchedulerServiceTests
         await Assert.ThrowsAsync<JobValidationException>(() => service.CreateJobAsync(job));
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.SuspendJobAsync(Guid)"/> successfully suspends an active job.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task SuspendJobAsync_WithActiveJob_SuspendsProperly()
     {
@@ -172,6 +207,10 @@ public sealed class JobSchedulerServiceTests
         _jobRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.SuspendJobAsync(Guid)"/> throws a <see cref="JobNotFoundException"/> when the job does not exist.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task SuspendJobAsync_WithNonexistentJob_ThrowsJobNotFoundException()
     {
@@ -183,6 +222,10 @@ public sealed class JobSchedulerServiceTests
         await Assert.ThrowsAsync<JobNotFoundException>(() => service.SuspendJobAsync(Guid.NewGuid()));
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.ResumeJobAsync(Guid)"/> successfully resumes a suspended job.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task ResumeJobAsync_WithSuspendedJob_ResumesScheduling()
     {
@@ -206,6 +249,10 @@ public sealed class JobSchedulerServiceTests
         _jobRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.DeleteJobAsync(Guid)"/> removes the job from the repository.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task DeleteJobAsync_RemovesJobFromRepository()
     {
@@ -224,6 +271,10 @@ public sealed class JobSchedulerServiceTests
         _jobRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.DeleteJobAsync(Guid)"/> throws a <see cref="JobNotFoundException"/> when the job does not exist.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task DeleteJobAsync_WithNonexistentJob_ThrowsJobNotFoundException()
     {
@@ -235,6 +286,10 @@ public sealed class JobSchedulerServiceTests
         await Assert.ThrowsAsync<JobNotFoundException>(() => service.DeleteJobAsync(Guid.NewGuid()));
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.UpdateJobScheduleAsync(Guid, string)"/> successfully updates a job's schedule.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task UpdateJobScheduleAsync_WithValidCron_UpdatesSchedule()
     {
@@ -258,6 +313,10 @@ public sealed class JobSchedulerServiceTests
         _jobRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.ExecuteDueJobsAsync()"/> successfully executes due jobs.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task ExecuteDueJobsAsync_ExecutesDueJobs()
     {
@@ -289,6 +348,10 @@ public sealed class JobSchedulerServiceTests
         executions.First().Status.Should().Be(ExecutionStatus.Success);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.ExecuteDueJobsAsync()"/> skips jobs that exceed concurrency limits.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task ExecuteDueJobsAsync_SkipsJobsExceedingConcurrency()
     {
@@ -312,6 +375,10 @@ public sealed class JobSchedulerServiceTests
             Times.Never);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.GetJobDetailsAsync(Guid)"/> returns a job with its execution history.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task GetJobDetailsAsync_ReturnsJobWithExecutionHistory()
     {
@@ -341,6 +408,10 @@ public sealed class JobSchedulerServiceTests
         result!.Job.Id.Should().Be(jobId);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.GetJobDetailsAsync(Guid)"/> returns null when the job does not exist.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task GetJobDetailsAsync_WithNonexistentJob_ReturnsNull()
     {
@@ -355,6 +426,10 @@ public sealed class JobSchedulerServiceTests
         result.Should().BeNull();
     }
 
+    /// <summary>
+    /// Verifies that <see cref="JobSchedulerService.ProcessRetriesAsync()"/> triggers retries for failed executions when appropriate.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
     public async Task ProcessRetriesAsync_RetriesFailedExecutions()
     {
