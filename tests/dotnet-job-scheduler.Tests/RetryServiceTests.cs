@@ -13,19 +13,30 @@ using JobScheduler.Core.Services;
 using Moq;
 using Xunit;
 
-namespace DotnetJobScheduler.Tests;
-
+/// <summary>
+/// Tests for the RetryService class.
+/// </summary>
 public sealed class RetryServiceTests
 {
     private readonly Mock<IJobRepository> _jobRepoMock = new();
     private readonly Mock<IExecutionRepository> _executionRepoMock = new();
     private readonly RetryService _service;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RetryServiceTests"/> class.
+    /// </summary>
     public RetryServiceTests()
     {
         _service = new RetryService(_jobRepoMock.Object, _executionRepoMock.Object);
     }
 
+    /// <summary>
+    /// Builds a new Job instance with the specified properties.
+    /// </summary>
+    /// <param name="maxRetries">The maximum number of retries.</param>
+    /// <param name="backoffSeconds">The initial backoff delay in seconds.</param>
+    /// <param name="timeoutSeconds">The execution timeout in seconds.</param>
+    /// <returns>A new Job instance.</returns>
     private static Job BuildJob(int maxRetries = 3, int backoffSeconds = 5, int timeoutSeconds = 300) => new()
     {
         Id = Guid.NewGuid(),
@@ -35,6 +46,12 @@ public sealed class RetryServiceTests
         ExecutionTimeoutSeconds = timeoutSeconds
     };
 
+    /// <summary>
+    /// Builds a new JobExecution instance with the specified properties.
+    /// </summary>
+    /// <param name="attempt">The attempt number.</param>
+    /// <param name="retryable">Whether the execution is retryable.</param>
+    /// <returns>A new JobExecution instance.</returns>
     private static JobExecution BuildFailedExecution(int attempt = 1, bool retryable = true) => new()
     {
         Id = Guid.NewGuid(),
@@ -44,6 +61,9 @@ public sealed class RetryServiceTests
         CompletedAt = DateTime.UtcNow
     };
 
+    /// <summary>
+    /// Tests that the ShouldRetryAsync method returns false when the attempt number exceeds the maximum retries.
+    /// </summary>
     [Fact]
     public async Task ShouldRetryAsync_WhenAttemptNumberExceedsMaxRetries_ReturnsFalse()
     {
@@ -58,6 +78,9 @@ public sealed class RetryServiceTests
         result.Should().BeFalse("attempt 4 is beyond the 3-retry ceiling");
     }
 
+    /// <summary>
+    /// Tests that the ShouldRetryAsync method returns false when the execution is not retryable.
+    /// </summary>
     [Fact]
     public async Task ShouldRetryAsync_WhenExecutionMarkedNotRetryable_ReturnsFalse()
     {
@@ -72,6 +95,9 @@ public sealed class RetryServiceTests
         result.Should().BeFalse("execution explicitly opted out of retries");
     }
 
+    /// <summary>
+    /// Tests that the ShouldRetryAsync method returns true when the execution is within the retry limits and is retryable.
+    /// </summary>
     [Fact]
     public async Task ShouldRetryAsync_WhenWithinLimitsAndRetryable_ReturnsTrue()
     {
@@ -86,6 +112,9 @@ public sealed class RetryServiceTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Tests that the CalculateBackoffDelay method returns the initial backoff delay when the attempt number is zero.
+    /// </summary>
     [Fact]
     public void CalculateBackoffDelay_WithAttemptZero_ReturnsInitialBackoff()
     {
@@ -99,6 +128,9 @@ public sealed class RetryServiceTests
         delay.Should().Be(5);
     }
 
+    /// <summary>
+    /// Tests that the CalculateBackoffDelay method applies the exponential formula when the attempt number is greater than zero.
+    /// </summary>
     [Fact]
     public void CalculateBackoffDelay_WithSecondAttempt_AppliesExponentialFormula()
     {
@@ -112,6 +144,9 @@ public sealed class RetryServiceTests
         delay.Should().Be(10);
     }
 
+    /// <summary>
+    /// Tests that the CalculateBackoffDelay method caps the delay at the job timeout when the delay exceeds the timeout.
+    /// </summary>
     [Fact]
     public void CalculateBackoffDelay_WhenDelayExceedsJobTimeout_CapsAtTimeoutSeconds()
     {
@@ -125,6 +160,9 @@ public sealed class RetryServiceTests
         delay.Should().Be(100);
     }
 
+    /// <summary>
+    /// Tests that the CreateRetryExecution method produces a new execution with the incremented attempt number and running status.
+    /// </summary>
     [Fact]
     public void CreateRetryExecution_WithFailedExecution_ProducesIncrementedAttemptAndRunningStatus()
     {
@@ -142,6 +180,9 @@ public sealed class RetryServiceTests
         retry.IsRetryable.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Tests that the IsRetryBudgetExceededAsync method returns true when the recent failures exceed the retry budget.
+    /// </summary>
     [Fact]
     public async Task IsRetryBudgetExceededAsync_WhenRecentFailuresExceedBudget_ReturnsTrue()
     {
