@@ -7,6 +7,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using NCrontab;
 using JobScheduler.Core.Exceptions;
@@ -17,7 +20,7 @@ namespace JobScheduler.Core.Services;
 /// Service for parsing, validating, and evaluating cron expressions.
 /// Uses NCronTab library for POSIX-compliant cron parsing.
 /// </summary>
-public sealed class CronExpressionService
+public class CronExpressionService
 {
     private static readonly ConcurrentDictionary<string, CrontabSchedule> _scheduleCache =
         new(StringComparer.Ordinal);
@@ -27,7 +30,7 @@ public sealed class CronExpressionService
     /// <summary>
     /// Validates a cron expression syntax.
     /// </summary>
-    public bool IsValidCronExpression(string cronExpression)
+    public virtual bool IsValidCronExpression(string cronExpression)
     {
         if (string.IsNullOrWhiteSpace(cronExpression))
         {
@@ -52,7 +55,7 @@ public sealed class CronExpressionService
     /// Parses a cron expression and throws if invalid.
     /// Result is cached so repeated calls for the same expression are allocation-free.
     /// </summary>
-    public CrontabSchedule ParseCronExpression(string cronExpression)
+    public virtual CrontabSchedule ParseCronExpression(string cronExpression)
     {
         if (string.IsNullOrWhiteSpace(cronExpression))
         {
@@ -87,7 +90,7 @@ public sealed class CronExpressionService
     /// Handles leap-year-specific expressions such as "0 0 29 2 *" (Feb 29) by
     /// advancing year-by-year until a valid date is found.
     /// </summary>
-    public DateTime GetNextExecutionTime(string cronExpression, DateTime? baseTime = null)
+    public virtual DateTime GetNextExecutionTime(string cronExpression, DateTime? baseTime = null)
     {
         var schedule = ParseCronExpression(cronExpression);
         var reference = baseTime ?? DateTime.UtcNow;
@@ -133,7 +136,7 @@ public sealed class CronExpressionService
     /// <param name="baseTimeUtc">
     /// Reference point in UTC.  Defaults to <see cref="DateTime.UtcNow"/>.
     /// </param>
-    public DateTime GetNextExecutionTimeInZone(string cronExpression, string timezoneId, DateTime? baseTimeUtc = null)
+    public virtual DateTime GetNextExecutionTimeInZone(string cronExpression, string timezoneId, DateTime? baseTimeUtc = null)
     {
         if (string.IsNullOrWhiteSpace(timezoneId))
             throw new ArgumentException("Timezone ID cannot be null or empty.", nameof(timezoneId));
@@ -192,7 +195,7 @@ public sealed class CronExpressionService
     /// <summary>
     /// Calculates the next N execution times.
     /// </summary>
-    public IEnumerable<DateTime> GetNextExecutionTimes(string cronExpression, int count, DateTime? baseTime = null)
+    public virtual IEnumerable<DateTime> GetNextExecutionTimes(string cronExpression, int count, DateTime? baseTime = null)
     {
         if (count <= 0)
             throw new ArgumentException("Count must be positive", nameof(count));
@@ -216,7 +219,7 @@ public sealed class CronExpressionService
     /// <summary>
     /// Checks if a job should execute at the given time based on its cron expression.
     /// </summary>
-    public bool ShouldExecuteAt(string cronExpression, DateTime checkTime)
+    public virtual bool ShouldExecuteAt(string cronExpression, DateTime checkTime)
     {
         try
         {
@@ -261,21 +264,27 @@ public sealed class CronExpressionService
     }
 
     /// <summary>
-    /// Gets a human-readable description of a cron expression.
+    /// Gets a human-readable description of a cron expression, for example
+    /// "0 9 * * 1-5" becomes "At 09:00, Monday through Friday".
+    /// Supports the 5 field (minute hour day month day-of-week) and the 6 field
+    /// (second minute hour day month day-of-week) layouts.
     /// </summary>
-    public string GetCronDescription(string cronExpression)
+    /// <returns>The description, or "Invalid cron expression" when the expression cannot be parsed.</returns>
+    public virtual string GetCronDescription(string cronExpression)
     {
         try
         {
-            // This is a simplified description - could be enhanced with CronExpressionDescriptor
-            var schedule = ParseCronExpression(cronExpression);
-            var parts = cronExpression.Split(' ');
+            // Parsing first guarantees the description never describes an expression the scheduler
+            // would reject at run time.
+            _ = ParseCronExpression(cronExpression);
+
+            var parts = cronExpression.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             return parts.Length switch
             {
-                5 => GetSimpleCronDescription(parts),
-                6 => GetQuartzCronDescription(parts),
-                _ => "Complex schedule"
+                5 => BuildDescription(second: null, minute: parts[0], hour: parts[1], dayOfMonth: parts[2], month: parts[3], dayOfWeek: parts[4]),
+                6 => BuildDescription(second: parts[0], minute: parts[1], hour: parts[2], dayOfMonth: parts[3], month: parts[4], dayOfWeek: parts[5]),
+                _ => "Invalid cron expression"
             };
         }
         catch
@@ -284,24 +293,124 @@ public sealed class CronExpressionService
         }
     }
 
-    private string GetSimpleCronDescription(string[] parts)
+    private static readonly string[] _dayNames =
+        ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+    private static readonly string[] _monthNames =
+        ["January", "February", "March", "April", "May", "June",
+         "July", "August", "September", "October", "November", "December"];
+
+    /// <summary>
+    /// Composes the description from the individual cron fields.
+    /// </summary>
+    private static string BuildDescription(string? second, string minute, string hour, string dayOfMonth, string month, string dayOfWeek)
     {
-        // minute hour day month dayofweek
-        if (parts[0] == "*" && parts[1] == "*" && parts[2] == "*" && parts[3] == "*" && parts[4] == "*")
-            return "Every minute";
+        var description = new StringBuilder(DescribeTime(second, minute, hour));
 
-        if (parts[0] == "0" && parts[1] == "*")
-            return "Hourly";
+        if (dayOfWeek != "*" && dayOfWeek != "?")
+            description.Append(", ").Append(DescribeSet(dayOfWeek, DayName));
 
-        if (parts[0] == "0" && parts[1] == "0")
-            return "Daily";
+        if (dayOfMonth != "*" && dayOfMonth != "?")
+            description.Append(", on day ").Append(DescribeSet(dayOfMonth, static v => v.ToString(CultureInfo.InvariantCulture))).Append(" of the month");
 
-        return "Custom schedule";
+        if (month != "*")
+            description.Append(", in ").Append(DescribeSet(month, MonthName));
+
+        return description.ToString();
     }
 
-    private string GetQuartzCronDescription(string[] parts)
+    /// <summary>
+    /// Describes the second/minute/hour portion of the expression.
+    /// </summary>
+    private static string DescribeTime(string? second, string minute, string hour)
     {
-        // second minute hour day month dayofweek year
-        return "Custom schedule";
+        var secondsSuffix = second is null or "0" or "*"
+            ? string.Empty
+            : $" at second {DescribeSet(second, static v => v.ToString(CultureInfo.InvariantCulture))}";
+
+        if (second is "*" && minute == "*" && hour == "*")
+            return "Every second";
+
+        if (minute == "*" && hour == "*")
+            return "Every minute" + secondsSuffix;
+
+        if (TryGetStep(minute, out var minuteStep) && hour == "*")
+            return $"Every {minuteStep} minutes" + secondsSuffix;
+
+        if (TryGetStep(hour, out var hourStep))
+            return $"Every {hourStep} hours at minute {DescribeSet(minute, static v => v.ToString(CultureInfo.InvariantCulture))}" + secondsSuffix;
+
+        if (hour == "*")
+            return $"Hourly at minute {DescribeSet(minute, static v => v.ToString(CultureInfo.InvariantCulture))}" + secondsSuffix;
+
+        if (int.TryParse(hour, NumberStyles.Integer, CultureInfo.InvariantCulture, out var singleHour) &&
+            int.TryParse(minute, NumberStyles.Integer, CultureInfo.InvariantCulture, out var singleMinute))
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"At {singleHour:D2}:{singleMinute:D2}") + secondsSuffix;
+        }
+
+        return $"At minute {DescribeSet(minute, static v => v.ToString(CultureInfo.InvariantCulture))} " +
+               $"past hour {DescribeSet(hour, static v => v.ToString(CultureInfo.InvariantCulture))}" + secondsSuffix;
     }
+
+    /// <summary>
+    /// Renders a cron field ("1", "1-5", "1,3", "*/10") using the supplied value formatter.
+    /// </summary>
+    private static string DescribeSet(string field, Func<int, string> format)
+    {
+        if (field == "*")
+            return "every value";
+
+        if (TryGetStep(field, out var step))
+            return $"every {step}";
+
+        var segments = field.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        var rendered = new List<string>(segments.Length);
+
+        foreach (var segment in segments)
+        {
+            var bounds = segment.Split('-', 2);
+
+            if (bounds.Length == 2 &&
+                int.TryParse(bounds[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var from) &&
+                int.TryParse(bounds[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var to))
+            {
+                rendered.Add($"{format(from)} through {format(to)}");
+            }
+            else if (int.TryParse(segment, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+            {
+                rendered.Add(format(value));
+            }
+            else
+            {
+                rendered.Add(segment);
+            }
+        }
+
+        return rendered.Count switch
+        {
+            0 => field,
+            1 => rendered[0],
+            _ => string.Join(" and ", string.Join(", ", rendered.Take(rendered.Count - 1)), rendered[^1])
+        };
+    }
+
+    /// <summary>
+    /// Extracts the step of a "*/n" or "a-b/n" field.
+    /// </summary>
+    private static bool TryGetStep(string field, out int step)
+    {
+        step = 0;
+        var slash = field.IndexOf('/');
+
+        return slash >= 0 &&
+               int.TryParse(field[(slash + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture, out step) &&
+               step > 0;
+    }
+
+    private static string DayName(int value) =>
+        value is >= 0 and <= 7 ? _dayNames[value % 7] : value.ToString(CultureInfo.InvariantCulture);
+
+    private static string MonthName(int value) =>
+        value is >= 1 and <= 12 ? _monthNames[value - 1] : value.ToString(CultureInfo.InvariantCulture);
 }
