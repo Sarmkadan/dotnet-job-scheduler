@@ -21,7 +21,7 @@ namespace JobScheduler.Core.Services;
 /// Manages concurrent job execution limits and ensures concurrency constraints.
 /// Prevents overloading system with too many concurrent executions.
 /// </summary>
-public sealed class ConcurrencyManager
+public class ConcurrencyManager
 {
     private readonly IExecutionRepository _executionRepository;
     private readonly ConcurrentDictionary<Guid, int> _jobConcurrencyCache;
@@ -29,6 +29,19 @@ public sealed class ConcurrencyManager
     private int _globalRunningCount;
     private readonly ILogger<ConcurrencyManager>? _logger;
 
+    /// <summary>
+    /// Creates a concurrency manager with the default global limit and no logger.
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="executionRepository"/> is null.</exception>
+    public ConcurrencyManager(IExecutionRepository executionRepository)
+        : this(executionRepository, SchedulerConstants.DefaultMaxConcurrentJobs, null)
+    {
+    }
+
+    /// <summary>
+    /// Creates a concurrency manager.
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="executionRepository"/> is null.</exception>
     public ConcurrencyManager(IExecutionRepository executionRepository, int maxGlobalConcurrency = SchedulerConstants.DefaultMaxConcurrentJobs, ILogger<ConcurrencyManager>? logger = null)
     {
         _executionRepository = executionRepository ?? throw new ArgumentNullException(nameof(executionRepository));
@@ -42,7 +55,7 @@ public sealed class ConcurrencyManager
     /// <summary>
     /// Checks if a job can execute based on concurrency constraints.
     /// </summary>
-    public async Task<bool> CanExecuteAsync(Job job)
+    public virtual async Task<bool> CanExecuteAsync(Job job)
     {
         if (job is null)
         {
@@ -77,7 +90,7 @@ public sealed class ConcurrencyManager
     /// <summary>
     /// Ensures a job can execute; throws if it cannot due to concurrency limits.
     /// </summary>
-    public async Task EnsureCanExecuteAsync(Job job)
+    public virtual async Task EnsureCanExecuteAsync(Job job)
     {
         if (!await CanExecuteAsync(job))
         {
@@ -92,7 +105,7 @@ public sealed class ConcurrencyManager
     /// <summary>
     /// Increments the concurrency counter for a job.
     /// </summary>
-    public void IncrementConcurrencyCount(Guid jobId)
+    public virtual void IncrementConcurrencyCount(Guid jobId)
     {
         var newCount = _jobConcurrencyCache.AddOrUpdate(jobId, 1, (_, current) => current + 1);
         Interlocked.Increment(ref _globalRunningCount);
@@ -102,12 +115,20 @@ public sealed class ConcurrencyManager
     /// <summary>
     /// Decrements the concurrency counter for a job.
     /// </summary>
-    public void DecrementConcurrencyCount(Guid jobId)
+    public virtual void DecrementConcurrencyCount(Guid jobId)
     {
         var oldCount = _jobConcurrencyCache.AddOrUpdate(jobId, 0, (_, current) => Math.Max(0, current - 1));
 
-        if (_globalRunningCount > 0)
-            Interlocked.Decrement(ref _globalRunningCount);
+        // Compare-and-swap keeps the global counter from going negative when several
+        // executions finish at the same time (a plain check-then-decrement races).
+        int observed;
+        do
+        {
+            observed = Volatile.Read(ref _globalRunningCount);
+            if (observed == 0)
+                break;
+        }
+        while (Interlocked.CompareExchange(ref _globalRunningCount, observed - 1, observed) != observed);
 
         _logger?.LogDebug("Decremented concurrency count for job {JobId}: was {OldCount}", jobId, oldCount);
     }
@@ -115,7 +136,7 @@ public sealed class ConcurrencyManager
     /// <summary>
     /// Gets the current concurrency count for a job.
     /// </summary>
-    public int GetJobConcurrencyCount(Guid jobId)
+    public virtual int GetJobConcurrencyCount(Guid jobId)
     {
         return _jobConcurrencyCache.TryGetValue(jobId, out var count) ? count : 0;
     }
@@ -123,38 +144,38 @@ public sealed class ConcurrencyManager
     /// <summary>
     /// Gets the global concurrency count.
     /// </summary>
-    public int GetGlobalConcurrencyCount()
+    public virtual int GetGlobalConcurrencyCount()
     {
-        return _globalRunningCount;
+        return Volatile.Read(ref _globalRunningCount);
     }
 
     /// <summary>
     /// Clears cache and synchronizes with database state.
     /// Should be called periodically or on system startup.
     /// </summary>
-    public async Task SynchronizeWithDatabaseAsync()
+    public virtual async Task SynchronizeWithDatabaseAsync()
     {
         _jobConcurrencyCache.Clear();
 
-        var runningExecutions = await _executionRepository.GetRunningExecutionsAsync();
-        var grouped = runningExecutions.GroupBy(e => e.JobId);
+        var runningExecutions = (await _executionRepository.GetRunningExecutionsAsync()).ToList();
 
-        foreach (var group in grouped)
+        foreach (var group in runningExecutions.GroupBy(e => e.JobId))
         {
             _jobConcurrencyCache[group.Key] = group.Count();
         }
 
-        _globalRunningCount = runningExecutions.Count();
+        // The repository count is authoritative: it also covers executions started by other nodes.
+        Volatile.Write(ref _globalRunningCount, await _executionRepository.GetConcurrentRunningCountAsync());
     }
 
     /// <summary>
     /// Gets statistics about current concurrency state.
     /// </summary>
-    public Dictionary<string, int> GetConcurrencyStats()
+    public virtual Dictionary<string, int> GetConcurrencyStats()
     {
         var stats = new Dictionary<string, int>
         {
-            { "GlobalRunning", _globalRunningCount },
+            { "GlobalRunning", Volatile.Read(ref _globalRunningCount) },
             { "GlobalLimit", _maxGlobalConcurrency },
             { "JobsWithExecutions", _jobConcurrencyCache.Count(x => x.Value > 0) },
             { "TotalCachedJobs", _jobConcurrencyCache.Count }
