@@ -6,6 +6,7 @@ using JobScheduler.Core.Constants;
 using JobScheduler.Core.Data;
 using JobScheduler.Core.Data.Repositories;
 using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Domain.Models;
 using JobScheduler.Core.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,6 +46,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
         _services.AddScoped<JobExecutorService>();
         _services.AddScoped<JobSchedulerService>();
         _services.AddScoped<ScheduleService>();
+        _services.AddMemoryCache();
         _services.AddScoped<CacheService>();
 
         _serviceProvider = _services.BuildServiceProvider();
@@ -136,17 +138,16 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
         };
         var createdJob = await jobScheduler.CreateJobAsync(job);
 
-        // Act
+        // Act & Assert - the repository returns the tracked instance, so each state is
+        // asserted before the next transition is applied.
         await jobScheduler.SuspendJobAsync(createdJob.Id);
         var suspendedJob = await _serviceProvider.GetRequiredService<IJobRepository>()
             .GetByIdAsync(createdJob.Id);
+        suspendedJob?.Status.Should().Be(JobStatus.Suspended);
 
         await jobScheduler.ResumeJobAsync(createdJob.Id);
         var resumedJob = await _serviceProvider.GetRequiredService<IJobRepository>()
             .GetByIdAsync(createdJob.Id);
-
-        // Assert
-        suspendedJob?.Status.Should().Be(JobStatus.Suspended);
         resumedJob?.Status.Should().Be(JobStatus.Scheduled);
     }
 
@@ -237,12 +238,12 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         var cacheService = _serviceProvider!.GetRequiredService<CacheService>();
-        var testData = new { Id = 1, Name = "Test Job" };
+        var testData = new JobResponse { Id = Guid.NewGuid(), Name = "Test Job" };
         var cacheKey = "test:cache:key";
 
         // Act
         await cacheService.SetAsync(cacheKey, testData);
-        var cachedValue = await cacheService.GetAsync<dynamic>(cacheKey);
+        var cachedValue = await cacheService.GetAsync<JobResponse>(cacheKey);
 
         // Assert
         cachedValue.Should().NotBeNull();
