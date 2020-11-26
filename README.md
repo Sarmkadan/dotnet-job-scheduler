@@ -64,4 +64,37 @@ if (pipelineStatus != null)
 }
 ```
 
+## DependencyGraphValidationResultExtensions
+
+The `DependencyGraphValidationResultExtensions` class provides utility methods to analyze and combine dependency graph validation results. It helps detect cycles, validate graph integrity, and format cycle information for logging or display.
+
+Example usage:
+```csharp
+var result1 = DependencyGraphValidationResult.Valid();
+var result2 = new DependencyGraphValidationResult
+{
+    IsValid = false,
+    Message = "Cycle detected",
+    CycleNodes = new List<Guid>
+    {
+        Guid.Parse("12345678-0000-0000-0000-000000000001"),
+        Guid.Parse("12345678-0000-0000-0000-000000000002")
+    }
+};
+
+// Combine results
+var combinedResult = result1.CombineWith(result2);
+
+if (combinedResult.HasCycle())
+{
+    Console.WriteLine($"Cycle detected: {combinedResult.FormatCycle()}");
+    Console.WriteLine($"Error: {combinedResult.GetErrorMessage()}");
+    Console.WriteLine($"Cycle count: {combinedResult.CycleCount()}");
+}
+else
+{
+    Console.WriteLine("Graph is valid.");
+}
+```
+
 // ... (rest of README.md content)
