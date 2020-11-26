@@ -29,4 +29,36 @@ Console.WriteLine($"Description: {description}");
 
 This example demonstrates how to use the `CronExpressionBenchmarksExtensions` class to validate cron expressions, get next execution times, and test the scheduler's decision logic.
 
+## JobExecutionSummaryExtensions
+
+The `JobExecutionSummaryExtensions` class provides extension methods for analyzing job execution statistics, such as calculating failure rates, timeout/cancellation rates, and execution duration metrics. It helps identify performance trends and reliability issues in scheduled jobs.
+
+Example usage:
+
+```csharp
+var summary = new JobExecutionSummary
+{
+    TotalExecutions = 100,
+    FailureCount = 5,
+    TimedOutCount = 2,
+    CancelledCount = 1,
+    MinDurationMs = 120,
+    MaxDurationMs = 300
+};
+
+double failureRate = summary.GetFailureRate();
+double timeoutCancelledRate = summary.GetTimeoutCancelledRate();
+bool hasFailures = summary.HasFailures();
+var durationRange = summary.GetDurationRange();
+double stdDev = summary.GetDurationStandardDeviation();
+
+Console.WriteLine($"Failure Rate: {failureRate:F2}%");
+Console.WriteLine($"Timeout/Cancelled Rate: {timeoutCancelledRate:F2}%");
+Console.WriteLine($"Has Failures: {hasFailures}");
+Console.WriteLine($"Duration Range: {durationRange.Min}-{durationRange.Max}ms");
+Console.WriteLine($"Duration Standard Deviation: {stdDev:F2}ms");
+```
+
+This example demonstrates calculating key metrics from a job's execution history, such as failure rates and duration variability.
+
 // ... (rest of README.md content)
