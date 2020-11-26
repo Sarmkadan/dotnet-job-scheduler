@@ -1,5 +1,3 @@
-// ... (rest of README.md content)
-
 ## CreatePipelineRequestExtensions
 
 The `CreatePipelineRequestExtensions` class provides utility methods for working with pipeline creation requests, including validation, step addition, description management, and cloning. It simplifies building and verifying pipeline configurations through fluent operations.
@@ -32,6 +30,38 @@ bool isValid = pipeline.IsValid();
 var pipelineCopy = pipeline.Clone();
 
 Console.WriteLine($"Pipeline has {pipeline.Steps.Count} steps and is valid: {isValid}");
+```
+
+## JobPipelineServiceExtensions
+
+The `JobPipelineServiceExtensions` class provides extension methods for the `JobPipelineService` to enhance pipeline management capabilities. It includes methods for checking pipeline existence, retrieving pipelines by name, listing active pipelines, and fetching detailed status with execution statistics for pipeline steps.
+
+Example usage:
+```csharp
+var pipelineService = new JobPipelineService(context);
+
+// Check if pipeline exists
+bool exists = await pipelineService.ExistsAsync(Guid.Parse("12345678-0000-0000-0000-000000000004"));
+
+// Get active pipelines
+var activePipelines = await pipelineService.GetActivePipelinesAsync();
+
+// Get pipeline status with execution stats
+var pipelineStatus = await pipelineService.GetPipelineStatusWithStatsAsync(Guid.Parse("12345678-0000-0000-0000-000000000004"));
+
+if (pipelineStatus != null)
+{
+    Console.WriteLine($"Pipeline: {pipelineStatus.PipelineName} (ID: {pipelineStatus.PipelineId})");
+    foreach (var step in pipelineStatus.ExecutionStats)
+    {
+        Console.WriteLine($"Step {step.StepOrder}: {step.JobName} (Job ID: {step.JobId})");
+        Console.WriteLine($"  Status: {step.Status}");
+        Console.WriteLine($"  Last Executed: {step.LastExecutedAt}");
+        Console.WriteLine($"  Ready: {step.IsReady}");
+        Console.WriteLine($"  Successes: {step.SuccessCount}, Failures: {step.FailureCount}");
+        Console.WriteLine($"  Avg Duration: {step.AverageDuration}, Total: {step.TotalExecutions}");
+    }
+}
 ```
 
 // ... (rest of README.md content)
