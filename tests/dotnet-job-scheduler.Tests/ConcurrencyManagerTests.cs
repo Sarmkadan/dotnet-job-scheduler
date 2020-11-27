@@ -11,12 +11,20 @@ using Xunit;
 
 namespace DotnetJobScheduler.Tests;
 
+/// <summary>
+/// Unit tests for <see cref="ConcurrencyManager"/> that verify concurrency control and capacity management.
+/// </summary>
 public sealed class ConcurrencyManagerTests
 {
     private readonly Mock<IExecutionRepository> _executionRepoMock = new();
 
+    /// <summary>
+    /// Creates a new <see cref="ConcurrencyManager"/> instance with the specified global concurrency limit.
+    /// </summary>
+    /// <param name="maxGlobalConcurrency">The maximum number of concurrent executions allowed across all jobs.</param>
+    /// <returns>A new <see cref="ConcurrencyManager"/> instance.</returns>
     private ConcurrencyManager CreateManager(int maxGlobalConcurrency = 10) =>
-        new(_executionRepoMock.Object, maxGlobalConcurrency);
+    new(_executionRepoMock.Object, maxGlobalConcurrency);
 
     private static Job CreateJob(Guid? id = null, int maxConcurrent = 1) => new()
     {
@@ -30,6 +38,9 @@ public sealed class ConcurrencyManagerTests
         Status = JobStatus.Scheduled
     };
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.CanExecuteAsync"/> returns true when there is available capacity both globally and for the specific job.
+    /// </summary>
     [Fact]
     public async Task CanExecuteAsync_WithAvailableCapacity_ReturnsTrue()
     {
@@ -49,6 +60,9 @@ public sealed class ConcurrencyManagerTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.CanExecuteAsync"/> returns false when global concurrency limit is exceeded.
+    /// </summary>
     [Fact]
     public async Task CanExecuteAsync_WithExceededGlobalConcurrency_ReturnsFalse()
     {
@@ -68,6 +82,9 @@ public sealed class ConcurrencyManagerTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.CanExecuteAsync"/> returns false when the specific job's concurrency limit is exceeded.
+    /// </summary>
     [Fact]
     public async Task CanExecuteAsync_WithExceededJobConcurrency_ReturnsFalse()
     {
@@ -87,6 +104,9 @@ public sealed class ConcurrencyManagerTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.CanExecuteAsync"/> throws <see cref="ArgumentNullException"/> when null job is provided.
+    /// </summary>
     [Fact]
     public async Task CanExecuteAsync_WithNullJob_ThrowsArgumentNullException()
     {
@@ -97,6 +117,9 @@ public sealed class ConcurrencyManagerTests
         await Assert.ThrowsAsync<ArgumentNullException>(() => manager.CanExecuteAsync(null!));
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.EnsureCanExecuteAsync"/> completes successfully when there is available capacity.
+    /// </summary>
     [Fact]
     public async Task EnsureCanExecuteAsync_WithAvailableCapacity_CompletesSuccessfully()
     {
@@ -114,6 +137,9 @@ public sealed class ConcurrencyManagerTests
         _executionRepoMock.Verify(r => r.GetConcurrentRunningCountAsync(), Times.AtLeastOnce);
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.EnsureCanExecuteAsync"/> throws <see cref="ConcurrencyException"/> when capacity is exceeded.
+    /// </summary>
     [Fact]
     public async Task EnsureCanExecuteAsync_WithExceededCapacity_ThrowsConcurrencyException()
     {
@@ -131,6 +157,9 @@ public sealed class ConcurrencyManagerTests
         ex.JobId.Should().Be(job.Id);
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.IncrementConcurrencyCount"/> increments the job's concurrency counter.
+    /// </summary>
     [Fact]
     public void IncrementConcurrencyCount_IncrementsJobCounter()
     {
@@ -147,6 +176,9 @@ public sealed class ConcurrencyManagerTests
         stats["GlobalRunning"].Should().Be(2);
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.IncrementConcurrencyCount"/> tracks multiple jobs separately.
+    /// </summary>
     [Fact]
     public void IncrementConcurrencyCount_MultipleJobs_TracksSeparately()
     {
@@ -165,6 +197,9 @@ public sealed class ConcurrencyManagerTests
         stats["GlobalRunning"].Should().Be(3);
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.DecrementConcurrencyCount"/> decrements the counter.
+    /// </summary>
     [Fact]
     public void DecrementConcurrencyCount_DecrementsCounter()
     {
@@ -182,6 +217,9 @@ public sealed class ConcurrencyManagerTests
         stats["GlobalRunning"].Should().Be(1);
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.DecrementConcurrencyCount"/> never allows the counter to go negative.
+    /// </summary>
     [Fact]
     public void DecrementConcurrencyCount_NeverGoesNegative()
     {
@@ -197,6 +235,9 @@ public sealed class ConcurrencyManagerTests
         stats["GlobalRunning"].Should().BeGreaterThanOrEqualTo(0);
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.GetConcurrencyStats"/> returns current statistics.
+    /// </summary>
     [Fact]
     public void GetConcurrencyStats_ReturnsCurrentStats()
     {
@@ -217,6 +258,9 @@ public sealed class ConcurrencyManagerTests
         stats["GlobalLimit"].Should().Be(20);
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.SynchronizeWithDatabaseAsync"/> updates internal cache from database values.
+    /// </summary>
     [Fact]
     public async Task SynchronizeWithDatabaseAsync_UpdatesCacheFromDatabase()
     {
@@ -236,6 +280,9 @@ public sealed class ConcurrencyManagerTests
         _executionRepoMock.Verify(r => r.GetConcurrentRunningCountAsync(), Times.Once);
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.IncrementConcurrencyCount"/> handles race conditions correctly when called concurrently.
+    /// </summary>
     [Fact]
     public async Task ConcurrentOperations_HandlesRaceConditions()
     {
@@ -260,6 +307,9 @@ public sealed class ConcurrencyManagerTests
         stats["GlobalRunning"].Should().Be(10);
     }
 
+    /// <summary>
+    /// Tests that <see cref="ConcurrencyManager.CanExecuteAsync"/> enforces max global concurrency limit.
+    /// </summary>
     [Fact]
     public async Task MaxGlobalConcurrencyEnforced_AtCapacity_BlocksAdditionalJobs()
     {
