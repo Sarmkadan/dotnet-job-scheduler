@@ -1,45 +1,35 @@
 // ... (rest of README.md content)
 
-## ConcurrencyManagerBenchmarks
+## JobPipelineServiceBenchmarks
 
-The `ConcurrencyManagerBenchmarks` class measures performance of ConcurrencyManager operations that enforce execution limits, including global concurrency tracking, per-job concurrency limits, execution slot acquisition and release, and concurrency limit enforcement.
+The `JobPipelineServiceBenchmarks` class measures performance of `JobPipelineService` operations for job chain/pipeline support. It provides a set of benchmarks to evaluate the performance of pipeline creation, validation, execution flow control, dependency chain resolution, and pipeline status tracking.
 
 Example usage:
 ```csharp
-// Create a new instance of ConcurrencyManagerBenchmarks
-var benchmarks = new ConcurrencyManagerBenchmarks();
+// Create a new instance of JobPipelineServiceBenchmarks
+var benchmarks = new JobPipelineServiceBenchmarks();
 
 // Setup the benchmarks
 benchmarks.Setup();
 
-// Measure global concurrency limit not reached
-var canExecuteGlobalLimitNotReached = await benchmarks.CanExecuteJob_GlobalLimitNotReached();
-Console.WriteLine($"Can execute job globally: {canExecuteGlobalLimitNotReached}");
+// Measure pipeline creation with 3 steps
+await benchmarks.CreatePipeline_3Steps();
 
-// Measure global concurrency limit reached
-var canExecuteGlobalLimitReached = await benchmarks.CanExecuteJob_GlobalLimitReached();
-Console.WriteLine($"Can execute job globally (limit reached): {canExecuteGlobalLimitReached}");
+// Measure pipeline creation with 10 steps
+await benchmarks.CreatePipeline_10Steps();
 
-// Measure per-job concurrency limit
-var canExecutePerJobLimit = await benchmarks.CanExecuteJob_PerJobLimit();
-Console.WriteLine($"Can execute job per-job limit: {canExecutePerJobLimit}");
+// Get pipeline status
+await benchmarks.GetPipelineStatus();
 
-// Track execution start
-benchmarks.TrackExecutionStart();
+// Get all pipelines
+await benchmarks.GetAllPipelines();
 
-// Track execution end
-benchmarks.TrackExecutionEnd();
+// Get pipeline by ID
+await benchmarks.GetPipelineById();
 
-// Get current concurrency count
-var concurrencyCount = benchmarks.GetCurrentConcurrencyCount();
-Console.WriteLine($"Concurrency count: {concurrencyCount}");
+// Delete pipeline
+await benchmarks.DeletePipeline();
 
-// Get global concurrency count
-var globalConcurrencyCount = benchmarks.GetGlobalConcurrencyCount();
-Console.WriteLine($"Global concurrency count: {globalConcurrencyCount}");
-
-// Reset concurrency manager
-var concurrencyStats = benchmarks.Reset();
-Console.WriteLine($"Concurrency stats: {string.Join(", ", concurrencyStats.Select(x => $"{x.Key}: {x.Value}"))}");
-```
+// Check pipeline ready status
+await benchmarks.CheckPipelineReadyStatus();
 ```
