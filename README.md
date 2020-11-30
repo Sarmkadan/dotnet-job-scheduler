@@ -1,5 +1,28 @@
 // ... (rest of README.md content)
 
+## CsvProcessingBenchmarks
+
+The `CsvProcessingBenchmarks` class measures CSV parsing and escaping performance used by the export formatter and audit log serializer. It benchmarks both simple and complex CSV scenarios, including lines with quoted fields, embedded commas, and wide rows with many columns.
+
+
+
+Example usage:
+```csharp
+// Parse CSV lines with different formats
+var simpleResult = CsvProcessingBenchmarks.ParseCsvLine_Simple();
+var quotedResult = CsvProcessingBenchmarks.ParseCsvLine_Quoted();
+var wideResult = CsvProcessingBenchmarks.ParseCsvLine_Wide();
+
+// Escape fields for CSV output
+var plainEscaped = CsvProcessingBenchmarks.EscapeCsvField_Plain();
+var commaEscaped = CsvProcessingBenchmarks.EscapeCsvField_Comma();
+var quotesEscaped = CsvProcessingBenchmarks.EscapeCsvField_Quotes();
+
+// Parse priority values
+var highPriority = CsvProcessingBenchmarks.ParsePriority_ByName();
+var defaultPriority = CsvProcessingBenchmarks.ParsePriority_Default();
+```
+
 ## JobSchedulerSettingsExtensions
 
 The `JobSchedulerSettingsExtensions` class provides extension methods for validating, cloning, and analyzing `JobSchedulerSettings` configurations. It helps ensure that settings are properly configured and makes it easier to work with job scheduler settings.
