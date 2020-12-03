@@ -153,3 +153,72 @@ var priorityResult = await benchmarks.ExecuteJob_WithPriority();
 // Measure metrics collection during execution
 var metricsResult = await benchmarks.ExecuteJob_WithMetricsCollection();
 ```
+
+## JobSchedulerServiceBenchmarks
+
+The `JobSchedulerServiceBenchmarks` class measures core JobSchedulerService operations that are called frequently, including job creation and validation, schedule evaluation and next execution time calculation, and bulk job execution processing. These benchmarks help identify performance bottlenecks in the scheduler's most critical paths.
+
+Example usage:
+```csharp
+// Create a new instance of JobSchedulerServiceBenchmarks
+var benchmarks = new JobSchedulerServiceBenchmarks();
+
+// Setup the benchmarks
+benchmarks.Setup();
+
+// Measure valid job creation
+var validJob = await benchmarks.CreateJob_Valid();
+
+// Measure job creation with invalid cron expression
+try
+{
+    await benchmarks.CreateJob_InvalidCron();
+}
+catch (CronExpressionException) { }
+
+// Measure job creation with duplicate name validation
+try
+{
+    await benchmarks.CreateJob_DuplicateName();
+}
+catch (JobValidationException) { }
+
+// Measure getting scheduled jobs for execution
+var dueJobs = await benchmarks.GetScheduledJobsForExecution();
+
+// Measure execution of due jobs with empty queue
+var emptyQueueResults = await benchmarks.ExecuteDueJobs_EmptyQueue();
+
+// Measure execution of due jobs with multiple jobs
+var withJobsResults = await benchmarks.ExecuteDueJobs_WithJobs();
+
+// Measure job suspension
+var suspendedJob = await benchmarks.SuspendJob();
+
+// Measure job resumption after suspension
+var resumedJob = await benchmarks.ResumeJob();
+
+// Measure scheduler statistics retrieval
+var statistics = await benchmarks.GetSchedulerStatistics();
+
+// Access repository methods for querying jobs
+var jobById = await benchmarks.GetByIdAsync(Guid.NewGuid());
+var allJobs = await benchmarks.GetAllAsync();
+var foundJobs = await benchmarks.FindAsync(j => j.IsActive);
+var firstJob = await benchmarks.FirstOrDefaultAsync(j => j.Priority == JobPriority.High);
+var jobCount = await benchmarks.CountAsync();
+
+// Add new jobs to the scheduler
+var newJob = new Job { Name = "TestJob", CronExpression = "0 9 * * *", HandlerType = "TestHandler, TestAssembly" };
+await benchmarks.AddAsync(newJob);
+
+// Add multiple jobs at once
+await benchmarks.AddRangeAsync(new[] { newJob, new Job { Name = "TestJob2", CronExpression = "0 10 * * *", HandlerType = "TestHandler, TestAssembly" } });
+
+// Update existing jobs
+benchmarks.Update(newJob);
+benchmarks.UpdateRange(new[] { newJob });
+
+// Remove jobs
+benchmarks.Remove(newJob);
+```
