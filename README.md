@@ -19,4 +19,3 @@ catch (ExecutionException ex)
     Console.WriteLine($"Attempt number: {ex.AttemptNumber}");
 }
 ```
-```
