@@ -1,6 +1,36 @@
 // ... (rest of README.md content)
 
+## StringExtensions
+
+The `StringExtensions` class provides a robust set of utility methods for common string manipulation, formatting, and validation tasks. These extensions are designed to streamline data processing, enhance security through hashing and masking, and ensure input integrity throughout the job scheduler.
+
+Example usage:
+```csharp
+using JobScheduler.Core.Extensions;
+
+// Hashing and slug generation for job identifiers
+string jobName = "Daily Report Generation";
+string hashedName = jobName.ToSha256();
+string slug = jobName.ToSlug(); // "daily-report-generation"
+
+// String validation
+string email = "admin@example.com";
+string guidString = "550e8400-e29b-41d4-a716-446655440000";
+
+bool isValidEmail = email.IsValidEmail(); // true
+bool isValidGuid = guidString.IsValidGuid(); // true
+bool isAlphanumeric = "Job_001".IsAlphanumericWithUnderscore(); // true
+
+// Formatting and manipulation
+string truncated = "This is a very long description that needs truncating.".Truncate(20); // "This is a very long..."
+string maskedKey = "API-KEY-12345678".Mask(4); // "**************5678"
+string repeated = "=".Repeat(10); // "=========="
+string escapedJson = "{\"key\": \"value\"}".JsonEscape();
+List<string> list = "item1,item2,item3".ToList(","); // ["item1", "item2", "item3"]
+```
+
 ## IEventPublisher
+
 
 The `IEventPublisher` interface is responsible for publishing events to all registered subscribers in the job scheduler. It provides a way to decouple event producers from consumers, allowing for a more flexible and scalable architecture.
 
