@@ -56,6 +56,10 @@ public class JobSchedulerService
         if (job == null)
             throw new ArgumentNullException(nameof(job));
 
+        // Fix: Add validation for job.Name to prevent null, empty, or whitespace values.
+        if (string.IsNullOrWhiteSpace(job.Name))
+            throw new ArgumentException("Job name cannot be null or whitespace.", nameof(job.Name));
+
         if (!job.IsValidForScheduling())
             throw new JobValidationException("Job configuration is invalid");
 
@@ -159,6 +163,10 @@ public class JobSchedulerService
         if (job == null)
             throw new JobNotFoundException(jobId);
 
+        // Fix: Add validation for newCronExpression to prevent null, empty, or whitespace values.
+        if (string.IsNullOrWhiteSpace(newCronExpression))
+            throw new ArgumentException("New cron expression cannot be null or whitespace.", nameof(newCronExpression));
+
         if (!_cronService.IsValidCronExpression(newCronExpression))
             throw new CronExpressionException(newCronExpression, "Invalid cron expression");
 
@@ -188,6 +196,10 @@ public class JobSchedulerService
         if (job == null)
             throw new JobNotFoundException(jobId);
 
+        // Fix: Validate reason to ensure it's not an empty or whitespace string if provided.
+        if (!string.IsNullOrEmpty(reason) && string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("Reason cannot be an empty or whitespace string if provided.", nameof(reason));
+
         var oldStatus = job.Status;
         job.Status = JobStatus.Suspended;
         job.MarkAsUpdated(suspendedBy);
@@ -208,6 +220,10 @@ public class JobSchedulerService
         var job = await _jobRepository.GetByIdAsync(jobId);
         if (job == null)
             throw new JobNotFoundException(jobId);
+
+        // Fix: Validate resumedBy to ensure it's not an empty or whitespace string if provided.
+        if (!string.IsNullOrEmpty(resumedBy) && string.IsNullOrWhiteSpace(resumedBy))
+            throw new ArgumentException("ResumedBy cannot be an empty or whitespace string if provided.", nameof(resumedBy));
 
         job.Status = JobStatus.Scheduled;
         job.NextExecutionAt = _cronService.GetNextExecutionTime(job.CronExpression);
