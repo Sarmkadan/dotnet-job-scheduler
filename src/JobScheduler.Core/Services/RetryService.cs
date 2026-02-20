@@ -78,16 +78,32 @@ public class RetryService
     /// <summary>
     /// Calculates the backoff delay for a retry attempt.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int CalculateBackoffDelay(Job job, int attemptNumber)
     {
-        if (attemptNumber <= 0)
-            return job.RetryBackoffSeconds;
+        // Fix: Ensure job and attemptNumber are valid inputs.
+        if (job == null) throw new ArgumentNullException(nameof(job));
+        if (attemptNumber < 0) throw new ArgumentOutOfRangeException(nameof(attemptNumber), "Attempt number cannot be negative.");
+
+        int baseDelay = job.RetryBackoffSeconds;
+        // Fix: Ensure a minimum base delay of 1 second if RetryBackoffSeconds is not configured or is zero.
+        if (baseDelay <= 0)
+        {
+            baseDelay = 1;
+        }
 
         // Simple exponential backoff: initial_delay * (2 ^ (attempt - 1))
-        var delay = (int)(job.RetryBackoffSeconds * Math.Pow(2, attemptNumber - 1));
+        // attemptNumber is the 1-based attempt number that failed. For the first retry, attemptNumber will be 1.
+        var delay = (int)(baseDelay * Math.Pow(2, attemptNumber - 1));
 
-        // Cap at job's timeout seconds to prevent unreasonable delays
-        return Math.Min(delay, job.ExecutionTimeoutSeconds);
+        // Fix: Ensure minimum delay is 1 second after calculation to prevent immediate retries.
+        if (delay <= 0)
+        {
+            delay = 1;
+        }
+
+        // Cap at job's timeout seconds to prevent unreasonable delays, also ensuring it's at least 1.
+        return Math.Max(1, Math.Min(delay, job.ExecutionTimeoutSeconds));
     }
 
     /// <summary>
