@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -76,7 +77,7 @@ public class EventPublisher : IEventPublisher
     {
         var eventType = typeof(TEvent).FullName ?? typeof(TEvent).Name;
 
-        if (handler == null)
+        if (handler is null)
             throw new ArgumentNullException(nameof(handler));
 
         _subscribers.AddOrUpdate(eventType,

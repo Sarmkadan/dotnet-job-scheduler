@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -99,7 +100,7 @@ public class JobExecution
         if (CompletedAt.HasValue && CompletedAt < StartedAt)
             return false;
 
-        if (Status == ExecutionStatus.Success && CompletedAt == null)
+        if (Status == ExecutionStatus.Success && CompletedAt is null)
             return false;
 
         if (Status == ExecutionStatus.Failed && string.IsNullOrWhiteSpace(ErrorMessage))
@@ -113,7 +114,7 @@ public class JobExecution
     /// </summary>
     public void SetOutput(string? output, int? maxLength = 10000)
     {
-        if (output == null)
+        if (output is null)
             return;
 
         Output = maxLength.HasValue && output.Length > maxLength.Value
