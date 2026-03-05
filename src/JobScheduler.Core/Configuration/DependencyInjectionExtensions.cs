@@ -82,6 +82,9 @@ public static class DependencyInjectionExtensions
         // Phase 2: Schedule service
         services.AddScoped<ScheduleService>();
 
+        // Phase 3: Dependency graph
+        services.AddScoped<IJobDependencyService, JobDependencyService>();
+
         // Phase 2: Middleware registration
         services.AddScoped<GlobalExceptionMiddleware>();
         services.AddScoped<LoggingMiddleware>();

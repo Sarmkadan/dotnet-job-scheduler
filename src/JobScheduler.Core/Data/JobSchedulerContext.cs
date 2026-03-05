@@ -21,6 +21,7 @@ public class JobSchedulerContext : DbContext
     public DbSet<JobScheduleHistory> JobScheduleHistories { get; set; } = null!;
     public DbSet<RetryPolicy> RetryPolicies { get; set; } = null!;
     public DbSet<ExecutionMetrics> ExecutionMetrics { get; set; } = null!;
+    public DbSet<JobDependency> JobDependencies { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -74,6 +75,15 @@ public class JobSchedulerContext : DbContext
             entity.HasIndex(e => e.JobId).IsUnique();
         });
 
+        // Configure JobDependency entity
+        modelBuilder.Entity<JobDependency>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.JobId);
+            entity.HasIndex(e => e.DependsOnJobId);
+            entity.HasIndex(e => new { e.JobId, e.DependsOnJobId }).IsUnique();
+        });
+
         // Configure relationships
         modelBuilder.Entity<Job>()
             .HasMany(j => j.Executions)
@@ -86,6 +96,18 @@ public class JobSchedulerContext : DbContext
             .WithOne(h => h.Job)
             .HasForeignKey(h => h.JobId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<JobDependency>()
+            .HasOne(d => d.Job)
+            .WithMany()
+            .HasForeignKey(d => d.JobId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<JobDependency>()
+            .HasOne(d => d.DependsOnJob)
+            .WithMany()
+            .HasForeignKey(d => d.DependsOnJobId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     /// <summary>
