@@ -16,7 +16,7 @@ namespace JobScheduler.Core.Services;
 /// Supports delivery retry, signature verification, and event filtering.
 /// WHY: Webhooks enable external systems to react to job events in real-time.
 /// </summary>
-public class WebhookNotificationService
+public sealed class WebhookNotificationService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<WebhookNotificationService> _logger;
@@ -210,7 +210,7 @@ public class WebhookNotificationService
     }
 }
 
-public class WebhookPayload
+public sealed class WebhookPayload
 {
     public string EventType { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
@@ -223,7 +223,7 @@ public class WebhookPayload
     public int RetryAttempt { get; set; }
 }
 
-public class WebhookConfig
+public sealed class WebhookConfig
 {
     public Guid JobId { get; set; }
     public string WebhookUrl { get; set; } = string.Empty;
@@ -233,7 +233,7 @@ public class WebhookConfig
     public int MaxRetries { get; set; } = 5;
 }
 
-public class WebhookTestResult
+public sealed class WebhookTestResult
 {
     public bool Success { get; set; }
     public int StatusCode { get; set; }

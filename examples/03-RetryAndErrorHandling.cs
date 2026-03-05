@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -17,7 +19,7 @@ using JobScheduler.Core.Services;
 /// including exponential backoff and graceful failure scenarios.
 /// </summary>
 
-public class UnstableExternalApiJobHandler : IJobHandler
+public sealed class UnstableExternalApiJobHandler : IJobHandler
 {
     private readonly ILogger<UnstableExternalApiJobHandler> _logger;
     private static int _attemptCount = 0;
@@ -52,7 +54,7 @@ public class UnstableExternalApiJobHandler : IJobHandler
     }
 }
 
-public class DatabaseQueryJobHandler : IJobHandler
+public sealed class DatabaseQueryJobHandler : IJobHandler
 {
     private readonly ILogger<DatabaseQueryJobHandler> _logger;
 
@@ -77,7 +79,7 @@ public class DatabaseQueryJobHandler : IJobHandler
     }
 }
 
-public class GracefulFailureJobHandler : IJobHandler
+public sealed class GracefulFailureJobHandler : IJobHandler
 {
     private readonly ILogger<GracefulFailureJobHandler> _logger;
 
@@ -111,7 +113,7 @@ public class GracefulFailureJobHandler : IJobHandler
     }
 }
 
-public class RetryAndErrorHandlingExample
+public sealed class RetryAndErrorHandlingExample
 {
     public static async Task Main(string[] args)
     {

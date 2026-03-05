@@ -14,7 +14,7 @@ namespace JobScheduler.Core.Services;
 /// Provides detailed performance analysis including percentiles and trends.
 /// WHY: Comprehensive statistics enable data-driven performance optimization.
 /// </summary>
-public class ExecutionStatisticsService
+public sealed class ExecutionStatisticsService
 {
     private readonly IExecutionRepository _executionRepository;
     private readonly IJobRepository _jobRepository;
@@ -217,7 +217,7 @@ public class ExecutionStatisticsService
     }
 }
 
-public class PerformanceTrendPoint
+public sealed class PerformanceTrendPoint
 {
     public DateTime Date { get; set; }
     public int ExecutionCount { get; set; }
@@ -226,7 +226,7 @@ public class PerformanceTrendPoint
     public long MaxExecutionTimeMs { get; set; }
 }
 
-public class ExecutionAnomalyReport
+public sealed class ExecutionAnomalyReport
 {
     public Guid ExecutionId { get; set; }
     public DateTime? Timestamp { get; set; }

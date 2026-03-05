@@ -19,7 +19,7 @@ namespace JobScheduler.Core;
 /// Main entry point for the distributed job scheduler application.
 /// Initializes services, database, and starts the scheduling loop.
 /// </summary>
-public class Program
+public sealed class Program
 {
     public static async Task Main(string[] args)
     {
@@ -125,7 +125,7 @@ public class Program
 /// <summary>
 /// Hosted service that manages the scheduler lifecycle within the host.
 /// </summary>
-public class SchedulerHostedService : BackgroundService
+public sealed class SchedulerHostedService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<SchedulerHostedService> _logger;

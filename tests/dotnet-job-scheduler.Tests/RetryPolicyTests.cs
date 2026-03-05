@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -9,7 +11,7 @@ using Xunit;
 
 namespace DotnetJobScheduler.Tests;
 
-public class RetryPolicyTests
+public sealed class RetryPolicyTests
 {
     [Fact]
     public void CalculateBackoffDelay_WithFixedStrategy_ReturnsConstantDelayAcrossAttempts()

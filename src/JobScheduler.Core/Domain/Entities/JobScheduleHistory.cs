@@ -12,7 +12,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// Tracks historical changes to job schedules and configurations.
 /// Provides audit trail for schedule modifications and status changes.
 /// </summary>
-public class JobScheduleHistory
+public sealed class JobScheduleHistory
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

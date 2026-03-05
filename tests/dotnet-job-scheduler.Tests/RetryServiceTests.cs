@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -13,7 +15,7 @@ using Xunit;
 
 namespace DotnetJobScheduler.Tests;
 
-public class RetryServiceTests
+public sealed class RetryServiceTests
 {
     private readonly Mock<IJobRepository> _jobRepoMock = new();
     private readonly Mock<IExecutionRepository> _executionRepoMock = new();

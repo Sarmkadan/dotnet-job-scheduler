@@ -11,7 +11,7 @@ namespace JobScheduler.Core.Exceptions;
 /// <summary>
 /// Thrown when a requested job cannot be found in the system.
 /// </summary>
-public class JobNotFoundException : JobSchedulerException
+public sealed class JobNotFoundException : JobSchedulerException
 {
     public Guid JobId { get; set; }
 

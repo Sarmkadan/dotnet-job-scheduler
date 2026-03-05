@@ -16,7 +16,7 @@ namespace JobScheduler.Core.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class HealthController : ControllerBase
+public sealed class HealthController : ControllerBase
 {
     private readonly JobSchedulerService _schedulerService;
     private readonly ILogger<HealthController> _logger;
@@ -212,7 +212,7 @@ public class HealthController : ControllerBase
     }
 }
 
-public class HealthStatusResponse
+public sealed class HealthStatusResponse
 {
     public DateTime Timestamp { get; set; }
     public string Version { get; set; } = "1.1.0";
@@ -223,32 +223,32 @@ public class HealthStatusResponse
     public MemoryStatus Memory { get; set; } = new();
 }
 
-public class DatabaseStatus
+public sealed class DatabaseStatus
 {
     public bool Available { get; set; }
     public DateTime LastChecked { get; set; }
     public string? ErrorMessage { get; set; }
 }
 
-public class JobsStatus
+public sealed class JobsStatus
 {
     public int TotalCount { get; set; }
     public int ActiveCount { get; set; }
 }
 
-public class ExecutionsStatus
+public sealed class ExecutionsStatus
 {
     public int TotalCount { get; set; }
     public double SuccessRate { get; set; }
 }
 
-public class MemoryStatus
+public sealed class MemoryStatus
 {
     public long UsageMb { get; set; }
     public long Threshold { get; set; }
 }
 
-public class DiagnosticsResponse
+public sealed class DiagnosticsResponse
 {
     public DateTime Timestamp { get; set; }
     public string MachineName { get; set; } = string.Empty;
@@ -259,7 +259,7 @@ public class DiagnosticsResponse
     public List<ErrorLogEntry> RecentErrors { get; set; } = new();
 }
 
-public class MemoryDiagnostics
+public sealed class MemoryDiagnostics
 {
     public long TotalMemoryMb { get; set; }
     public long ManagedHeapSizeMb { get; set; }
@@ -268,7 +268,7 @@ public class MemoryDiagnostics
     public int Gen2Collections { get; set; }
 }
 
-public class SystemDiagnostics
+public sealed class SystemDiagnostics
 {
     public int TotalJobs { get; set; }
     public int ActiveJobs { get; set; }
@@ -277,7 +277,7 @@ public class SystemDiagnostics
     public long AverageExecutionTimeMs { get; set; }
 }
 
-public class ErrorLogEntry
+public sealed class ErrorLogEntry
 {
     public string Message { get; set; } = string.Empty;
     public int Count { get; set; }

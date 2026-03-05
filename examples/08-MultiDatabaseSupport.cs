@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -18,7 +20,7 @@ using JobScheduler.Core.Services;
 /// (SQL Server, PostgreSQL, MySQL, SQLite) through Entity Framework Core.
 /// </summary>
 
-public class SimpleJobHandler : IJobHandler
+public sealed class SimpleJobHandler : IJobHandler
 {
     private readonly ILogger<SimpleJobHandler> _logger;
 
@@ -35,7 +37,7 @@ public class SimpleJobHandler : IJobHandler
     }
 }
 
-public class MultiDatabaseSupportExample
+public sealed class MultiDatabaseSupportExample
 {
     /// Demonstrates scheduler with different database providers
     public static async Task Main(string[] args)

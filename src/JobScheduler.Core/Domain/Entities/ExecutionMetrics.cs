@@ -12,7 +12,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// Aggregated metrics and statistics for job executions.
 /// Provides insights into job performance and reliability.
 /// </summary>
-public class ExecutionMetrics
+public sealed class ExecutionMetrics
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

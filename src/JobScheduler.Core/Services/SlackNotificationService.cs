@@ -15,7 +15,7 @@ namespace JobScheduler.Core.Services;
 /// Integrates with Slack webhooks for real-time alerts.
 /// WHY: Slack integration enables DevOps teams to monitor jobs directly in their workflow.
 /// </summary>
-public class SlackNotificationService
+public sealed class SlackNotificationService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<SlackNotificationService> _logger;
@@ -159,7 +159,7 @@ public class SlackNotificationService
     }
 }
 
-public class SlackMessage
+public sealed class SlackMessage
 {
     [System.Text.Json.Serialization.JsonPropertyName("text")]
     public string Text { get; set; } = string.Empty;
@@ -168,7 +168,7 @@ public class SlackMessage
     public SlackAttachment[] Attachments { get; set; } = Array.Empty<SlackAttachment>();
 }
 
-public class SlackAttachment
+public sealed class SlackAttachment
 {
     [System.Text.Json.Serialization.JsonPropertyName("color")]
     public string Color { get; set; } = string.Empty;
@@ -186,7 +186,7 @@ public class SlackAttachment
     public string Ts { get; set; } = string.Empty;
 }
 
-public class SlackField
+public sealed class SlackField
 {
     [System.Text.Json.Serialization.JsonPropertyName("title")]
     public string Title { get; set; } = string.Empty;
