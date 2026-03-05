@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -17,7 +19,7 @@ using JobScheduler.Core.Services;
 /// including success rates, performance statistics, and historical analysis.
 /// </summary>
 
-public class ReportGenerationJobHandler : IJobHandler
+public sealed class ReportGenerationJobHandler : IJobHandler
 {
     private readonly ILogger<ReportGenerationJobHandler> _logger;
 
@@ -34,7 +36,7 @@ public class ReportGenerationJobHandler : IJobHandler
     }
 }
 
-public class MetricAnalysisJobHandler : IJobHandler
+public sealed class MetricAnalysisJobHandler : IJobHandler
 {
     private readonly ILogger<MetricAnalysisJobHandler> _logger;
 
@@ -51,7 +53,7 @@ public class MetricAnalysisJobHandler : IJobHandler
     }
 }
 
-public class MetricsAndMonitoringExample
+public sealed class MetricsAndMonitoringExample
 {
     /// Demonstrates metrics collection and analysis
     public static async Task Main(string[] args)

@@ -16,7 +16,7 @@ namespace JobScheduler.Core.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class DashboardController : ControllerBase
+public sealed class DashboardController : ControllerBase
 {
     private readonly JobSchedulerService _schedulerService;
     private readonly PerformanceMonitor _performanceMonitor;
@@ -280,7 +280,7 @@ public class DashboardController : ControllerBase
     }
 }
 
-public class DashboardOverview
+public sealed class DashboardOverview
 {
     public int TotalJobs { get; set; }
     public int ActiveJobs { get; set; }
@@ -293,7 +293,7 @@ public class DashboardOverview
     public DateTime LastUpdatedAt { get; set; }
 }
 
-public class QueueStatusResponse
+public sealed class QueueStatusResponse
 {
     public int PendingJobs { get; set; }
     public int RunningJobs { get; set; }
@@ -305,7 +305,7 @@ public class QueueStatusResponse
     public TimeSpan? EstimatedTimeToEmpty { get; set; }
 }
 
-public class PriorityDistributionResponse
+public sealed class PriorityDistributionResponse
 {
     public int CriticalJobs { get; set; }
     public int HighJobs { get; set; }
@@ -314,7 +314,7 @@ public class PriorityDistributionResponse
     public int TotalJobs { get; set; }
 }
 
-public class PerformanceTimelinePoint
+public sealed class PerformanceTimelinePoint
 {
     public DateTime Timestamp { get; set; }
     public int ExecutionCount { get; set; }
@@ -323,7 +323,7 @@ public class PerformanceTimelinePoint
     public long AverageExecutionTimeMs { get; set; }
 }
 
-public class SlowestJobResponse
+public sealed class SlowestJobResponse
 {
     public Guid JobId { get; set; }
     public string JobName { get; set; } = string.Empty;
@@ -332,7 +332,7 @@ public class SlowestJobResponse
     public int ExecutionCount { get; set; }
 }
 
-public class FailingJobResponse
+public sealed class FailingJobResponse
 {
     public Guid JobId { get; set; }
     public string JobName { get; set; } = string.Empty;
@@ -341,7 +341,7 @@ public class FailingJobResponse
     public double SuccessRate { get; set; }
 }
 
-public class HealthReportResponse
+public sealed class HealthReportResponse
 {
     public DateTime Timestamp { get; set; }
     public bool DatabaseConnected { get; set; }
@@ -351,13 +351,13 @@ public class HealthReportResponse
     public bool IsHealthy { get; set; }
 }
 
-public class HealthWarning
+public sealed class HealthWarning
 {
     public string Severity { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
 }
 
-public class QueueStatus
+public sealed class QueueStatus
 {
     public int PendingCount { get; set; }
     public int RunningCount { get; set; }

@@ -13,7 +13,7 @@ namespace JobScheduler.Core.Data;
 /// Entity Framework Core database context for the job scheduler.
 /// Manages all entities, relationships, and migrations.
 /// </summary>
-public class JobSchedulerContext : DbContext
+public sealed class JobSchedulerContext : DbContext
 {
     public JobSchedulerContext(DbContextOptions<JobSchedulerContext> options) : base(options) { }
 

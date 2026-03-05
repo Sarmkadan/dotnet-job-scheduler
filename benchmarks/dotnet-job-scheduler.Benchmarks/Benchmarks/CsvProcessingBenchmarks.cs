@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -14,7 +16,7 @@ namespace JobScheduler.Benchmarks;
 /// bulk imports; EscapeCsvField is called per-cell during export.
 /// </summary>
 [MemoryDiagnoser]
-public class CsvProcessingBenchmarks
+public sealed class CsvProcessingBenchmarks
 {
     // Typical flat export row (no quoting needed)
     private const string SimpleLine =

@@ -14,7 +14,7 @@ namespace JobScheduler.Core.Events;
 /// Enables decoupled event-driven architecture within the scheduler.
 /// WHY: Pub-sub pattern allows components to react to events without tight coupling.
 /// </summary>
-public class EventPublisher : IEventPublisher
+public sealed class EventPublisher : IEventPublisher
 {
     private readonly ILogger<EventPublisher> _logger;
     private readonly ConcurrentDictionary<string, List<Delegate>> _subscribers = new();

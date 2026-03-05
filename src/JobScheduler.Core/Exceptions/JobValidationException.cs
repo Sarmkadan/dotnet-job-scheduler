@@ -11,7 +11,7 @@ namespace JobScheduler.Core.Exceptions;
 /// <summary>
 /// Thrown when job configuration or data fails validation.
 /// </summary>
-public class JobValidationException : JobSchedulerException
+public sealed class JobValidationException : JobSchedulerException
 {
     public string? PropertyName { get; set; }
 

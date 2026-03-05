@@ -16,7 +16,7 @@ namespace JobScheduler.Core.Middleware;
 /// Ensures consistent error responses and prevents sensitive error information leakage.
 /// Logs all errors for audit and debugging purposes.
 /// </summary>
-public class GlobalExceptionMiddleware
+public sealed class GlobalExceptionMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionMiddleware> _logger;
@@ -79,7 +79,7 @@ public class GlobalExceptionMiddleware
     }
 }
 
-public class ErrorResponse
+public sealed class ErrorResponse
 {
     public string Message { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }

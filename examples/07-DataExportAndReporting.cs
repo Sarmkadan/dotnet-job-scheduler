@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -18,7 +20,7 @@ using System.Text;
 /// and create audit trails from the scheduler.
 /// </summary>
 
-public class DataExportJobHandler : IJobHandler
+public sealed class DataExportJobHandler : IJobHandler
 {
     private readonly ILogger<DataExportJobHandler> _logger;
 
@@ -42,7 +44,7 @@ public class DataExportJobHandler : IJobHandler
     }
 }
 
-public class DataExportAndReportingExample
+public sealed class DataExportAndReportingExample
 {
     /// Demonstrates exporting and reporting on job execution data
     public static async Task Main(string[] args)

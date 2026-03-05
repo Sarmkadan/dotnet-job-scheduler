@@ -15,7 +15,7 @@ namespace JobScheduler.Core.Services;
 /// Provides retry logic, timeout management, and error handling.
 /// WHY: Centralized API client ensures consistent handling of external calls and retries.
 /// </summary>
-public class ExternalApiClient
+public sealed class ExternalApiClient
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<ExternalApiClient> _logger;
@@ -248,7 +248,7 @@ public class ExternalApiClient
     }
 }
 
-public class ApiResponse<T> where T : class
+public sealed class ApiResponse<T> where T : class
 {
     public T? Data { get; }
     public bool Success { get; }
