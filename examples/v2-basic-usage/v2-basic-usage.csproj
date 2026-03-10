@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Zaiets.dotnet.job.scheduler" Version="2.0.0" />
+    <PackageReference Include="Zaiets.dotnet.job.scheduler" Version="2.0.2" />
   </ItemGroup>
 
 </Project>
