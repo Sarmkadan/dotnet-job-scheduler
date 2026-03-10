@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added request timeout configuration
 - Added security policy and vulnerability reporting
 
+## [2.0.2] - 2026-05-21
+### Fixed
+- Fix cron expression parser incorrectly handling day-of-week with month boundary
+- Added regression test for the fix
+
 ## [2.0.0] - 2026-03-14
 
 ### Added
