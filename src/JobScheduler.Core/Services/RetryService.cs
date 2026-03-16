@@ -157,11 +157,15 @@ public sealed class RetryService
             JobId = jobId,
             TotalExecutions = executions.Count(),
             TotalFailures = failedExecutions.Count,
-            TotalRetries = failedExecutions.Sum(e => e.AttemptNumber - 1),
+            TotalRetries = failedExecutions.Count > 0
+                ? failedExecutions.Sum(e => e.AttemptNumber - 1)
+                : 0,
             AverageRetriesPerFailure = failedExecutions.Count > 0
                 ? failedExecutions.Average(e => e.AttemptNumber - 1)
                 : 0,
-            LastFailureTime = failedExecutions.Max(e => (DateTime?)e.CompletedAt),
+            LastFailureTime = failedExecutions.Count > 0
+                ? failedExecutions.Max(e => (DateTime?)e.CompletedAt)
+                : null,
             RecentFailureRate = CalculateRecentFailureRate(executions)
         };
 
