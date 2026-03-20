@@ -7,7 +7,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using NCronTab;
+using NCrontab;
 using JobScheduler.Core.Exceptions;
 
 namespace JobScheduler.Core.Services;
@@ -70,18 +70,40 @@ public sealed class CronExpressionService
 
     /// <summary>
     /// Calculates the next execution time based on cron expression.
+    /// Handles leap-year-specific expressions such as "0 0 29 2 *" (Feb 29) by
+    /// advancing year-by-year until a valid date is found.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public DateTime GetNextExecutionTime(string cronExpression, DateTime? baseTime = null)
     {
         var schedule = ParseCronExpression(cronExpression);
         var reference = baseTime ?? DateTime.UtcNow;
-        var next = schedule.GetNextOccurrence(reference);
 
-        if (next == DateTime.MaxValue || next.Year < 2024)
-            throw new CronExpressionException(cronExpression, "Could not calculate next occurrence");
+        // Try up to 8 years ahead to accommodate leap-year expressions (Feb 29 repeats
+        // every 4 years at most, 8 iterations is a safe upper bound).
+        for (int attempt = 0; attempt < 8; attempt++)
+        {
+            DateTime next;
+            try
+            {
+                next = schedule.GetNextOccurrence(reference);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // NCrontab tried to construct an invalid date (e.g. Feb 29 on a non-leap year).
+                // Advance to the beginning of the next year and retry.
+                reference = new DateTime(reference.Year + 1, 1, 1, 0, 0, 0, reference.Kind);
+                continue;
+            }
 
-        return next;
+            if (next == DateTime.MaxValue)
+                break;
+
+            return next;
+        }
+
+        throw new CronExpressionException(cronExpression,
+            "Could not calculate next occurrence. The expression may target a date that never exists " +
+            "(e.g. Feb 29 with no upcoming leap year in range).");
     }
 
     /// <summary>
