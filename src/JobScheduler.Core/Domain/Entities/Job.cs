@@ -13,7 +13,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// Represents a scheduled job in the distributed job scheduler system.
 /// Contains job configuration, scheduling rules, and retry policies.
 /// </summary>
-public sealed class Job
+public class Job
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -117,5 +117,29 @@ public sealed class Job
     {
         return IsActive && Status != JobStatus.Suspended && Status != JobStatus.Cancelled &&
                currentConcurrentCount < MaxConcurrentExecutions;
+    }
+
+    /// <summary>
+    /// Returns an effective priority score that incorporates an aging bonus so that
+    /// long-waiting low-priority jobs are eventually dequeued under sustained
+    /// high-priority load.  Each <paramref name="agingRateMinutesPerLevel"/> minutes
+    /// overdue raises the effective score by one priority level.  The bonus is capped
+    /// so that a Low job can reach at most the Critical tier.
+    /// </summary>
+    public double CalculateEffectivePriority(DateTime now, double agingRateMinutesPerLevel = 5.0)
+    {
+        var overdueMinutes = NextExecutionAt.HasValue
+            ? Math.Max(0, (now - NextExecutionAt.Value).TotalMinutes)
+            : 0;
+
+        var agingBonus = agingRateMinutesPerLevel > 0
+            ? overdueMinutes / agingRateMinutesPerLevel
+            : 0;
+
+        // Cap the bonus so a Low job can age up to Critical at most.
+        var maxBonus = (double)JobPriority.Critical - (int)Priority;
+        agingBonus = Math.Min(agingBonus, maxBonus);
+
+        return (int)Priority + agingBonus;
     }
 }
