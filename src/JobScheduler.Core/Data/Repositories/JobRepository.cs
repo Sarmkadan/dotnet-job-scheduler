@@ -55,14 +55,18 @@ public sealed class JobRepository : Repository<Job>, IJobRepository
     public async Task<IEnumerable<Job>> GetScheduledJobsForExecutionAsync()
     {
         var now = DateTime.UtcNow;
-        return await _dbSet
+        var jobs = await _dbSet
             .Where(j => j.IsActive &&
                         j.Status != JobStatus.Suspended &&
                         j.Status != JobStatus.Cancelled &&
                         j.NextExecutionAt <= now)
-            .OrderByDescending(j => j.Priority)
-            .ThenBy(j => j.NextExecutionAt)
             .ToListAsync();
+
+        // Sort by effective priority (which includes an aging bonus so that
+        // long-waiting low-priority jobs are not starved by high-priority load).
+        return jobs
+            .OrderByDescending(j => j.CalculateEffectivePriority(now))
+            .ThenBy(j => j.NextExecutionAt);
     }
 
     public async Task<IEnumerable<Job>> GetFailedJobsAsync()
