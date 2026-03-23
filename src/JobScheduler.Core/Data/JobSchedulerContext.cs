@@ -6,6 +6,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
 
 namespace JobScheduler.Core.Data;
 
@@ -23,6 +24,7 @@ public sealed class JobSchedulerContext : DbContext
     public DbSet<RetryPolicy> RetryPolicies { get; set; } = null!;
     public DbSet<ExecutionMetrics> ExecutionMetrics { get; set; } = null!;
     public DbSet<JobDependency> JobDependencies { get; set; } = null!;
+    public DbSet<SchedulerLeaderLock> SchedulerLeaderLocks { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -83,6 +85,15 @@ public sealed class JobSchedulerContext : DbContext
             entity.HasIndex(e => e.JobId);
             entity.HasIndex(e => e.DependsOnJobId);
             entity.HasIndex(e => new { e.JobId, e.DependsOnJobId }).IsUnique();
+        });
+
+        // Configure SchedulerLeaderLock entity
+        modelBuilder.Entity<SchedulerLeaderLock>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.LockName).IsUnique();
+            entity.Property(e => e.LockName).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.LeaderInstanceId).HasMaxLength(256).IsRequired();
         });
 
         // Configure relationships
