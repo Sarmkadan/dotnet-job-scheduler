@@ -1,0 +1,238 @@
+#nullable enable
+
+using FluentAssertions;
+using JobScheduler.Core.Constants;
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Xunit;
+
+namespace DotnetJobScheduler.Tests;
+
+public sealed class ScheduleServiceTests
+{
+    private readonly Mock<IJobRepository> _jobRepoMock = new();
+    private readonly Mock<CronExpressionService> _cronServiceMock = new();
+    private readonly Mock<ILogger<ScheduleService>> _loggerMock = new();
+
+    private ScheduleService CreateService() => new(
+        _jobRepoMock.Object,
+        _cronServiceMock.Object,
+        _loggerMock.Object);
+
+    private static Job CreateJob(Guid? id = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        Name = "test-job",
+        CronExpression = "0 * * * *",
+        HandlerType = "App.Jobs.Test, App",
+        ExecutionTimeoutSeconds = 300,
+        MaxConcurrentExecutions = 1,
+        Status = JobStatus.Scheduled,
+        IsActive = true,
+        NextExecutionAt = DateTime.UtcNow.AddHours(1)
+    };
+
+    [Fact]
+    public async Task GetUpcomingExecutionTimesAsync_WithValidJob_ReturnsMultipleTimes()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var job = CreateJob(jobId);
+        var now = DateTime.UtcNow;
+
+        _jobRepoMock.Setup(r => r.GetByIdAsync(jobId)).ReturnsAsync(job);
+
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(job.CronExpression, It.IsAny<DateTime>()))
+            .Returns<string, DateTime>((cron, current) => current.AddHours(1));
+
+        var service = CreateService();
+
+        // Act
+        var times = await service.GetUpcomingExecutionTimesAsync(jobId, count: 5);
+
+        // Assert
+        times.Should().HaveCount(5);
+        for (int i = 0; i < times.Count - 1; i++)
+        {
+            times[i].Should().BeBefore(times[i + 1]);
+        }
+    }
+
+    [Fact]
+    public async Task GetUpcomingExecutionTimesAsync_WithInactiveJob_ReturnsEmpty()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var job = CreateJob(jobId);
+        job.IsActive = false;
+
+        _jobRepoMock.Setup(r => r.GetByIdAsync(jobId)).ReturnsAsync(job);
+
+        var service = CreateService();
+
+        // Act
+        var times = await service.GetUpcomingExecutionTimesAsync(jobId, count: 5);
+
+        // Assert
+        times.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetUpcomingExecutionTimesAsync_WithNonexistentJob_ReturnsEmpty()
+    {
+        // Arrange
+        _jobRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Job?)null);
+
+        var service = CreateService();
+
+        // Act
+        var times = await service.GetUpcomingExecutionTimesAsync(Guid.NewGuid());
+
+        // Assert
+        times.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetUpcomingExecutionTimesAsync_RespectsCronExpression()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var job = CreateJob(jobId);
+        job.CronExpression = "0 9 * * *"; // 9 AM daily
+
+        _jobRepoMock.Setup(r => r.GetByIdAsync(jobId)).ReturnsAsync(job);
+
+        var execution1 = DateTime.UtcNow.Date.AddHours(9);
+        var execution2 = execution1.AddDays(1);
+        var execution3 = execution2.AddDays(1);
+
+        var executions = new Queue<DateTime>(new[] { execution1, execution2, execution3 });
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(job.CronExpression, It.IsAny<DateTime>()))
+            .Returns(() => executions.Count > 0 ? executions.Dequeue() : (DateTime?)null);
+
+        var service = CreateService();
+
+        // Act
+        var times = await service.GetUpcomingExecutionTimesAsync(jobId, count: 3);
+
+        // Assert
+        times.Should().HaveCount(3);
+        times[0].Hour.Should().Be(9);
+        times[1].Hour.Should().Be(9);
+        times[2].Hour.Should().Be(9);
+    }
+
+    [Fact]
+    public async Task GetUpcomingExecutionTimesAsync_WithDefaultCount_Returns10Times()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var job = CreateJob(jobId);
+
+        _jobRepoMock.Setup(r => r.GetByIdAsync(jobId)).ReturnsAsync(job);
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(job.CronExpression, It.IsAny<DateTime>()))
+            .Returns<string, DateTime>((cron, current) => current.AddHours(1));
+
+        var service = CreateService();
+
+        // Act
+        var times = await service.GetUpcomingExecutionTimesAsync(jobId);
+
+        // Assert
+        times.Should().HaveCount(10);
+    }
+
+    [Fact]
+    public async Task GetExecutionFrequencyPerDayAsync_CalculatesCorrectly()
+    {
+        // Arrange
+        var cronExpression = "0 * * * *"; // Hourly
+
+        var executionTimes = new Queue<DateTime?>();
+        for (int i = 0; i < 24; i++)
+        {
+            executionTimes.Enqueue(DateTime.UtcNow.Date.AddHours(i));
+        }
+        executionTimes.Enqueue(null); // End marker
+
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime>()))
+            .Returns(() => executionTimes.Count > 0 ? executionTimes.Dequeue() : null);
+
+        var service = CreateService();
+
+        // Act
+        var frequency = await service.GetExecutionFrequencyPerDayAsync(cronExpression);
+
+        // Assert
+        frequency.Should().Be(24);
+    }
+
+    [Fact]
+    public async Task GetExecutionFrequencyPerDayAsync_WithDailySchedule_ReturnsOne()
+    {
+        // Arrange
+        var cronExpression = "0 0 * * *"; // Daily at midnight
+
+        var executions = new Queue<DateTime?>();
+        executions.Enqueue(DateTime.UtcNow.Date.AddDays(1)); // Next midnight
+        executions.Enqueue(null); // End
+
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime>()))
+            .Returns(() => executions.Count > 0 ? executions.Dequeue() : null);
+
+        var service = CreateService();
+
+        // Act
+        var frequency = await service.GetExecutionFrequencyPerDayAsync(cronExpression);
+
+        // Assert
+        frequency.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetExecutionFrequencyPerDayAsync_WithEveryFiveMinutes_ReturnsCorrectCount()
+    {
+        // Arrange
+        var cronExpression = "*/5 * * * *"; // Every 5 minutes
+
+        var executionCount = 0;
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime>()))
+            .Returns<string, DateTime>((cron, current) =>
+            {
+                if (current.Date.AddDays(1) <= current.AddMinutes(5))
+                {
+                    executionCount++;
+                    return current.AddMinutes(5);
+                }
+                return null;
+            });
+
+        var service = CreateService();
+
+        // Act
+        var frequency = await service.GetExecutionFrequencyPerDayAsync(cronExpression);
+
+        // Assert
+        frequency.Should().Be(288); // 24 * 60 / 5
+    }
+
+    [Fact]
+    public async Task GetExecutionFrequencyPerDayAsync_HandlesException_ReturnsZero()
+    {
+        // Arrange
+        var cronExpression = "invalid cron";
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime>()))
+            .Throws<Exception>();
+
+        var service = CreateService();
+
+        // Act
+        var frequency = await service.GetExecutionFrequencyPerDayAsync(cronExpression);
+
+        // Assert
+        frequency.Should().Be(0);
+    }
+}
