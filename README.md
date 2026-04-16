@@ -1208,6 +1208,60 @@ var status = await pipelineService.GetPipelineStatusAsync(pipeline.Id);
 
 ---
 
+## Distributed Job Locking
+
+`DistributedJobLockService` provides database-backed exclusive locks that prevent two scheduler nodes from running the same job simultaneously in multi-instance deployments. Unlike the in-process `ConcurrencyManager`, distributed locks are persisted to the database and remain valid across process restarts and network partitions.
+
+### Key Features
+
+- **Exclusive per-job locks** stored in `DistributedJobLocks` table
+- **Automatic expiry** — locks expire after a configurable duration; another node may take over after expiry
+- **Lock renewal** — long-running jobs can extend their lock while executing
+- **Expired lock cleanup** — `CleanExpiredLocksAsync` removes stale entries
+
+### Configuration
+
+Register in DI (already included when calling `AddJobScheduler()`):
+
+```csharp
+services.AddScoped<IDistributedJobLockService, DistributedJobLockService>();
+```
+
+### Usage
+
+```csharp
+// Before executing a job on a specific node
+var instanceId = Environment.MachineName;
+var lockDuration = TimeSpan.FromMinutes(5);
+
+if (await lockService.TryAcquireLockAsync(jobId, instanceId, lockDuration))
+{
+    try
+    {
+        await ExecuteJobAsync(job);
+    }
+    finally
+    {
+        await lockService.ReleaseLockAsync(jobId, instanceId);
+    }
+}
+else
+{
+    // Another node owns the lock — skip this execution
+}
+
+// Periodically renew while running a long job
+await lockService.RenewLockAsync(jobId, instanceId, TimeSpan.FromMinutes(5));
+
+// Query active locks for monitoring
+var activeLocks = await lockService.GetActiveLocksAsync();
+
+// Scheduled cleanup of expired entries
+var removed = await lockService.CleanExpiredLocksAsync();
+```
+
+---
+
 **Built by [Vladyslav Zaiets](https://sarmkadan.com) - CTO & Software Architect**
 
 [Portfolio](https://sarmkadan.com) | [GitHub](https://github.com/Sarmkadan) | [Telegram](https://t.me/sarmkadan)
