@@ -8,20 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2026-03-14
 
 ### Added
-- Non-root container user for improved security (UID 1000)
-- `DB_PASSWORD` environment variable support in docker-compose
-- Migration guide (`docs/MIGRATION_v2.md`)
+- Add cron expression builder UI with next-run preview calendar
+- Docker support with multi-stage builds
+- Health check endpoints (/health, /health/ready)
+- Integration test suite with xUnit
+- Migration guide from v1.x
 
 ### Changed
-- **BREAKING:** Default port changed from 5000 to 8080
-- **BREAKING:** Docker image now runs as non-root user `appuser`
-- Dockerfile publish step uses `UseAppHost=false` for smaller images
-- Removed deprecated `version` field from docker-compose.yml
-- Database password extracted to environment variable with fallback default
-- HEALTHCHECK now uses `curl` against `/api/health` instead of `dotnet --version`
+- Upgraded to .NET 10.0
+- Modern C# features (records, primary constructors)
+- Improved API consistency
 
-### Removed
-- Root user execution in Docker container
+### Fixed
+- Various edge cases found through testing
 
 ---
 
