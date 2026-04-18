@@ -83,7 +83,7 @@ public class HealthController : ControllerBase
             var response = new HealthStatusResponse
             {
                 Timestamp = DateTime.UtcNow,
-                Version = "1.0.0",
+                Version = "1.1.0",
                 Status = "OK"
             };
 
@@ -214,7 +214,7 @@ public class HealthController : ControllerBase
 public class HealthStatusResponse
 {
     public DateTime Timestamp { get; set; }
-    public string Version { get; set; } = "1.0.0";
+    public string Version { get; set; } = "1.1.0";
     public string Status { get; set; } = "OK";
     public DatabaseStatus Database { get; set; } = new();
     public JobsStatus Jobs { get; set; } = new();
