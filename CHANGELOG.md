@@ -5,6 +5,26 @@ All notable changes to dotnet-job-scheduler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-03-14
+
+### Added
+- Non-root container user for improved security (UID 1000)
+- `DB_PASSWORD` environment variable support in docker-compose
+- Migration guide (`docs/MIGRATION_v2.md`)
+
+### Changed
+- **BREAKING:** Default port changed from 5000 to 8080
+- **BREAKING:** Docker image now runs as non-root user `appuser`
+- Dockerfile publish step uses `UseAppHost=false` for smaller images
+- Removed deprecated `version` field from docker-compose.yml
+- Database password extracted to environment variable with fallback default
+- HEALTHCHECK now uses `curl` against `/api/health` instead of `dotnet --version`
+
+### Removed
+- Root user execution in Docker container
+
+---
+
 ## [1.1.0] - 2025-10-13
 
 ### Added
@@ -212,7 +232,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Real-time WebSocket updates for the dashboard
 - [ ] Job templates and reusability
 
-### Version 2.0.0 (2026)
+### Version 2.0.0 (2026) - Released
+- [x] Docker hardening: non-root user, health checks, port 8080
+- [x] Migration documentation
 - [ ] Distributed tracing with OpenTelemetry
 - [ ] Advanced analytics and anomaly detection
 - [ ] Cloud-native optimisations for Azure / AWS
@@ -223,7 +245,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Release Date | .NET Target | Status |
 |---------|--------------|-------------|--------|
-| 1.1.0   | 2025-10-13   | 10.0        | Current |
+| 2.0.0   | 2026-03-14   | 10.0        | Current |
+| 1.1.0   | 2025-10-13   | 10.0        | Stable  |
 | 1.0.0   | 2025-09-15   | 10.0        | Stable  |
 | 0.9.0   | 2025-08-18   | 10.0        | Stable  |
 | 0.8.0   | 2025-07-28   | 10.0        | Stable  |
@@ -245,4 +268,4 @@ See [README.md](README.md#contributing) for contribution guidelines.
 
 ## License
 
-MIT License - Copyright (c) 2025 Vladyslav Zaiets
+MIT License - Copyright (c) 2025-2026 Vladyslav Zaiets
