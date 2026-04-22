@@ -18,7 +18,7 @@ namespace JobScheduler.Core.Data.Repositories;
 /// Repository for job entity operations and queries.
 /// Provides job-specific data access methods.
 /// </summary>
-public class JobRepository : Repository<Job>, IJobRepository
+public sealed class JobRepository : Repository<Job>, IJobRepository
 {
     public JobRepository(JobSchedulerContext context) : base(context) { }
 

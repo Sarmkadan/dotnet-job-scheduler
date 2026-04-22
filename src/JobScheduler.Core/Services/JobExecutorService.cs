@@ -20,7 +20,7 @@ namespace JobScheduler.Core.Services;
 /// Service for executing job handlers and managing execution lifecycle.
 /// Handles timeouts, error capture, and execution state management.
 /// </summary>
-public class JobExecutorService
+public sealed class JobExecutorService
 {
     private readonly IJobRepository _jobRepository;
     private readonly IExecutionRepository _executionRepository;
@@ -200,7 +200,7 @@ public class JobExecutorService
 /// <summary>
 /// Statistics about job execution performance.
 /// </summary>
-public class ExecutionStatistics
+public sealed class ExecutionStatistics
 {
     public Guid JobId { get; set; }
     public int TotalExecutions { get; set; }

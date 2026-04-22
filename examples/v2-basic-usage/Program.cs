@@ -1,3 +1,5 @@
+#nullable enable
+
 using JobScheduler.Core.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -10,7 +12,7 @@ namespace JobScheduler.Examples.V2BasicUsage
     /// <summary>
     /// Demonstrates basic usage of dotnet-job-scheduler v2.0 features
     /// </summary>
-    public class BasicJobHandler : IJobHandler
+    public sealed class BasicJobHandler : IJobHandler
     {
         private readonly ILogger<BasicJobHandler> _logger;
 
@@ -30,7 +32,7 @@ namespace JobScheduler.Examples.V2BasicUsage
         }
     }
 
-    public class Program
+    public sealed class Program
     {
         public static async Task Main(string[] args)
         {

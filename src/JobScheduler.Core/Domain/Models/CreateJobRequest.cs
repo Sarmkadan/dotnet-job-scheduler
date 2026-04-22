@@ -13,7 +13,7 @@ namespace JobScheduler.Core.Domain.Models;
 /// Request model for creating a new scheduled job.
 /// Contains validation and job configuration from client requests.
 /// </summary>
-public class CreateJobRequest
+public sealed class CreateJobRequest
 {
     [Required]
     [StringLength(256, MinimumLength = 3)]

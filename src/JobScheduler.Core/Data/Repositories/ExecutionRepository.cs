@@ -18,7 +18,7 @@ namespace JobScheduler.Core.Data.Repositories;
 /// Repository for job execution tracking and queries.
 /// Manages execution history and provides execution-specific queries.
 /// </summary>
-public class ExecutionRepository : Repository<JobExecution>, IExecutionRepository
+public sealed class ExecutionRepository : Repository<JobExecution>, IExecutionRepository
 {
     public ExecutionRepository(JobSchedulerContext context) : base(context) { }
 
