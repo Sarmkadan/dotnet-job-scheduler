@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -39,7 +40,7 @@ public class ScheduleService
         try
         {
             var job = await _jobRepository.GetByIdAsync(jobId);
-            if (job == null || !job.IsActive)
+            if (job is null || !job.IsActive)
                 return new();
 
             var upcomingTimes = new List<DateTime>();
@@ -48,7 +49,7 @@ public class ScheduleService
             for (int i = 0; i < count; i++)
             {
                 var next = _cronService.GetNextExecutionTime(job.CronExpression, current);
-                if (next == null)
+                if (next is null)
                     break;
 
                 upcomingTimes.Add(next.Value);
@@ -79,7 +80,7 @@ public class ScheduleService
             while (current < end)
             {
                 var next = _cronService.GetNextExecutionTime(cronExpression, current);
-                if (next == null || next >= end)
+                if (next is null || next >= end)
                     break;
 
                 times.Add(next.Value);
@@ -122,7 +123,7 @@ public class ScheduleService
         try
         {
             var job = await _jobRepository.GetByIdAsync(jobId);
-            if (job == null)
+            if (job is null)
                 return 0;
 
             var frequency = await GetExecutionFrequencyPerDayAsync(job.CronExpression);

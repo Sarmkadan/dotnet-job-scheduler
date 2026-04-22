@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -37,10 +38,10 @@ public static class HttpContextExtensions
     /// </summary>
     public static bool HasClaim(this HttpContext context, string claimType, string? claimValue = null)
     {
-        if (context?.User == null)
+        if (context?.User is null)
             return false;
 
-        if (claimValue == null)
+        if (claimValue is null)
             return context.User.HasClaim(c => c.Type == claimType);
 
         return context.User.HasClaim(claimType, claimValue);

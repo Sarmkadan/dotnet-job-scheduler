@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -62,7 +63,7 @@ public static class ValidationUtility
         };
 
         var invalidField = fieldValidations.FirstOrDefault(v => !v.IsValid);
-        if (invalidField != null)
+        if (invalidField is not null)
             return invalidField;
 
         return new ValidationResult(true);

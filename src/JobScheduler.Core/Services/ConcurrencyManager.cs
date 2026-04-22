@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -39,7 +40,7 @@ public class ConcurrencyManager
     /// </summary>
     public async Task<bool> CanExecuteAsync(Job job)
     {
-        if (job == null)
+        if (job is null)
             throw new ArgumentNullException(nameof(job));
 
         // Check global concurrency limit

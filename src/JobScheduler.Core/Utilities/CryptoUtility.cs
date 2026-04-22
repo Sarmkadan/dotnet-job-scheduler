@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -187,7 +188,7 @@ public static class CryptoUtility
     /// </summary>
     public static bool CompareStringsSecurely(string a, string b)
     {
-        if (a == null || b == null)
+        if (a is null || b is null)
             return a == b;
 
         if (a.Length != b.Length)
@@ -208,7 +209,7 @@ public static class CryptoUtility
     /// </summary>
     public static string ComputeFileHash(Stream stream)
     {
-        if (stream == null || !stream.CanRead)
+        if (stream is null || !stream.CanRead)
             throw new ArgumentException("Stream must be readable", nameof(stream));
 
         using (var sha256 = SHA256.Create())

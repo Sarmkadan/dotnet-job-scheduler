@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -47,7 +48,7 @@ public class ExecutionsController : ControllerBase
         try
         {
             var executions = await _schedulerService.GetJobExecutionsAsync(jobId, pageNumber, pageSize);
-            if (executions == null)
+            if (executions is null)
             {
                 _logger.LogWarning("Job not found for executions: {JobId}", jobId);
                 return NotFound(new { error = "Job not found" });
@@ -93,7 +94,7 @@ public class ExecutionsController : ControllerBase
         try
         {
             var execution = await _schedulerService.GetExecutionByIdAsync(id);
-            if (execution == null)
+            if (execution is null)
             {
                 _logger.LogWarning("Execution not found: {ExecutionId}", id);
                 return NotFound(new { error = "Execution not found" });
@@ -135,7 +136,7 @@ public class ExecutionsController : ControllerBase
         try
         {
             var stats = await _statisticsService.GetJobExecutionStatsAsync(jobId);
-            if (stats == null)
+            if (stats is null)
             {
                 _logger.LogWarning("No statistics found for job: {JobId}", jobId);
                 return NotFound(new { error = "Job not found" });
@@ -198,7 +199,7 @@ public class ExecutionsController : ControllerBase
         try
         {
             var analysis = await _statisticsService.GetJobPerformanceAnalysisAsync(jobId);
-            if (analysis == null)
+            if (analysis is null)
             {
                 _logger.LogWarning("No performance data for job: {JobId}", jobId);
                 return NotFound(new { error = "Job not found" });

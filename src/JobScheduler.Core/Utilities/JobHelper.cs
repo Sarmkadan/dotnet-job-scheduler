@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -20,7 +21,7 @@ public static class JobHelper
     /// </summary>
     public static string SerializeParameters(object? parameters)
     {
-        if (parameters == null)
+        if (parameters is null)
             return string.Empty;
 
         try
@@ -56,7 +57,7 @@ public static class JobHelper
     /// </summary>
     public static string GetJobStatusDescription(Job job)
     {
-        if (job == null)
+        if (job is null)
             return "Unknown";
 
         return job.Status switch

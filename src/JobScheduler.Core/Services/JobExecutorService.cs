@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -43,7 +44,7 @@ public class JobExecutorService
     /// </summary>
     public async Task<JobExecution> ExecuteJobAsync(Job job, CancellationToken cancellationToken = default)
     {
-        if (job == null)
+        if (job is null)
             throw new ArgumentNullException(nameof(job));
 
         var execution = new JobExecution
@@ -145,7 +146,7 @@ public class JobExecutorService
     /// </summary>
     public async Task<(bool CanExecute, string? Reason)> ValidateJobForExecutionAsync(Job job)
     {
-        if (job == null)
+        if (job is null)
             return (false, "Job is null");
 
         if (!job.IsActive)
@@ -177,7 +178,7 @@ public class JobExecutorService
         var executions = await _executionRepository.GetExecutionsByJobAsync(jobId);
         var job = await _jobRepository.GetByIdAsync(jobId);
 
-        if (job == null)
+        if (job is null)
             throw new JobNotFoundException(jobId);
 
         var successfulExecutions = executions.Where(e => e.Status == ExecutionStatus.Success).ToList();

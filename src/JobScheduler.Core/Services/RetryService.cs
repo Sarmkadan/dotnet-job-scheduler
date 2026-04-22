@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -37,7 +38,7 @@ public class RetryService
     /// </summary>
     public ValueTask<bool> ShouldRetryAsync(Job job, JobExecution execution)
     {
-        if (job == null || execution == null)
+        if (job is null || execution is null)
             return ValueTask.FromResult(false);
 
         if (execution.AttemptNumber > job.MaxRetries)
@@ -61,7 +62,7 @@ public class RetryService
     /// </summary>
     public DateTime CalculateNextRetryTime(Job job, JobExecution failedExecution)
     {
-        if (job == null || failedExecution == null)
+        if (job is null || failedExecution is null)
             throw new ArgumentNullException(nameof(job));
 
         var delaySeconds = CalculateBackoffDelay(job, failedExecution.AttemptNumber);
@@ -80,7 +81,7 @@ public class RetryService
     public int CalculateBackoffDelay(Job job, int attemptNumber)
     {
         // Fix: Ensure job and attemptNumber are valid inputs.
-        if (job == null) throw new ArgumentNullException(nameof(job));
+        if (job is null) throw new ArgumentNullException(nameof(job));
         if (attemptNumber < 0) throw new ArgumentOutOfRangeException(nameof(attemptNumber), "Attempt number cannot be negative.");
 
         int baseDelay = job.RetryBackoffSeconds;
@@ -109,7 +110,7 @@ public class RetryService
     /// </summary>
     public JobExecution CreateRetryExecution(Job job, JobExecution failedExecution)
     {
-        if (job == null || failedExecution == null)
+        if (job is null || failedExecution is null)
             throw new ArgumentNullException(nameof(job));
 
         var retryExecution = new JobExecution
