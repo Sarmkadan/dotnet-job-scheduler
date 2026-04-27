@@ -13,7 +13,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// Represents a scheduled job in the distributed job scheduler system.
 /// Contains job configuration, scheduling rules, and retry policies.
 /// </summary>
-public class Job
+public sealed class Job
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

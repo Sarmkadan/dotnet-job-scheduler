@@ -10,7 +10,7 @@ namespace JobScheduler.Core.Configuration;
 /// Encapsulates all configuration settings for the job scheduler.
 /// WHY: Centralized configuration class improves maintainability and enables type-safe configuration.
 /// </summary>
-public class JobSchedulerSettings
+public sealed class JobSchedulerSettings
 {
     public string? ConnectionString { get; set; }
     public int MaxConcurrentJobs { get; set; } = 10;
@@ -27,7 +27,7 @@ public class JobSchedulerSettings
 /// <summary>
 /// Notification service configuration settings.
 /// </summary>
-public class NotificationSettings
+public sealed class NotificationSettings
 {
     public bool EnableWebhooks { get; set; } = false;
     public bool EnableSlack { get; set; } = false;
@@ -45,7 +45,7 @@ public class NotificationSettings
 /// <summary>
 /// Caching layer configuration.
 /// </summary>
-public class CachingSettings
+public sealed class CachingSettings
 {
     public bool EnableCache { get; set; } = true;
     public int DefaultCacheDurationMinutes { get; set; } = 60;
@@ -57,7 +57,7 @@ public class CachingSettings
 /// <summary>
 /// Security and authentication settings.
 /// </summary>
-public class SecuritySettings
+public sealed class SecuritySettings
 {
     public bool EnableApiKeyAuth { get; set; } = false;
     public List<ApiKeyConfig> ApiKeys { get; set; } = new();
@@ -69,7 +69,7 @@ public class SecuritySettings
 /// <summary>
 /// API key configuration for secured endpoints.
 /// </summary>
-public class ApiKeyConfig
+public sealed class ApiKeyConfig
 {
     public string Key { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
@@ -80,7 +80,7 @@ public class ApiKeyConfig
 /// <summary>
 /// Logging and monitoring configuration.
 /// </summary>
-public class LoggingSettings
+public sealed class LoggingSettings
 {
     public string LogLevel { get; set; } = "Information";
     public bool EnableDetailedLogging { get; set; } = false;
@@ -93,7 +93,7 @@ public class LoggingSettings
 /// <summary>
 /// Performance monitoring settings.
 /// </summary>
-public class PerformanceSettings
+public sealed class PerformanceSettings
 {
     public bool EnablePerformanceMonitoring { get; set; } = true;
     public int MetricsRetentionMinutes { get; set; } = 1440; // 24 hours
@@ -105,7 +105,7 @@ public class PerformanceSettings
 /// <summary>
 /// Database and persistence settings.
 /// </summary>
-public class PersistenceSettings
+public sealed class PersistenceSettings
 {
     public string? DatabaseProvider { get; set; } = "SqlServer"; // SqlServer, PostgreSQL, SQLite, etc.
     public int CommandTimeoutSeconds { get; set; } = 30;
@@ -117,7 +117,7 @@ public class PersistenceSettings
 /// <summary>
 /// Distributed scheduler settings for multi-instance deployments.
 /// </summary>
-public class DistributedSettings
+public sealed class DistributedSettings
 {
     public bool EnableDistributed { get; set; } = false;
     public string? ServiceName { get; set; }
@@ -130,7 +130,7 @@ public class DistributedSettings
 /// <summary>
 /// Feature flag settings for A/B testing and gradual rollouts.
 /// </summary>
-public class FeatureFlags
+public sealed class FeatureFlags
 {
     public bool EnableAdvancedScheduling { get; set; } = false;
     public bool EnableJobChaining { get; set; } = false;

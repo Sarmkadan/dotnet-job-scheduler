@@ -16,7 +16,7 @@ namespace JobScheduler.Core.Services;
 /// Service for parsing, validating, and evaluating cron expressions.
 /// Uses NCronTab library for POSIX-compliant cron parsing.
 /// </summary>
-public class CronExpressionService
+public sealed class CronExpressionService
 {
     // Parsed schedules are immutable and cheap to share; cache by expression string
     // to avoid paying NCronTab parse cost on every evaluation cycle.

@@ -15,7 +15,7 @@ namespace JobScheduler.Core.Services;
 /// Provides schedule analysis, next run time calculation, and schedule history.
 /// WHY: Separating schedule logic improves code organization and testability.
 /// </summary>
-public class ScheduleService
+public sealed class ScheduleService
 {
     private readonly IJobRepository _jobRepository;
     private readonly CronExpressionService _cronService;

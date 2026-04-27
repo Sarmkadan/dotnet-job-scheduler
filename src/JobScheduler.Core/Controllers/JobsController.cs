@@ -19,7 +19,7 @@ namespace JobScheduler.Core.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class JobsController : ControllerBase
+public sealed class JobsController : ControllerBase
 {
     private readonly JobSchedulerService _schedulerService;
     private readonly ILogger<JobsController> _logger;
@@ -309,12 +309,12 @@ public class JobsController : ControllerBase
         };
 }
 
-public class SuspendJobRequest
+public sealed class SuspendJobRequest
 {
     public string? Reason { get; set; }
 }
 
-public class PaginatedResponse<T>
+public sealed class PaginatedResponse<T>
 {
     public List<T> Data { get; set; } = new();
     public int TotalCount { get; set; }

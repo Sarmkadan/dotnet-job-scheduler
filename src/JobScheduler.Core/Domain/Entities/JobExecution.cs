@@ -13,7 +13,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// Represents a single execution attempt of a job.
 /// Tracks execution lifecycle, timing, and error details.
 /// </summary>
-public class JobExecution
+public sealed class JobExecution
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

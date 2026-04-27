@@ -11,7 +11,7 @@ namespace JobScheduler.Core.Exceptions;
 /// <summary>
 /// Thrown when a job execution fails or encounters an error.
 /// </summary>
-public class ExecutionException : JobSchedulerException
+public sealed class ExecutionException : JobSchedulerException
 {
     public Guid ExecutionId { get; set; }
 

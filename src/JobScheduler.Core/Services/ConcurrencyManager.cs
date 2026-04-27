@@ -20,7 +20,7 @@ namespace JobScheduler.Core.Services;
 /// Manages concurrent job execution limits and ensures concurrency constraints.
 /// Prevents overloading system with too many concurrent executions.
 /// </summary>
-public class ConcurrencyManager
+public sealed class ConcurrencyManager
 {
     private readonly IExecutionRepository _executionRepository;
     private readonly ConcurrentDictionary<Guid, int> _jobConcurrencyCache;

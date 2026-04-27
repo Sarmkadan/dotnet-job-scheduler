@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -10,7 +12,7 @@ using Xunit;
 
 namespace DotnetJobScheduler.Tests;
 
-public class JobEntityTests
+public sealed class JobEntityTests
 {
     private static Job CreateValidJob() => new()
     {

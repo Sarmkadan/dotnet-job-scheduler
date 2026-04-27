@@ -1,3 +1,5 @@
+#nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -18,7 +20,7 @@ using JobScheduler.Core.Services;
 /// application with background service for job execution.
 /// </summary>
 
-public class EmailSendingJobHandler : IJobHandler
+public sealed class EmailSendingJobHandler : IJobHandler
 {
     private readonly ILogger<EmailSendingJobHandler> _logger;
 
@@ -43,7 +45,7 @@ public class EmailSendingJobHandler : IJobHandler
     }
 }
 
-public class DataCleanupJobHandler : IJobHandler
+public sealed class DataCleanupJobHandler : IJobHandler
 {
     private readonly ILogger<DataCleanupJobHandler> _logger;
 
@@ -65,7 +67,7 @@ public class DataCleanupJobHandler : IJobHandler
     }
 }
 
-public class JobSchedulerBackgroundService : BackgroundService
+public sealed class JobSchedulerBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<JobSchedulerBackgroundService> _logger;
@@ -114,7 +116,7 @@ public class JobSchedulerBackgroundService : BackgroundService
     }
 }
 
-public class AspNetCoreJobSchedulerExample
+public sealed class AspNetCoreJobSchedulerExample
 {
     /// Sets up and runs the ASP.NET Core example
     public static async Task Main(string[] args)

@@ -15,7 +15,7 @@ namespace JobScheduler.Core.Services;
 /// Tracks all important scheduler operations and API calls.
 /// WHY: Audit logs are essential for compliance requirements and security investigations.
 /// </summary>
-public class AuditLogger
+public sealed class AuditLogger
 {
     private readonly ILogger<AuditLogger> _logger;
     private readonly ConcurrentQueue<AuditLogEntry> _auditLogs;
@@ -251,7 +251,7 @@ public class AuditLogger
     }
 }
 
-public class AuditLogEntry
+public sealed class AuditLogEntry
 {
     public Guid EventId { get; set; }
     public string EventType { get; set; } = string.Empty;
@@ -263,7 +263,7 @@ public class AuditLogEntry
     public AuditSeverity Severity { get; set; }
 }
 
-public class ApiCallAudit
+public sealed class ApiCallAudit
 {
     public string Method { get; set; } = string.Empty;
     public string Path { get; set; } = string.Empty;
@@ -273,7 +273,7 @@ public class ApiCallAudit
     public DateTime Timestamp { get; set; }
 }
 
-public class AuditStatistics
+public sealed class AuditStatistics
 {
     public int TotalLogs { get; set; }
     public Dictionary<string, int> LogsByEventType { get; set; } = new();

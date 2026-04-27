@@ -17,7 +17,7 @@ namespace JobScheduler.Core.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class ExecutionsController : ControllerBase
+public sealed class ExecutionsController : ControllerBase
 {
     private readonly JobSchedulerService _schedulerService;
     private readonly ExecutionStatisticsService _statisticsService;
@@ -246,7 +246,7 @@ public class ExecutionsController : ControllerBase
     }
 }
 
-public class ExecutionDetailsResponse
+public sealed class ExecutionDetailsResponse
 {
     public Guid Id { get; set; }
     public Guid JobId { get; set; }
@@ -261,7 +261,7 @@ public class ExecutionDetailsResponse
     public string? Output { get; set; }
 }
 
-public class ExecutionStatsResponse
+public sealed class ExecutionStatsResponse
 {
     public Guid JobId { get; set; }
     public int TotalExecutions { get; set; }
@@ -274,7 +274,7 @@ public class ExecutionStatsResponse
     public DateTime? LastExecutionAt { get; set; }
 }
 
-public class PerformanceAnalysisResponse
+public sealed class PerformanceAnalysisResponse
 {
     public Guid JobId { get; set; }
     public long AverageExecutionTimeMs { get; set; }
@@ -287,7 +287,7 @@ public class PerformanceAnalysisResponse
     public DateTime? FastestExecutionAt { get; set; }
 }
 
-public class CleanupResponse
+public sealed class CleanupResponse
 {
     public int DeletedCount { get; set; }
     public DateTime CutoffDate { get; set; }
