@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -53,7 +54,7 @@ public class JobSchedulerService
     /// </summary>
     public async Task<Job> CreateJobAsync(Job job, string? createdBy = null)
     {
-        if (job == null)
+        if (job is null)
             throw new ArgumentNullException(nameof(job));
 
         // Fix: Add validation for job.Name to prevent null, empty, or whitespace values.
@@ -67,7 +68,7 @@ public class JobSchedulerService
             throw new CronExpressionException(job.CronExpression, "Invalid cron expression");
 
         var existingJob = await _jobRepository.GetByNameAsync(job.Name);
-        if (existingJob != null)
+        if (existingJob is not null)
             throw new JobValidationException($"Job with name '{job.Name}' already exists", nameof(job.Name));
 
         job.CreatedBy = createdBy;
@@ -129,7 +130,7 @@ public class JobSchedulerService
         foreach (var failedExecution in failedExecutions)
         {
             var job = await _jobRepository.GetByIdAsync(failedExecution.JobId);
-            if (job == null)
+            if (job is null)
                 continue;
 
             if (!await _retryService.ShouldRetryAsync(job, failedExecution))
@@ -160,7 +161,7 @@ public class JobSchedulerService
     public async Task<Job> UpdateJobScheduleAsync(Guid jobId, string newCronExpression, string? changedBy = null)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
-        if (job == null)
+        if (job is null)
             throw new JobNotFoundException(jobId);
 
         // Fix: Add validation for newCronExpression to prevent null, empty, or whitespace values.
@@ -193,7 +194,7 @@ public class JobSchedulerService
     public async Task<Job> SuspendJobAsync(Guid jobId, string? reason = null, string? suspendedBy = null)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
-        if (job == null)
+        if (job is null)
             throw new JobNotFoundException(jobId);
 
         // Fix: Validate reason to ensure it's not an empty or whitespace string if provided.
@@ -218,7 +219,7 @@ public class JobSchedulerService
     public async Task<Job> ResumeJobAsync(Guid jobId, string? resumedBy = null)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
-        if (job == null)
+        if (job is null)
             throw new JobNotFoundException(jobId);
 
         // Fix: Validate resumedBy to ensure it's not an empty or whitespace string if provided.
@@ -243,7 +244,7 @@ public class JobSchedulerService
     public async Task DeleteJobAsync(Guid jobId)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
-        if (job == null)
+        if (job is null)
             throw new JobNotFoundException(jobId);
 
         _jobRepository.Remove(job);
@@ -258,7 +259,7 @@ public class JobSchedulerService
     public async Task<JobDetailsDto> GetJobDetailsAsync(Guid jobId)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
-        if (job == null)
+        if (job is null)
             throw new JobNotFoundException(jobId);
 
         var executions = await _executionRepository.GetExecutionsByJobAsync(jobId);

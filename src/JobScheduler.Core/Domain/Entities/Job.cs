@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -108,7 +109,7 @@ public class Job
     public void MarkAsUpdated(string? updatedBy = null)
     {
         UpdatedAt = DateTime.UtcNow;
-        if (updatedBy != null)
+        if (updatedBy is not null)
             UpdatedBy = updatedBy;
     }
 

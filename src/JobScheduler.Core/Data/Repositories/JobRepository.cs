@@ -1,3 +1,4 @@
+#nullable enable
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -86,7 +87,7 @@ public class JobRepository : Repository<Job>, IJobRepository
     {
         var threshold = DateTime.UtcNow.AddMinutes(-minutesThreshold);
         return await _dbSet
-            .Where(j => j.IsActive && (j.LastExecutedAt == null || j.LastExecutedAt < threshold))
+            .Where(j => j.IsActive && (j.LastExecutedAt is null || j.LastExecutedAt < threshold))
             .OrderBy(j => j.LastExecutedAt)
             .ToListAsync();
     }
