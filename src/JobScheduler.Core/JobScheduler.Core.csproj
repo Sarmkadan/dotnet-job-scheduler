@@ -11,8 +11,8 @@
     <Version>1.0.0</Version>
     <Authors>Vladyslav Zaiets</Authors>
     <Description>Distributed job scheduler for .NET with cron expressions, priority queues, retries, and concurrency control</Description>
-    <RepositoryUrl>https://github.com/vladyslav-z/dotnet-job-scheduler</RepositoryUrl>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/sarmkadan/dotnet-job-scheduler</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
