@@ -4,6 +4,7 @@
 // =============================================================================
 
 using System;
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -15,6 +16,10 @@ namespace JobScheduler.Core.Extensions;
 /// </summary>
 public static class StringExtensions
 {
+    // Characters that must be escaped in JSON string values.
+    private static readonly SearchValues<char> _jsonEscapeChars =
+        SearchValues.Create(['\\', '"', '\n', '\r', '\t']);
+
     /// <summary>
     /// Computes SHA256 hash of the string.
     /// Used for secure job handler parameter hashing and fingerprinting.
@@ -54,19 +59,51 @@ public static class StringExtensions
         if (string.IsNullOrEmpty(input))
             return string.Empty;
 
-        return input
-            .ToLowerInvariant()
-            .Replace(" ", "-")
-            .Replace("_", "-")
-            .Where(c => char.IsLetterOrDigit(c) || c == '-')
-            .Aggregate(new StringBuilder(), (sb, c) =>
+        // Single-pass over source characters — no intermediate strings, no LINQ overhead.
+        // Rent a buffer from the pool for inputs that exceed safe stackalloc size.
+        char[]? rented = null;
+        Span<char> buffer = input.Length <= 256
+            ? stackalloc char[input.Length]
+            : (rented = ArrayPool<char>.Shared.Rent(input.Length));
+
+        try
+        {
+            int writePos = 0;
+            bool lastWasHyphen = false;
+
+            foreach (char c in input)
             {
-                if (c == '-' && (sb.Length == 0 || sb[sb.Length - 1] == '-'))
-                    return sb;
-                return sb.Append(c);
-            })
-            .ToString()
-            .Trim('-');
+                char lower = char.ToLowerInvariant(c);
+                char mapped = lower is ' ' or '_' ? '-' : lower;
+
+                if (!char.IsLetterOrDigit(mapped) && mapped != '-')
+                    continue;
+
+                if (mapped == '-')
+                {
+                    if (lastWasHyphen || writePos == 0)
+                        continue;
+                    lastWasHyphen = true;
+                }
+                else
+                {
+                    lastWasHyphen = false;
+                }
+
+                buffer[writePos++] = mapped;
+            }
+
+            // Trim trailing hyphens
+            while (writePos > 0 && buffer[writePos - 1] == '-')
+                writePos--;
+
+            return new string(buffer[..writePos]);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<char>.Shared.Return(rented);
+        }
     }
 
     /// <summary>
@@ -78,12 +115,32 @@ public static class StringExtensions
         if (string.IsNullOrEmpty(input))
             return input;
 
-        return input
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"")
-            .Replace("\n", "\\n")
-            .Replace("\r", "\\r")
-            .Replace("\t", "\\t");
+        var span = input.AsSpan();
+        int firstSpecial = span.IndexOfAny(_jsonEscapeChars);
+
+        // Fast path: no escaping required — return the original string with no allocation.
+        if (firstSpecial < 0) return input;
+
+        var sb = new StringBuilder(input.Length + 16);
+
+        // Append clean prefix in one shot, then process special characters individually.
+        if (firstSpecial > 0)
+            sb.Append(span[..firstSpecial]);
+
+        for (int i = firstSpecial; i < span.Length; i++)
+        {
+            switch (span[i])
+            {
+                case '\\': sb.Append("\\\\"); break;
+                case '"':  sb.Append("\\\""); break;
+                case '\n': sb.Append("\\n");  break;
+                case '\r': sb.Append("\\r");  break;
+                case '\t': sb.Append("\\t");  break;
+                default:   sb.Append(span[i]); break;
+            }
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>

@@ -3,8 +3,11 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Collections.Frozen;
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.ObjectPool;
 
 namespace JobScheduler.Core.Utilities;
 
@@ -15,6 +18,25 @@ namespace JobScheduler.Core.Utilities;
 /// </summary>
 public static class ParseUtility
 {
+    // Reuse options instance — constructing JsonSerializerOptions per call is expensive
+    // because it triggers internal reflection metadata caching on every construction.
+    private static readonly JsonSerializerOptions _defaultJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    // FrozenDictionary gives O(1) case-insensitive lookup with no per-call allocation,
+    // replacing the previous switch that required ToLowerInvariant() on every call.
+    private static readonly FrozenDictionary<string, int> _priorityMap =
+        new Dictionary<string, int>
+        {
+            ["critical"] = 4, ["high"] = 3, ["normal"] = 2, ["medium"] = 2, ["low"] = 1,
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+    // Pool StringBuilder instances to avoid repeated heap allocations during bulk CSV parsing.
+    private static readonly ObjectPool<StringBuilder> _sbPool =
+        new DefaultObjectPoolProvider().Create(new StringBuilderPooledObjectPolicy());
+
     /// <summary>
     /// Safely parses integer from string with default fallback.
     /// Returns defaultValue if parsing fails or input is null/empty.
@@ -126,10 +148,7 @@ public static class ParseUtility
 
         try
         {
-            return JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            return JsonSerializer.Deserialize<T>(json, _defaultJsonOptions);
         }
         catch
         {
@@ -164,16 +183,9 @@ public static class ParseUtility
     public static int ParsePriority(string? priority)
     {
         if (string.IsNullOrWhiteSpace(priority))
-            return 2; // Default: Normal
+            return 2;
 
-        return priority.ToLowerInvariant() switch
-        {
-            "critical" => 4,
-            "high" => 3,
-            "normal" or "medium" => 2,
-            "low" => 1,
-            _ => ParseInt(priority, 2)
-        };
+        return _priorityMap.TryGetValue(priority, out var level) ? level : ParseInt(priority, 2);
     }
 
     /// <summary>
@@ -229,27 +241,35 @@ public static class ParseUtility
     public static List<string> ParseCsvLine(string line)
     {
         var result = new List<string>();
-        var current = string.Empty;
+        var current = _sbPool.Get();
         var inQuotes = false;
 
-        foreach (var c in line)
+        try
         {
-            if (c == '"')
+            foreach (var c in line)
             {
-                inQuotes = !inQuotes;
+                if (c == '"')
+                {
+                    inQuotes = !inQuotes;
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    result.Add(current.ToString().Trim());
+                    current.Clear();
+                }
+                else
+                {
+                    current.Append(c);
+                }
             }
-            else if (c == ',' && !inQuotes)
-            {
-                result.Add(current.Trim());
-                current = string.Empty;
-            }
-            else
-            {
-                current += c;
-            }
+
+            result.Add(current.ToString().Trim());
+        }
+        finally
+        {
+            _sbPool.Return(current);
         }
 
-        result.Add(current.Trim());
         return result;
     }
 
@@ -262,11 +282,19 @@ public static class ParseUtility
         if (string.IsNullOrEmpty(field))
             return string.Empty;
 
-        if (field.Contains(',') || field.Contains('"') || field.Contains('\n'))
-        {
-            return $"\"{field.Replace("\"", "\"\"")}\"";
-        }
+        var span = field.AsSpan();
+        if (span.IndexOfAny(',', '"', '\n') < 0)
+            return field;
 
-        return field;
+        // Single StringBuilder pass avoids the intermediate string from Replace + interpolation.
+        var sb = new StringBuilder(field.Length + 8);
+        sb.Append('"');
+        foreach (char c in span)
+        {
+            if (c == '"') sb.Append('"'); // double-quote escaping
+            sb.Append(c);
+        }
+        sb.Append('"');
+        return sb.ToString();
     }
 }
