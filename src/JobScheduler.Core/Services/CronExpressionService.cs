@@ -154,15 +154,50 @@ public sealed class CronExpressionService
 
     private string GetSimpleCronDescription(string[] parts)
     {
-        // minute hour day month dayofweek
-        if (parts[0] == "*" && parts[1] == "*" && parts[2] == "*" && parts[3] == "*" && parts[4] == "*")
+        // Format: minute hour day month dayofweek
+        var (minute, hour, day, month, dow) = (parts[0], parts[1], parts[2], parts[3], parts[4]);
+
+        if (minute == "*" && hour == "*" && day == "*" && month == "*" && dow == "*")
             return "Every minute";
 
-        if (parts[0] == "0" && parts[1] == "*")
-            return "Hourly";
+        // Every N minutes: */5 * * * *
+        if (minute.StartsWith("*/") && hour == "*" && day == "*" && month == "*" && dow == "*")
+            return $"Every {minute[2..]} minutes";
 
-        if (parts[0] == "0" && parts[1] == "0")
-            return "Daily";
+        if (minute == "0" && hour == "*" && day == "*" && month == "*" && dow == "*")
+            return "Every hour at :00";
+
+        // Every N hours: 0 */2 * * *
+        if (minute == "0" && hour.StartsWith("*/") && day == "*" && month == "*" && dow == "*")
+            return $"Every {hour[2..]} hours";
+
+        if (minute == "0" && hour == "0" && day == "*" && month == "*" && dow == "*")
+            return "Daily at midnight";
+
+        // Specific daily time: 30 14 * * *
+        if (day == "*" && month == "*" && dow == "*" && int.TryParse(minute, out var m) && int.TryParse(hour, out var h))
+            return $"Daily at {h:D2}:{m:D2}";
+
+        // Weekly: 0 0 * * 1
+        if (minute == "0" && hour == "0" && day == "*" && month == "*" && dow != "*")
+        {
+            var dayName = dow switch
+            {
+                "0" or "7" => "Sunday",
+                "1" => "Monday",
+                "2" => "Tuesday",
+                "3" => "Wednesday",
+                "4" => "Thursday",
+                "5" => "Friday",
+                "6" => "Saturday",
+                _ => $"day {dow}"
+            };
+            return $"Weekly on {dayName} at midnight";
+        }
+
+        // Monthly: 0 0 1 * *
+        if (minute == "0" && hour == "0" && month == "*" && dow == "*" && int.TryParse(day, out var d))
+            return $"Monthly on day {d} at midnight";
 
         return "Custom schedule";
     }
