@@ -1,6 +1,6 @@
 # dotnet-job-scheduler
 
-![CI](https://github.com/sarmkadan/dotnet-job-scheduler/actions/workflows/ci.yml/badge.svg)
+![Build](https://github.com/sarmkadan/dotnet-job-scheduler/actions/workflows/build.yml/badge.svg)
 ![License](https://img.shields.io/github/license/sarmkadan/dotnet-job-scheduler)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 
@@ -311,7 +311,9 @@ public class JobSchedulerSettings
 
 ## Usage Examples
 
-### Example 1: Simple Scheduled Task
+This repository contains a comprehensive set of usage examples in the [examples/](examples/) directory.
+
+Below are selected snippets demonstrating common scenarios. For a complete list and runnable projects, please refer to the [examples/](examples/) directory.
 
 ```csharp
 // Send email report every Monday at 8 AM
