@@ -161,7 +161,7 @@ dotnet test
 
 ```bash
 docker-compose up -d
-# Service runs on http://localhost:5000
+# Service runs on http://localhost:8080
 ```
 
 ## Quick Start
@@ -800,8 +800,8 @@ await webhookRepository.AddAsync(webhook);
 ```bash
 docker-compose up -d
 
-# Service available at http://localhost:5000
-# Dashboard at http://localhost:5000/dashboard
+# Service available at http://localhost:8080
+# Dashboard at http://localhost:8080/dashboard
 ```
 
 ### Production Checklist
