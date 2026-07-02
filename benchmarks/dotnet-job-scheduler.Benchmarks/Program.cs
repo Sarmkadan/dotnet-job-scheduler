@@ -13,4 +13,10 @@ BenchmarkRunner.Run(
     typeof(CronExpressionBenchmarks),
     typeof(StringProcessingBenchmarks),
     typeof(CsvProcessingBenchmarks),
+    typeof(JobManagementBenchmarks),
+    typeof(JobSchedulerServiceBenchmarks),
+    typeof(JobExecutorServiceBenchmarks),
+    typeof(ConcurrencyManagerBenchmarks),
+    typeof(RetryServiceBenchmarks),
+    typeof(JobPipelineServiceBenchmarks),
 ]);
