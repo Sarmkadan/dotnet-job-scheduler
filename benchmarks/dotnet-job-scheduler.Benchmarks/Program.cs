@@ -19,4 +19,5 @@ BenchmarkRunner.Run(
     typeof(ConcurrencyManagerBenchmarks),
     typeof(RetryServiceBenchmarks),
     typeof(JobPipelineServiceBenchmarks),
+    typeof(CacheServiceBenchmarks),
 ]);
