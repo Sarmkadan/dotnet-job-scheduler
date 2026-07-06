@@ -147,7 +147,7 @@ public sealed class ApiSuccessResponse<T>
 /// <summary>
 /// Standard API error response envelope.
 /// </summary>
-public sealed class ApiErrorResponse
+public class ApiErrorResponse
 {
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
