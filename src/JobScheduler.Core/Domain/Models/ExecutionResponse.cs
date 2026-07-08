@@ -6,6 +6,7 @@
 
 using System;
 using JobScheduler.Core.Constants;
+using JobScheduler.Core.Domain.Entities;
 
 namespace JobScheduler.Core.Domain.Models;
 
@@ -17,11 +18,13 @@ public sealed class ExecutionResponse
 {
     public Guid Id { get; set; }
     public Guid JobId { get; set; }
-    public ExecutionStatus Status { get; set; }
+    public string Status { get; set; } = string.Empty;
     public DateTime StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public long DurationMilliseconds { get; set; }
     public int AttemptNumber { get; set; }
+    public long ExecutionTimeMs { get; set; }
+    public int RetryAttempt { get; set; }
     public string? ErrorMessage { get; set; }
     public string ExecutorName { get; set; } = string.Empty;
     public bool IsRetryable { get; set; }
@@ -33,11 +36,13 @@ public sealed class ExecutionResponse
         {
             Id = execution.Id,
             JobId = execution.JobId,
-            Status = execution.Status,
+            Status = execution.Status.ToString(),
             StartedAt = execution.StartedAt,
             CompletedAt = execution.CompletedAt,
             DurationMilliseconds = execution.DurationMilliseconds,
             AttemptNumber = execution.AttemptNumber,
+            ExecutionTimeMs = execution.ExecutionTimeMs,
+            RetryAttempt = execution.RetryAttempt,
             ErrorMessage = execution.ErrorMessage,
             ExecutorName = execution.ExecutorName,
             IsRetryable = execution.IsRetryable,
@@ -49,12 +54,12 @@ public sealed class ExecutionResponse
     {
         return Status switch
         {
-            ExecutionStatus.Running => "Running",
-            ExecutionStatus.Success => "Success",
-            ExecutionStatus.Failed => "Failed",
-            ExecutionStatus.Cancelled => "Cancelled",
-            ExecutionStatus.TimedOut => "Timed Out",
-            ExecutionStatus.Skipped => "Skipped",
+            nameof(ExecutionStatus.Running) => "Running",
+            nameof(ExecutionStatus.Success) => "Success",
+            nameof(ExecutionStatus.Failed) => "Failed",
+            nameof(ExecutionStatus.Cancelled) => "Cancelled",
+            nameof(ExecutionStatus.TimedOut) => "Timed Out",
+            nameof(ExecutionStatus.Skipped) => "Skipped",
             _ => "Unknown"
         };
     }

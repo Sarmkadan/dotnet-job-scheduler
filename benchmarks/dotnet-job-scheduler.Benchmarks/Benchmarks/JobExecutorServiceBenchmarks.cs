@@ -6,6 +6,8 @@
 // ====================================================================
 
 using BenchmarkDotNet.Attributes;
+using JobScheduler.Core.Constants;
+using JobScheduler.Core.Data.Repositories;
 using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,7 +60,6 @@ public sealed class JobExecutorServiceBenchmarks
     {
         var job = new Job
         {
-            Id = 1,
             Name = "SuccessfulJob",
             Description = "Job that executes successfully",
             HandlerType = "MockJobHandler, Benchmarks",
@@ -78,7 +79,6 @@ public sealed class JobExecutorServiceBenchmarks
     {
         var job = new Job
         {
-            Id = 2,
             Name = "FailingJob",
             Description = "Job that fails",
             HandlerType = "MockFailingHandler, Benchmarks",
@@ -98,7 +98,6 @@ public sealed class JobExecutorServiceBenchmarks
     {
         var job = new Job
         {
-            Id = 3,
             Name = "TimeoutJob",
             Description = "Job that times out",
             HandlerType = "MockSlowHandler, Benchmarks",
@@ -118,7 +117,6 @@ public sealed class JobExecutorServiceBenchmarks
     {
         var job = new Job
         {
-            Id = 4,
             Name = "ConcurrentJob",
             Description = "Job with concurrency limit",
             HandlerType = "MockJobHandler, Benchmarks",
@@ -139,7 +137,6 @@ public sealed class JobExecutorServiceBenchmarks
     {
         var highPriorityJob = new Job
         {
-            Id = 5,
             Name = "HighPriorityJob",
             Description = "High priority job",
             HandlerType = "MockJobHandler, Benchmarks",
@@ -159,7 +156,6 @@ public sealed class JobExecutorServiceBenchmarks
     {
         var job = new Job
         {
-            Id = 6,
             Name = "MetricsJob",
             Description = "Job with metrics collection",
             HandlerType = "MockJobHandler, Benchmarks",

@@ -144,7 +144,7 @@ public sealed class ConcurrencyManagerTests
 
         // Assert
         var stats = manager.GetConcurrencyStats();
-        stats.GlobalRunningCount.Should().Be(2);
+        stats["GlobalRunning"].Should().Be(2);
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public sealed class ConcurrencyManagerTests
 
         // Assert
         var stats = manager.GetConcurrencyStats();
-        stats.GlobalRunningCount.Should().Be(3);
+        stats["GlobalRunning"].Should().Be(3);
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public sealed class ConcurrencyManagerTests
 
         // Assert
         var stats = manager.GetConcurrencyStats();
-        stats.GlobalRunningCount.Should().Be(1);
+        stats["GlobalRunning"].Should().Be(1);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed class ConcurrencyManagerTests
 
         // Assert
         var stats = manager.GetConcurrencyStats();
-        stats.GlobalRunningCount.Should().BeGreaterThanOrEqualTo(0);
+        stats["GlobalRunning"].Should().BeGreaterThanOrEqualTo(0);
     }
 
     [Fact]
@@ -213,8 +213,8 @@ public sealed class ConcurrencyManagerTests
         var stats = manager.GetConcurrencyStats();
 
         // Assert
-        stats.GlobalRunningCount.Should().Be(3);
-        stats.MaxGlobalConcurrency.Should().Be(20);
+        stats["GlobalRunning"].Should().Be(3);
+        stats["GlobalLimit"].Should().Be(20);
     }
 
     [Fact]
@@ -257,7 +257,7 @@ public sealed class ConcurrencyManagerTests
 
         // Assert
         var stats = manager.GetConcurrencyStats();
-        stats.GlobalRunningCount.Should().Be(10);
+        stats["GlobalRunning"].Should().Be(10);
     }
 
     [Fact]

@@ -79,19 +79,21 @@ public sealed class JobRepository : Repository<Job>, IJobRepository
 
     public async Task<IEnumerable<Job>> GetLongRunningJobsAsync(int thresholdSeconds)
     {
-        return await _dbSet
-            .Where(j => j.Status == JobStatus.Running &&
-                        j.LastExecutedAt.HasValue &&
-                        EF.Functions.DateDiffSecond(j.LastExecutedAt, DateTime.UtcNow) > thresholdSeconds)
-            .OrderByDescending(j => j.LastExecutedAt)
+        var now = DateTime.UtcNow;
+        var candidates = await _dbSet
+            .Where(j => j.Status == JobStatus.Running && j.LastExecutedAt.HasValue)
             .ToListAsync();
+
+        return candidates
+            .Where(j => (now - j.LastExecutedAt!.Value).TotalSeconds > thresholdSeconds)
+            .OrderByDescending(j => j.LastExecutedAt);
     }
 
     public async Task<IEnumerable<Job>> GetJobsWithoutRecentExecutionAsync(int minutesThreshold)
     {
         var threshold = DateTime.UtcNow.AddMinutes(-minutesThreshold);
         return await _dbSet
-            .Where(j => j.IsActive && (j.LastExecutedAt is null || j.LastExecutedAt < threshold))
+            .Where(j => j.IsActive && (!j.LastExecutedAt.HasValue || j.LastExecutedAt < threshold))
             .OrderBy(j => j.LastExecutedAt)
             .ToListAsync();
     }

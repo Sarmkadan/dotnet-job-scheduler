@@ -5,6 +5,7 @@
 // =============================================================================
 
 using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Models;
 using Microsoft.Extensions.Logging;
 
 namespace JobScheduler.Core.Services;
@@ -134,11 +135,11 @@ public sealed class ExecutionStatisticsService
 
             var trend = executions
                 .Where(e => e.StartedAt > cutoff)
-                .GroupBy(e => e.StartedAt?.Date)
+                .GroupBy(e => e.StartedAt.Date)
                 .OrderBy(g => g.Key)
                 .Select(g => new PerformanceTrendPoint
                 {
-                    Date = g.Key ?? DateTime.UtcNow.Date,
+                    Date = g.Key,
                     ExecutionCount = g.Count(),
                     AverageExecutionTimeMs = (long)g.Average(e => e.ExecutionTimeMs),
                     SuccessRate = (double)g.Count(e => e.Status.ToString() == "Completed") / g.Count() * 100,

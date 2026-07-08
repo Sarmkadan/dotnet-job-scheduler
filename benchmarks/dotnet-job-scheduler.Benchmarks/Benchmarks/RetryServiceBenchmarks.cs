@@ -6,6 +6,7 @@
 // ====================================================================
 
 using BenchmarkDotNet.Attributes;
+using JobScheduler.Core.Data.Repositories;
 using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,8 +31,12 @@ public sealed class RetryServiceBenchmarks
     {
         var services = new ServiceCollection();
         services.AddLogging(configure => configure.AddConsole().SetMinimumLevel(LogLevel.Error));
+        services.AddSingleton<IJobRepository>(new MockJobRepository());
+        services.AddSingleton<IExecutionRepository>(new MockExecutionRepository());
+        services.AddSingleton<RetryService>();
 
-        _retryService = new RetryService();
+        var provider = services.BuildServiceProvider();
+        _retryService = provider.GetRequiredService<RetryService>();
     }
 
     [Benchmark]
@@ -101,21 +106,21 @@ public sealed class RetryServiceBenchmarks
     public int CalculateTotalRetryTime_Exponential()
     {
         var totalTime = _retryService!.CalculateTotalRetryTime(5, JobRetryBackoffStrategy.Exponential, baseDelaySeconds: 5);
-        return totalTime.TotalSeconds;
+        return (int)totalTime.TotalSeconds;
     }
 
     [Benchmark]
     public int CalculateTotalRetryTime_Linear()
     {
         var totalTime = _retryService!.CalculateTotalRetryTime(5, JobRetryBackoffStrategy.Linear, baseDelaySeconds: 5);
-        return totalTime.TotalSeconds;
+        return (int)totalTime.TotalSeconds;
     }
 
     [Benchmark]
     public int CalculateTotalRetryTime_Fixed()
     {
         var totalTime = _retryService!.CalculateTotalRetryTime(5, JobRetryBackoffStrategy.Fixed, baseDelaySeconds: 10);
-        return totalTime.TotalSeconds;
+        return (int)totalTime.TotalSeconds;
     }
 
     [Benchmark]

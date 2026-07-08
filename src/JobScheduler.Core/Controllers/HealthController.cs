@@ -117,7 +117,7 @@ public sealed class HealthController : ControllerBase
             }
 
             // Check memory
-            response.Memory.UsageMb = GC.TotalMemory(false) / 1024 / 1024;
+            response.Memory.UsageMb = GC.GetTotalMemory(false) / 1024 / 1024;
             response.Memory.Threshold = 2048; // 2GB
 
             if (response.Memory.UsageMb > response.Memory.Threshold)
@@ -157,7 +157,7 @@ public sealed class HealthController : ControllerBase
             // Memory information
             diagnostics.Memory = new MemoryDiagnostics
             {
-                TotalMemoryMb = GC.TotalMemory(false) / 1024 / 1024,
+                TotalMemoryMb = GC.GetTotalMemory(false) / 1024 / 1024,
                 ManagedHeapSizeMb = GC.GetTotalMemory(false) / 1024 / 1024,
                 Gen0Collections = GC.CollectionCount(0),
                 Gen1Collections = GC.CollectionCount(1),

@@ -184,6 +184,52 @@ public sealed class RetryService
         var failureCount = recentExecutions.Count(e => e.Status == ExecutionStatus.Failed);
         return (double)failureCount / recentExecutions.Count * 100;
     }
+
+    /// <summary>
+    /// Calculates the retry delay for a given attempt number under the given backoff strategy.
+    /// Standalone helper (independent of job/execution state) used by callers that want to
+    /// preview delays without a full <see cref="Job"/>/<see cref="JobExecution"/> pair.
+    /// </summary>
+    public TimeSpan CalculateRetryDelay(int attemptNumber, JobRetryBackoffStrategy strategy, int baseDelaySeconds = 5)
+    {
+        var seconds = strategy switch
+        {
+            JobRetryBackoffStrategy.Exponential => baseDelaySeconds * Math.Pow(2, attemptNumber),
+            JobRetryBackoffStrategy.Linear => baseDelaySeconds * (attemptNumber + 1),
+            JobRetryBackoffStrategy.Fixed => baseDelaySeconds,
+            _ => baseDelaySeconds
+        };
+
+        return TimeSpan.FromSeconds(seconds);
+    }
+
+    /// <summary>
+    /// Determines if another retry attempt is allowed given a simple attempt/limit pair.
+    /// </summary>
+    public bool ShouldRetry(int currentAttempts, int maxRetries)
+    {
+        return currentAttempts < maxRetries;
+    }
+
+    /// <summary>
+    /// Calculates the cumulative delay across all retry attempts for a given backoff strategy.
+    /// </summary>
+    public TimeSpan CalculateTotalRetryTime(int retries, JobRetryBackoffStrategy strategy, int baseDelaySeconds)
+    {
+        var total = TimeSpan.Zero;
+        for (var attempt = 0; attempt < retries; attempt++)
+            total += CalculateRetryDelay(attempt, strategy, baseDelaySeconds);
+
+        return total;
+    }
+
+    /// <summary>
+    /// Formats a human-readable retry message for logging or notifications.
+    /// </summary>
+    public string FormatRetryMessage(int attemptNumber, TimeSpan delay, string serverName)
+    {
+        return $"Retry attempt {attemptNumber} scheduled in {delay.TotalSeconds:F0}s on server '{serverName}'.";
+    }
 }
 
 /// <summary>
@@ -198,4 +244,36 @@ public sealed class RetryStatistics
     public double AverageRetriesPerFailure { get; set; }
     public DateTime? LastFailureTime { get; set; }
     public double RecentFailureRate { get; set; }
+}
+
+/// <summary>
+/// Backoff strategy used when computing standalone retry delays via
+/// <see cref="RetryService.CalculateRetryDelay"/>.
+/// </summary>
+public enum JobRetryBackoffStrategy
+{
+    /// <summary>Delay doubles with each attempt.</summary>
+    Exponential,
+
+    /// <summary>Delay grows linearly with each attempt.</summary>
+    Linear,
+
+    /// <summary>Delay stays constant across attempts.</summary>
+    Fixed
+}
+
+/// <summary>
+/// Describes a retry policy configuration. Used by callers that want to pass
+/// a policy object instead of individual parameters to retry helpers.
+/// </summary>
+public interface IRetryPolicy
+{
+    /// <summary>Maximum number of retry attempts allowed.</summary>
+    int MaxAttempts { get; set; }
+
+    /// <summary>Backoff strategy to apply between attempts.</summary>
+    JobRetryBackoffStrategy BackoffStrategy { get; set; }
+
+    /// <summary>Base delay, in seconds, used by the backoff calculation.</summary>
+    int BaseDelaySeconds { get; set; }
 }

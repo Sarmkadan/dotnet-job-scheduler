@@ -6,6 +6,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using JobScheduler.Core.Constants;
+using JobScheduler.Core.Domain.Entities;
 
 namespace JobScheduler.Core.Domain.Models;
 

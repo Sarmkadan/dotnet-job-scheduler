@@ -13,7 +13,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// Represents a single execution attempt of a job.
 /// Tracks execution lifecycle, timing, and error details.
 /// </summary>
-public sealed class JobExecution
+public class JobExecution
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -43,7 +43,40 @@ public sealed class JobExecution
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Approximate memory usage recorded during this execution, in megabytes.</summary>
+    public long MemoryUsageMb { get; set; }
+
+    /// <summary>Approximate CPU usage recorded during this execution, as a percentage (0-100).</summary>
+    public double CpuUsagePercent { get; set; }
+
     public virtual Job Job { get; set; } = null!;
+
+    /// <summary>
+    /// Alias for <see cref="DurationMilliseconds"/> used by reporting and notification code.
+    /// </summary>
+    public long ExecutionTimeMs
+    {
+        get => DurationMilliseconds;
+        set => DurationMilliseconds = value;
+    }
+
+    /// <summary>
+    /// Alias for <see cref="AttemptNumber"/> used by reporting and notification code.
+    /// </summary>
+    public int RetryAttempt
+    {
+        get => AttemptNumber;
+        set => AttemptNumber = value;
+    }
+
+    /// <summary>
+    /// Alias for <see cref="Output"/> used by export/reporting code.
+    /// </summary>
+    public string? ExecutionOutput
+    {
+        get => Output;
+        set => Output = value;
+    }
 
     /// <summary>
     /// Marks the execution as completed with the given status.

@@ -11,7 +11,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// A record (JobId=A, DependsOnJobId=B) encodes "A must not start until B has completed successfully",
 /// forming one edge of the broader directed acyclic graph (DAG).
 /// </summary>
-public sealed class JobDependency
+public class JobDependency
 {
     /// <summary>Gets or sets the unique identifier of this dependency record.</summary>
     public Guid Id { get; set; } = Guid.NewGuid();

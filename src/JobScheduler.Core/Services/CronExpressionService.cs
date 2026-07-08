@@ -207,8 +207,27 @@ public sealed class CronExpressionService
         try
         {
             var schedule = ParseCronExpression(cronExpression);
-            var previous = schedule.GetPreviousOccurrence(checkTime.AddSeconds(1));
-            var difference = (checkTime - previous).TotalSeconds;
+
+            // NCrontab only exposes forward occurrence lookup, so the previous
+            // occurrence relative to checkTime is found by scanning forward from
+            // a day earlier until the next occurrence would land after checkTime.
+            DateTime? previous = null;
+            var cursor = checkTime.AddDays(-1);
+
+            while (cursor < checkTime)
+            {
+                var next = schedule.GetNextOccurrence(cursor);
+                if (next == DateTime.MaxValue || next > checkTime)
+                    break;
+
+                previous = next;
+                cursor = next;
+            }
+
+            if (previous is null)
+                return false;
+
+            var difference = (checkTime - previous.Value).TotalSeconds;
 
             // Consider it a match if within 60 seconds (accounting for scheduling delays)
             return difference >= 0 && difference < 60;

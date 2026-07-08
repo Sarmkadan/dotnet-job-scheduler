@@ -6,7 +6,9 @@
 // ====================================================================
 
 using BenchmarkDotNet.Attributes;
+using JobScheduler.Core.Constants;
 using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Extensions;
 using JobScheduler.Core.Utilities;
 
 namespace JobScheduler.Benchmarks;
@@ -56,16 +58,16 @@ public sealed class JobManagementBenchmarks
     public string MaskHandlerType() => ComplexHandler.Mask(4);
 
     [Benchmark]
-    public JobPriority ParseJobPriority_High() => ParseUtility.ParsePriority("high");
+    public JobPriority ParseJobPriority_High() => (JobPriority)ParseUtility.ParsePriority("high");
 
     [Benchmark]
-    public JobPriority ParseJobPriority_Normal() => ParseUtility.ParsePriority("normal");
+    public JobPriority ParseJobPriority_Normal() => (JobPriority)ParseUtility.ParsePriority("normal");
 
     [Benchmark]
-    public JobPriority ParseJobPriority_Low() => ParseUtility.ParsePriority("low");
+    public JobPriority ParseJobPriority_Low() => (JobPriority)ParseUtility.ParsePriority("low");
 
     [Benchmark]
-    public JobPriority ParseJobPriority_Default() => ParseUtility.ParsePriority(null);
+    public JobPriority ParseJobPriority_Default() => (JobPriority)ParseUtility.ParsePriority(null);
 
     [Benchmark]
     public string CreateJobIdentifier() => $"job-{Guid.NewGuid().ToString()[..8]}";

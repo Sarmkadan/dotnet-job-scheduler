@@ -76,7 +76,7 @@ public sealed class DatabaseLeaderElectionServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task TryAcquireLeadershipAsync_SecondNode_CannotBecome LeaderWhileFirstHolds()
+    public async Task TryAcquireLeadershipAsync_SecondNode_CannotBecomeLeaderWhileFirstHolds()
     {
         // Arrange
         var service1 = CreateService("node-1");
@@ -224,7 +224,7 @@ public sealed class DatabaseLeaderElectionServiceTests : IAsyncLifetime
 
         lockRow.Should().NotBeNull();
         lockRow!.LeaderInstanceId.Should().Be("persistent-node");
-        lockRow.LeaseExpiresAt.Should().BeInTheFuture();
+        lockRow.LeaseExpiresAt.Should().BeAfter(DateTime.UtcNow);
     }
 
     [Fact]
