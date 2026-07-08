@@ -7,6 +7,8 @@
 
 using BenchmarkDotNet.Attributes;
 using JobScheduler.Core.Services;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace JobScheduler.Benchmarks;
 
@@ -24,16 +26,22 @@ public sealed class CacheServiceBenchmarks
     private CacheService? _cacheService;
 
     [GlobalSetup]
-    public void Setup() => _cacheService = new CacheService();
+    public void Setup()
+    {
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var logger = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Error))
+            .CreateLogger<CacheService>();
+        _cacheService = new CacheService(memoryCache, logger);
+    }
 
     /// <summary>Cache miss followed by cache hit for same key.</summary>
     [Benchmark]
-    public object GetOrAdd_CacheMissThenHit()
+    public async Task<string?> GetOrAdd_CacheMissThenHit()
     {
         const string key = "test-cron-expression-0 9 * * *";
-        var value = _cacheService!.GetOrAdd(key, k => k, TimeSpan.FromHours(1));
+        var value = await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>(key), TimeSpan.FromHours(1));
         // Second access should hit cache
-        var cachedValue = _cacheService.GetOrAdd(key, k => "different-value", TimeSpan.FromHours(1));
+        var cachedValue = await _cacheService.GetOrSetAsync(key, () => Task.FromResult<string?>("different-value"), TimeSpan.FromHours(1));
         return cachedValue;
     }
 
@@ -42,9 +50,9 @@ public sealed class CacheServiceBenchmarks
     public async Task GetOrAdd_WithExpiration()
     {
         const string key = "expiring-key";
-        var value = _cacheService!.GetOrAdd(key, k => "value", TimeSpan.FromMilliseconds(10));
+        var value = await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromMilliseconds(10));
         await Task.Delay(20); // Wait for expiration
-        var expiredValue = _cacheService.GetOrAdd(key, k => "new-value", TimeSpan.FromHours(1));
+        var expiredValue = await _cacheService.GetOrSetAsync(key, () => Task.FromResult<string?>("new-value"), TimeSpan.FromHours(1));
         _ = expiredValue;
     }
 
@@ -55,53 +63,54 @@ public sealed class CacheServiceBenchmarks
         Parallel.For(0, 100, i =>
         {
             var key = $"concurrent-key-{i}";
-            _ = _cacheService!.GetOrAdd(key, k => "value", TimeSpan.FromHours(1));
+            _ = _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1))
+                .GetAwaiter().GetResult();
         });
     }
 
     /// <summary>Cache eviction by size limit.</summary>
     [Benchmark]
-    public void GetOrAdd_SizeLimitEviction()
+    public async Task GetOrAdd_SizeLimitEviction()
     {
         // Fill cache beyond default limit of 1000 items
         for (int i = 0; i < 1500; i++)
         {
             var key = $"size-test-{i}";
-            _ = _cacheService!.GetOrAdd(key, k => "value", TimeSpan.FromHours(1));
+            _ = await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
         }
     }
 
     /// <summary>Cache hit vs miss performance comparison.</summary>
     [Benchmark(Baseline = true)]
-    public object GetOrAdd_CacheHit()
+    public async Task<string?> GetOrAdd_CacheHit()
     {
         const string key = "hot-cache-key";
         // Prime the cache
-        _ = _cacheService!.GetOrAdd(key, k => "value", TimeSpan.FromHours(1));
+        _ = await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
         // Access from cache
-        return _cacheService.GetOrAdd(key, k => "different-value", TimeSpan.FromHours(1));
+        return await _cacheService.GetOrSetAsync(key, () => Task.FromResult<string?>("different-value"), TimeSpan.FromHours(1));
     }
 
     /// <summary>Cache removal operations.</summary>
     [Benchmark]
-    public void Remove()
+    public async Task Remove()
     {
         const string key = "removable-key";
-        _cacheService!.GetOrAdd(key, k => "value", TimeSpan.FromHours(1));
-        _cacheService.Remove(key);
-        _ = _cacheService.GetOrAdd(key, k => "new-value", TimeSpan.FromHours(1));
+        await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
+        await _cacheService.RemoveAsync(key);
+        _ = await _cacheService.GetOrSetAsync(key, () => Task.FromResult<string?>("new-value"), TimeSpan.FromHours(1));
     }
 
     /// <summary>Clear entire cache.</summary>
     [Benchmark]
-    public void Clear()
+    public async Task Clear()
     {
         // Add some items
         for (int i = 0; i < 100; i++)
         {
             var key = $"clear-test-{i}";
-            _ = _cacheService!.GetOrAdd(key, k => "value", TimeSpan.FromHours(1));
+            _ = await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
         }
-        _cacheService.Clear();
+        await _cacheService.ClearAllAsync();
     }
 }

@@ -28,4 +28,10 @@ public interface IExecutionRepository : IRepository<JobExecution>
     Task<IEnumerable<JobExecution>> GetFailedExecutionsRequiringRetryAsync();
     Task<IEnumerable<JobExecution>> GetExecutionsByDateRangeAsync(DateTime startDate, DateTime endDate);
     Task<long> GetAverageExecutionTimeAsync(Guid jobId, int? lastN = null);
+
+    /// <summary>
+    /// Returns all executions for a job as a materialized list, newest first.
+    /// Used by reporting/statistics code that needs list-style access (e.g. Count).
+    /// </summary>
+    Task<List<JobExecution>> GetByJobIdAsync(Guid jobId);
 }

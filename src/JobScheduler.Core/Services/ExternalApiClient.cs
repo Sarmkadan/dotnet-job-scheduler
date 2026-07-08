@@ -248,7 +248,7 @@ public sealed class ExternalApiClient
     }
 }
 
-public sealed class ApiResponse<T> where T : class
+public sealed class ApiResponse<T>
 {
     public T? Data { get; }
     public bool Success { get; }

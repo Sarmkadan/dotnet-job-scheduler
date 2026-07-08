@@ -140,7 +140,7 @@ public static class CollectionExtensions
     /// Safely casts collection without throwing on type mismatch.
     /// Returns empty collection if cast fails.
     /// </summary>
-    public static IEnumerable<TResult> SafeCast<TResult>(this IEnumerable source) where TResult : class
+    public static IEnumerable<TResult> SafeCast<TResult>(this System.Collections.IEnumerable source) where TResult : class
     {
         foreach (var item in source)
         {

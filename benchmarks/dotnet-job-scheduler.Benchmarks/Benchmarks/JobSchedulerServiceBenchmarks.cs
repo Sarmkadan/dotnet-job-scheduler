@@ -5,8 +5,12 @@
 // CTO & Software Architect
 // ====================================================================
 
+using System.Linq.Expressions;
 using BenchmarkDotNet.Attributes;
+using JobScheduler.Core.Constants;
+using JobScheduler.Core.Data.Repositories;
 using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Exceptions;
 using JobScheduler.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -221,81 +225,147 @@ public sealed class JobSchedulerServiceBenchmarks
 internal sealed class MockJobRepository : IJobRepository
 {
     private readonly List<Job> _jobs = new();
-    private int _nextId = 1;
 
-    public Task<Job?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public Task<Job?> GetByIdAsync(Guid id)
     {
         var job = _jobs.FirstOrDefault(j => j.Id == id);
         return Task.FromResult(job);
     }
 
-    public Task<Job?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Job>> GetAllAsync()
+    {
+        return Task.FromResult<IEnumerable<Job>>(_jobs.ToList());
+    }
+
+    public Task<IEnumerable<Job>> FindAsync(Expression<Func<Job, bool>> predicate)
+    {
+        return Task.FromResult(_jobs.AsQueryable().Where(predicate).AsEnumerable());
+    }
+
+    public Task<Job?> FirstOrDefaultAsync(Expression<Func<Job, bool>> predicate)
+    {
+        return Task.FromResult(_jobs.AsQueryable().FirstOrDefault(predicate));
+    }
+
+    public Task<int> CountAsync(Expression<Func<Job, bool>>? predicate = null)
+    {
+        var count = predicate is null ? _jobs.Count : _jobs.AsQueryable().Count(predicate);
+        return Task.FromResult(count);
+    }
+
+    public Task AddAsync(Job entity)
+    {
+        if (entity.Id == Guid.Empty)
+            entity.Id = Guid.NewGuid();
+        entity.CreatedAt = DateTime.UtcNow;
+        _jobs.Add(entity);
+        return Task.CompletedTask;
+    }
+
+    public Task AddRangeAsync(IEnumerable<Job> entities)
+    {
+        foreach (var entity in entities)
+        {
+            if (entity.Id == Guid.Empty)
+                entity.Id = Guid.NewGuid();
+            entity.CreatedAt = DateTime.UtcNow;
+            _jobs.Add(entity);
+        }
+        return Task.CompletedTask;
+    }
+
+    public void Update(Job entity)
+    {
+        var existing = _jobs.FirstOrDefault(j => j.Id == entity.Id);
+        if (existing is not null)
+        {
+            var index = _jobs.IndexOf(existing);
+            _jobs[index] = entity;
+        }
+    }
+
+    public void UpdateRange(IEnumerable<Job> entities)
+    {
+        foreach (var entity in entities)
+            Update(entity);
+    }
+
+    public void Remove(Job entity)
+    {
+        _jobs.RemoveAll(j => j.Id == entity.Id);
+    }
+
+    public void RemoveRange(IEnumerable<Job> entities)
+    {
+        foreach (var entity in entities)
+            Remove(entity);
+    }
+
+    public Task<bool> AnyAsync(Expression<Func<Job, bool>> predicate)
+    {
+        return Task.FromResult(_jobs.AsQueryable().Any(predicate));
+    }
+
+    public Task SaveChangesAsync() => Task.CompletedTask;
+
+    public Task<Job?> GetByNameAsync(string name)
     {
         var job = _jobs.FirstOrDefault(j => j.Name == name);
         return Task.FromResult(job);
     }
 
-    public Task<List<Job>> GetActiveJobsAsync(CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Job>> GetActiveJobsAsync()
     {
-        var activeJobs = _jobs.Where(j => j.IsActive && j.Status == JobStatus.Scheduled).ToList();
-        return Task.FromResult(activeJobs);
+        return Task.FromResult<IEnumerable<Job>>(_jobs.Where(j => j.IsActive).ToList());
     }
 
-    public Task<List<Job>> GetScheduledJobsForExecutionAsync(CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Job>> GetJobsByStatusAsync(JobStatus status)
+    {
+        return Task.FromResult<IEnumerable<Job>>(_jobs.Where(j => j.Status == status).ToList());
+    }
+
+    public Task<IEnumerable<Job>> GetJobsByPriorityAsync(JobPriority priority)
+    {
+        return Task.FromResult<IEnumerable<Job>>(_jobs.Where(j => j.Priority == priority).ToList());
+    }
+
+    public Task<IEnumerable<Job>> GetScheduledJobsForExecutionAsync()
     {
         var now = DateTime.UtcNow;
         var dueJobs = _jobs
             .Where(j => j.IsActive && j.Status == JobStatus.Scheduled && j.NextExecutionAt <= now)
             .ToList();
-        return Task.FromResult(dueJobs);
+        return Task.FromResult<IEnumerable<Job>>(dueJobs);
     }
 
-    public Task<Job> AddAsync(Job entity, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Job>> GetFailedJobsAsync()
     {
-        entity.Id = _nextId++;
-        entity.CreatedAt = DateTime.UtcNow;
-        _jobs.Add(entity);
-        return Task.FromResult(entity);
+        return Task.FromResult<IEnumerable<Job>>(
+            _jobs.Where(j => j.Status == JobStatus.Failed || j.Status == JobStatus.FailedPermanently).ToList());
     }
 
-    public Task UpdateAsync(Job entity, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Job>> GetLongRunningJobsAsync(int thresholdSeconds)
     {
-        var existing = _jobs.FirstOrDefault(j => j.Id == entity.Id);
-        if (existing != null)
-        {
-            existing.Name = entity.Name;
-            existing.Description = entity.Description;
-            existing.CronExpression = entity.CronExpression;
-            existing.HandlerType = entity.HandlerType;
-            existing.Status = entity.Status;
-            existing.Priority = entity.Priority;
-            existing.IsActive = entity.IsActive;
-            existing.MaxRetries = entity.MaxRetries;
-            existing.RetryBackoffSeconds = entity.RetryBackoffSeconds;
-            existing.ExecutionTimeoutSeconds = entity.ExecutionTimeoutSeconds;
-            existing.ModifiedAt = DateTime.UtcNow;
-        }
-        return Task.CompletedTask;
+        var now = DateTime.UtcNow;
+        var longRunning = _jobs
+            .Where(j => j.Status == JobStatus.Running && j.LastExecutedAt.HasValue &&
+                        (now - j.LastExecutedAt.Value).TotalSeconds > thresholdSeconds)
+            .ToList();
+        return Task.FromResult<IEnumerable<Job>>(longRunning);
     }
 
-    public Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<Job>> GetJobsWithoutRecentExecutionAsync(int minutesThreshold)
     {
-        var job = _jobs.FirstOrDefault(j => j.Id == id);
-        if (job != null)
-        {
-            _jobs.Remove(job);
-        }
-        return Task.CompletedTask;
+        var threshold = DateTime.UtcNow.AddMinutes(-minutesThreshold);
+        var jobs = _jobs
+            .Where(j => j.IsActive && (!j.LastExecutedAt.HasValue || j.LastExecutedAt < threshold))
+            .ToList();
+        return Task.FromResult<IEnumerable<Job>>(jobs);
     }
 
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public Task<JobQueryResult> QueryAsync(JobQuery query)
     {
-        return Task.FromResult(1);
-    }
-
-    public Task<JobQueryResult> QueryAsync(JobQuery query, CancellationToken cancellationToken = default)
-    {
-        var results = _jobs.AsQueryable();
+        var results = _jobs.AsEnumerable();
 
         if (!string.IsNullOrEmpty(query.Name))
             results = results.Where(j => j.Name.Contains(query.Name));
@@ -309,90 +379,223 @@ internal sealed class MockJobRepository : IJobRepository
         if (query.IsActive.HasValue)
             results = results.Where(j => j.IsActive == query.IsActive.Value);
 
-        var items = results
+        var materialized = results.ToList();
+        var items = materialized
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .ToList();
 
-        var total = results.Count();
-        return Task.FromResult(new JobQueryResult(items, total));
+        return Task.FromResult(new JobQueryResult(items, materialized.Count));
     }
 }
 
 internal sealed class MockExecutionRepository : IExecutionRepository
 {
     private readonly List<JobExecution> _executions = new();
-    private int _nextId = 1;
 
-    public Task<JobExecution?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public Task<JobExecution?> GetByIdAsync(Guid id)
     {
         var execution = _executions.FirstOrDefault(e => e.Id == id);
         return Task.FromResult(execution);
     }
 
-    public Task<List<JobExecution>> GetByJobIdAsync(int jobId, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<JobExecution>> GetAllAsync()
     {
-        var executions = _executions.Where(e => e.JobId == jobId).ToList();
-        return Task.FromResult(executions);
+        return Task.FromResult<IEnumerable<JobExecution>>(_executions.ToList());
     }
 
-    public Task<JobExecution> AddAsync(JobExecution entity, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<JobExecution>> FindAsync(Expression<Func<JobExecution, bool>> predicate)
     {
-        entity.Id = _nextId++;
-        entity.ExecutedAt = DateTime.UtcNow;
+        return Task.FromResult(_executions.AsQueryable().Where(predicate).AsEnumerable());
+    }
+
+    public Task<JobExecution?> FirstOrDefaultAsync(Expression<Func<JobExecution, bool>> predicate)
+    {
+        return Task.FromResult(_executions.AsQueryable().FirstOrDefault(predicate));
+    }
+
+    public Task<int> CountAsync(Expression<Func<JobExecution, bool>>? predicate = null)
+    {
+        var count = predicate is null ? _executions.Count : _executions.AsQueryable().Count(predicate);
+        return Task.FromResult(count);
+    }
+
+    public Task AddAsync(JobExecution entity)
+    {
+        if (entity.Id == Guid.Empty)
+            entity.Id = Guid.NewGuid();
         _executions.Add(entity);
-        return Task.FromResult(entity);
+        return Task.CompletedTask;
     }
 
-    public Task UpdateAsync(JobExecution entity, CancellationToken cancellationToken = default)
+    public Task AddRangeAsync(IEnumerable<JobExecution> entities)
     {
-        var existing = _executions.FirstOrDefault(e => e.Id == entity.Id);
-        if (existing != null)
+        foreach (var entity in entities)
         {
-            existing.Status = entity.Status;
-            existing.CompletedAt = entity.CompletedAt;
-            existing.Duration = entity.Duration;
-            existing.Result = entity.Result;
-            existing.ErrorMessage = entity.ErrorMessage;
-            existing.RetryAttempt = entity.RetryAttempt;
-            existing.ServerName = entity.ServerName;
-            existing.MemoryUsageMb = entity.MemoryUsageMb;
-            existing.CpuUsagePercent = entity.CpuUsagePercent;
+            if (entity.Id == Guid.Empty)
+                entity.Id = Guid.NewGuid();
+            _executions.Add(entity);
         }
         return Task.CompletedTask;
     }
 
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public void Update(JobExecution entity)
     {
-        return Task.FromResult(1);
+        var existing = _executions.FirstOrDefault(e => e.Id == entity.Id);
+        if (existing is not null)
+        {
+            var index = _executions.IndexOf(existing);
+            _executions[index] = entity;
+        }
     }
 
-    public Task<ExecutionMetrics> GetMetricsAsync(int? jobId, DateTime? startDate, DateTime? endDate, CancellationToken cancellationToken = default)
+    public void UpdateRange(IEnumerable<JobExecution> entities)
     {
-        var filtered = _executions.AsQueryable();
+        foreach (var entity in entities)
+            Update(entity);
+    }
+
+    public void Remove(JobExecution entity)
+    {
+        _executions.RemoveAll(e => e.Id == entity.Id);
+    }
+
+    public void RemoveRange(IEnumerable<JobExecution> entities)
+    {
+        foreach (var entity in entities)
+            Remove(entity);
+    }
+
+    public Task<bool> AnyAsync(Expression<Func<JobExecution, bool>> predicate)
+    {
+        return Task.FromResult(_executions.AsQueryable().Any(predicate));
+    }
+
+    public Task SaveChangesAsync() => Task.CompletedTask;
+
+    public Task<JobExecution?> GetLatestExecutionAsync(Guid jobId)
+    {
+        var execution = _executions
+            .Where(e => e.JobId == jobId)
+            .OrderByDescending(e => e.StartedAt)
+            .FirstOrDefault();
+        return Task.FromResult(execution);
+    }
+
+    public Task<IEnumerable<JobExecution>> GetExecutionsByJobAsync(Guid jobId)
+    {
+        return Task.FromResult<IEnumerable<JobExecution>>(
+            _executions.Where(e => e.JobId == jobId).OrderByDescending(e => e.StartedAt).ToList());
+    }
+
+    public Task<IEnumerable<JobExecution>> GetExecutionsByStatusAsync(ExecutionStatus status)
+    {
+        return Task.FromResult<IEnumerable<JobExecution>>(_executions.Where(e => e.Status == status).ToList());
+    }
+
+    public Task<IEnumerable<JobExecution>> GetExecutionsByJobAndStatusAsync(Guid jobId, ExecutionStatus status)
+    {
+        return Task.FromResult<IEnumerable<JobExecution>>(
+            _executions.Where(e => e.JobId == jobId && e.Status == status).ToList());
+    }
+
+    public Task<int> GetCurrentlyRunningCountAsync(Guid jobId)
+    {
+        return Task.FromResult(_executions.Count(e => e.JobId == jobId && e.Status == ExecutionStatus.Running));
+    }
+
+    public Task<int> GetConcurrentRunningCountAsync()
+    {
+        return Task.FromResult(_executions.Count(e => e.Status == ExecutionStatus.Running));
+    }
+
+    public Task<IEnumerable<JobExecution>> GetRunningExecutionsAsync()
+    {
+        return Task.FromResult<IEnumerable<JobExecution>>(
+            _executions.Where(e => e.Status == ExecutionStatus.Running).ToList());
+    }
+
+    public Task<IEnumerable<JobExecution>> GetFailedExecutionsRequiringRetryAsync()
+    {
+        return Task.FromResult<IEnumerable<JobExecution>>(
+            _executions.Where(e => e.Status == ExecutionStatus.Failed && e.IsRetryable).ToList());
+    }
+
+    public Task<IEnumerable<JobExecution>> GetExecutionsByDateRangeAsync(DateTime startDate, DateTime endDate)
+    {
+        return Task.FromResult<IEnumerable<JobExecution>>(
+            _executions.Where(e => e.StartedAt >= startDate && e.StartedAt <= endDate).ToList());
+    }
+
+    public Task<long> GetAverageExecutionTimeAsync(Guid jobId, int? lastN = null)
+    {
+        IEnumerable<JobExecution> query = _executions.Where(e => e.JobId == jobId && e.Status == ExecutionStatus.Success);
+        if (lastN.HasValue)
+            query = query.OrderByDescending(e => e.StartedAt).Take(lastN.Value);
+
+        var list = query.ToList();
+        var average = list.Count > 0 ? (long)list.Average(e => e.DurationMilliseconds) : 0;
+        return Task.FromResult(average);
+    }
+
+    public Task<List<JobExecution>> GetByJobIdAsync(Guid jobId)
+    {
+        return Task.FromResult(_executions.Where(e => e.JobId == jobId).ToList());
+    }
+
+    public Task<ExecutionMetrics> GetMetricsAsync(Guid? jobId, DateTime? startDate, DateTime? endDate)
+    {
+        var filtered = _executions.AsEnumerable();
 
         if (jobId.HasValue)
             filtered = filtered.Where(e => e.JobId == jobId.Value);
 
         if (startDate.HasValue)
-            filtered = filtered.Where(e => e.ExecutedAt >= startDate.Value);
+            filtered = filtered.Where(e => e.StartedAt >= startDate.Value);
 
         if (endDate.HasValue)
-            filtered = filtered.Where(e => e.ExecutedAt <= endDate.Value);
+            filtered = filtered.Where(e => e.StartedAt <= endDate.Value);
 
         var executions = filtered.ToList();
-        var successful = executions.Count(e => e.Status == ExecutionStatus.Completed);
+        var successful = executions.Count(e => e.Status == ExecutionStatus.Success);
         var failed = executions.Count(e => e.Status == ExecutionStatus.Failed);
-        var totalDuration = executions.Where(e => e.Duration.HasValue).Sum(e => e.Duration!.Value.TotalMilliseconds);
 
         return Task.FromResult(new ExecutionMetrics
         {
             TotalExecutions = executions.Count,
-            SuccessfulCount = successful,
-            FailedCount = failed,
-            AverageDurationMs = executions.Count > 0 ? totalDuration / executions.Count : 0,
-            MaxDurationMs = executions.Count > 0 ? (int)executions.Max(e => e.Duration?.TotalMilliseconds ?? 0) : 0,
-            MinDurationMs = executions.Count > 0 ? (int)executions.Min(e => e.Duration?.TotalMilliseconds ?? 0) : 0
+            SuccessfulExecutions = successful,
+            FailedExecutions = failed,
+            AverageDurationMs = executions.Count > 0 ? (long)executions.Average(e => e.DurationMilliseconds) : 0,
+            MaxDurationMs = executions.Count > 0 ? executions.Max(e => e.DurationMilliseconds) : 0,
+            MinDurationMs = executions.Count > 0 ? executions.Min(e => e.DurationMilliseconds) : 0
         });
+    }
+}
+
+/// <summary>
+/// Minimal in-memory query filter used by benchmark mock repositories.
+/// </summary>
+internal sealed class JobQuery
+{
+    public string? Name { get; set; }
+    public JobStatus? Status { get; set; }
+    public JobPriority? Priority { get; set; }
+    public bool? IsActive { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+}
+
+/// <summary>
+/// Paged result returned by <see cref="MockJobRepository.QueryAsync"/>.
+/// </summary>
+internal sealed class JobQueryResult
+{
+    public List<Job> Items { get; }
+    public int TotalCount { get; }
+
+    public JobQueryResult(List<Job> items, int totalCount)
+    {
+        Items = items;
+        TotalCount = totalCount;
     }
 }

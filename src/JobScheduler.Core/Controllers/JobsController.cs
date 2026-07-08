@@ -6,6 +6,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using JobScheduler.Core.Constants;
 using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Domain.Models;
 using JobScheduler.Core.Services;
@@ -49,10 +50,10 @@ public sealed class JobsController : ControllerBase
                 HandlerType = request.HandlerType,
                 HandlerParameters = request.HandlerParameters,
                 Priority = request.Priority,
-                MaxRetries = request.MaxRetries ?? 3,
-                RetryBackoffSeconds = request.RetryBackoffSeconds ?? 5,
-                ExecutionTimeoutSeconds = request.ExecutionTimeoutSeconds ?? 300,
-                MaxConcurrentExecutions = request.MaxConcurrentExecutions ?? 1
+                MaxRetries = request.MaxRetries,
+                RetryBackoffSeconds = request.RetryBackoffSeconds,
+                ExecutionTimeoutSeconds = request.ExecutionTimeoutSeconds,
+                MaxConcurrentExecutions = request.MaxConcurrentExecutions
             };
 
             var createdJob = await _schedulerService.CreateJobAsync(job, User?.Identity?.Name);

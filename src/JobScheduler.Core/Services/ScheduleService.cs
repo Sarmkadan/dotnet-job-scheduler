@@ -49,11 +49,8 @@ public sealed class ScheduleService
             for (int i = 0; i < count; i++)
             {
                 var next = _cronService.GetNextExecutionTime(job.CronExpression, current);
-                if (next is null)
-                    break;
-
-                upcomingTimes.Add(next.Value);
-                current = next.Value.AddSeconds(1);
+                upcomingTimes.Add(next);
+                current = next.AddSeconds(1);
             }
 
             return upcomingTimes;
@@ -80,11 +77,11 @@ public sealed class ScheduleService
             while (current < end)
             {
                 var next = _cronService.GetNextExecutionTime(cronExpression, current);
-                if (next is null || next >= end)
+                if (next >= end)
                     break;
 
-                times.Add(next.Value);
-                current = next.Value.AddSeconds(1);
+                times.Add(next);
+                current = next.AddSeconds(1);
             }
 
             return times.Count;
@@ -105,7 +102,7 @@ public sealed class ScheduleService
         {
             // This would use a library like CronExpressionDescriptor
             // For now, return a basic description
-            return _cronService.DescribeCronExpression(cronExpression) ?? "Custom schedule";
+            return _cronService.GetCronDescription(cronExpression) ?? "Custom schedule";
         }
         catch (Exception ex)
         {

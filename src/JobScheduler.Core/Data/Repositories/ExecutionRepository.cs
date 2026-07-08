@@ -109,4 +109,12 @@ public sealed class ExecutionRepository : Repository<JobExecution>, IExecutionRe
 
         return (long)executions.Average(e => e.DurationMilliseconds);
     }
+
+    public async Task<List<JobExecution>> GetByJobIdAsync(Guid jobId)
+    {
+        return await _dbSet
+            .Where(e => e.JobId == jobId)
+            .OrderByDescending(e => e.StartedAt)
+            .ToListAsync();
+    }
 }

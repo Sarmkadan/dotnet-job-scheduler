@@ -223,7 +223,7 @@ public sealed class DashboardController : ControllerBase
             {
                 Timestamp = DateTime.UtcNow,
                 DatabaseConnected = await _schedulerService.IsDatabaseConnectedAsync(),
-                MemoryUsageMb = GC.TotalMemory(false) / 1024 / 1024,
+                MemoryUsageMb = GC.GetTotalMemory(false) / 1024 / 1024,
                 ProcessorUtilization = _performanceMonitor.GetCpuUtilization(),
                 Warnings = await GenerateSystemWarnings(),
                 IsHealthy = true

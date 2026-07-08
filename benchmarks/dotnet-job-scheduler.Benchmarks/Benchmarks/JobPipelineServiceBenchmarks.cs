@@ -6,7 +6,10 @@
 // ====================================================================
 
 using BenchmarkDotNet.Attributes;
+using JobScheduler.Core.Constants;
+using JobScheduler.Core.Data.Repositories;
 using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Domain.Models;
 using JobScheduler.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -26,6 +29,7 @@ public sealed class JobPipelineServiceBenchmarks
     private IServiceProvider? _serviceProvider;
     private JobPipelineService? _pipelineService;
     private MockJobRepository? _jobRepository;
+    private List<Guid> _testJobIds = new();
 
     [GlobalSetup]
     public void Setup()
@@ -37,15 +41,16 @@ public sealed class JobPipelineServiceBenchmarks
         _jobRepository = new MockJobRepository();
         services.AddSingleton<IJobRepository>(_jobRepository);
         services.AddSingleton<IExecutionRepository>(new MockExecutionRepository());
-        services.AddSingleton<JobDependencyService>();
+        services.AddSingleton<IJobDependencyService, MockJobDependencyService>();
 
         _serviceProvider = services.BuildServiceProvider();
         _pipelineService = _serviceProvider.GetRequiredService<JobPipelineService>();
 
         // Create test jobs for pipelines
+        _testJobIds = new List<Guid>();
         for (int i = 0; i < 20; i++)
         {
-            _jobRepository.AddAsync(new Job
+            var job = new Job
             {
                 Name = $"PipelineJob{i:D2}",
                 Description = $"Job for pipeline {i}",
@@ -55,7 +60,10 @@ public sealed class JobPipelineServiceBenchmarks
                 MaxRetries = 3,
                 ExecutionTimeoutSeconds = 300,
                 IsActive = true
-            }).GetAwaiter().GetResult();
+            };
+
+            _jobRepository.AddAsync(job).GetAwaiter().GetResult();
+            _testJobIds.Add(job.Id);
         }
         _jobRepository.SaveChangesAsync().GetAwaiter().GetResult();
     }
@@ -69,9 +77,9 @@ public sealed class JobPipelineServiceBenchmarks
             Description = "ETL pipeline with 3 steps",
             Steps = new List<PipelineStepRequest>
             {
-                new() { JobId = 1, StopOnFailure = true },
-                new() { JobId = 2, StopOnFailure = true },
-                new() { JobId = 3, StopOnFailure = false }
+                new() { JobId = _testJobIds[0], StopOnFailure = true },
+                new() { JobId = _testJobIds[1], StopOnFailure = true },
+                new() { JobId = _testJobIds[2], StopOnFailure = false }
             }
         }, "test-user");
 
@@ -82,9 +90,9 @@ public sealed class JobPipelineServiceBenchmarks
     public async Task CreatePipeline_10Steps()
     {
         var steps = new List<PipelineStepRequest>();
-        for (int i = 1; i <= 10; i++)
+        for (int i = 0; i < 10; i++)
         {
-            steps.Add(new PipelineStepRequest { JobId = i, StopOnFailure = true });
+            steps.Add(new PipelineStepRequest { JobId = _testJobIds[i], StopOnFailure = true });
         }
 
         var pipeline = await _pipelineService!.CreatePipelineAsync(new CreatePipelineRequest
@@ -107,14 +115,14 @@ public sealed class JobPipelineServiceBenchmarks
             Description = "Pipeline for status testing",
             Steps = new List<PipelineStepRequest>
             {
-                new() { JobId = 1, StopOnFailure = true },
-                new() { JobId = 2, StopOnFailure = true },
-                new() { JobId = 3, StopOnFailure = false }
+                new() { JobId = _testJobIds[0], StopOnFailure = true },
+                new() { JobId = _testJobIds[1], StopOnFailure = true },
+                new() { JobId = _testJobIds[2], StopOnFailure = false }
             }
         }, "test-user");
 
         var status = await _pipelineService!.GetPipelineStatusAsync(pipeline.Id);
-        _ = status.StepStatuses.Count;
+        _ = status?.StepStatuses.Count;
     }
 
     [Benchmark]
@@ -127,7 +135,7 @@ public sealed class JobPipelineServiceBenchmarks
     [Benchmark]
     public async Task GetPipelineById()
     {
-        var pipeline = await _pipelineService!.GetPipelineByIdAsync(1);
+        var pipeline = await _pipelineService!.GetPipelineAsync(_testJobIds[0]);
         _ = pipeline?.Id;
     }
 
@@ -139,7 +147,11 @@ public sealed class JobPipelineServiceBenchmarks
         {
             Name = "Delete-Pipeline",
             Description = "Pipeline to delete",
-            Steps = new List<PipelineStepRequest> { new() { JobId = 1, StopOnFailure = true } }
+            Steps = new List<PipelineStepRequest>
+            {
+                new() { JobId = _testJobIds[0], StopOnFailure = true },
+                new() { JobId = _testJobIds[1], StopOnFailure = true }
+            }
         }, "test-user");
 
         await _pipelineService!.DeletePipelineAsync(pipeline.Id);
@@ -155,12 +167,13 @@ public sealed class JobPipelineServiceBenchmarks
             Description = "Pipeline for ready check",
             Steps = new List<PipelineStepRequest>
             {
-                new() { JobId = 1, StopOnFailure = true },
-                new() { JobId = 2, StopOnFailure = true }
+                new() { JobId = _testJobIds[0], StopOnFailure = true },
+                new() { JobId = _testJobIds[1], StopOnFailure = true }
             }
         }, "test-user");
 
-        var isReady = await _pipelineService!.IsPipelineReadyAsync(pipeline.Id);
+        var status = await _pipelineService!.GetPipelineStatusAsync(pipeline.Id);
+        var isReady = status?.StepStatuses.Any(s => s.IsReady) ?? false;
         _ = isReady;
     }
 }
@@ -170,36 +183,44 @@ public sealed class JobPipelineServiceBenchmarks
 /// </summary>
 internal sealed class MockJobDependencyService : IJobDependencyService
 {
-    private readonly Dictionary<int, List<int>> _dependencies = new();
+    private readonly Dictionary<Guid, List<Guid>> _dependencies = new();
 
-    public Task AddDependencyAsync(int dependentJobId, int prerequisiteJobId, CancellationToken cancellationToken = default)
+    public Task AddDependencyAsync(Guid jobId, Guid dependsOnJobId, string? createdBy = null,
+        CancellationToken cancellationToken = default)
     {
-        if (!_dependencies.ContainsKey(dependentJobId))
+        if (!_dependencies.TryGetValue(jobId, out var list))
         {
-            _dependencies[dependentJobId] = new List<int>();
+            list = new List<Guid>();
+            _dependencies[jobId] = list;
         }
-        _dependencies[dependentJobId].Add(prerequisiteJobId);
+        list.Add(dependsOnJobId);
         return Task.CompletedTask;
     }
 
-    public Task<List<int>> GetPrerequisitesAsync(int jobId, CancellationToken cancellationToken = default)
+    public Task RemoveDependencyAsync(Guid jobId, Guid dependsOnJobId, CancellationToken cancellationToken = default)
     {
-        if (_dependencies.TryGetValue(jobId, out var prerequisites))
-        {
-            return Task.FromResult(prerequisites);
-        }
-        return Task.FromResult(new List<int>());
-    }
-
-    public Task<bool> HasPrerequisitesAsync(int jobId, CancellationToken cancellationToken = default)
-    {
-        var hasDeps = _dependencies.ContainsKey(jobId) && _dependencies[jobId].Count > 0;
-        return Task.FromResult(hasDeps);
-    }
-
-    public Task RemoveDependenciesAsync(int jobId, CancellationToken cancellationToken = default)
-    {
-        _dependencies.Remove(jobId);
+        if (_dependencies.TryGetValue(jobId, out var list))
+            list.Remove(dependsOnJobId);
         return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<Job>> GetDependenciesAsync(Guid jobId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<Job>>(Array.Empty<Job>());
+    }
+
+    public Task<IReadOnlyList<Job>> GetDependentsAsync(Guid jobId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<Job>>(Array.Empty<Job>());
+    }
+
+    public Task<IReadOnlyList<Job>> GetTopologicalOrderAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<Job>>(Array.Empty<Job>());
+    }
+
+    public Task<DependencyGraphValidationResult> ValidateGraphAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new DependencyGraphValidationResult { IsValid = true, Message = "Mock graph is valid." });
     }
 }

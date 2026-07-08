@@ -152,7 +152,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public long GetMemoryUsageMb()
     {
-        return GC.TotalMemory(false) / 1024 / 1024;
+        return GC.GetTotalMemory(false) / 1024 / 1024;
     }
 
     /// <summary>

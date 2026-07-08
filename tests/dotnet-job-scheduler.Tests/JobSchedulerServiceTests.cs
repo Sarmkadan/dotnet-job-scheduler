@@ -168,7 +168,7 @@ public sealed class JobSchedulerServiceTests
 
         // Assert
         job.Status.Should().Be(JobStatus.Suspended);
-        _jobRepoMock.Verify(r => r.UpdateAsync(job), Times.Once);
+        _jobRepoMock.Verify(r => r.Update(job), Times.Once);
         _jobRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
@@ -202,7 +202,7 @@ public sealed class JobSchedulerServiceTests
         // Assert
         job.Status.Should().Be(JobStatus.Scheduled);
         job.NextExecutionAt.Should().NotBeNull();
-        _jobRepoMock.Verify(r => r.UpdateAsync(job), Times.Once);
+        _jobRepoMock.Verify(r => r.Update(job), Times.Once);
         _jobRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
@@ -220,7 +220,7 @@ public sealed class JobSchedulerServiceTests
         await service.DeleteJobAsync(jobId);
 
         // Assert
-        _jobRepoMock.Verify(r => r.DeleteAsync(job), Times.Once);
+        _jobRepoMock.Verify(r => r.Remove(job), Times.Once);
         _jobRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
@@ -254,7 +254,7 @@ public sealed class JobSchedulerServiceTests
 
         // Assert
         job.CronExpression.Should().Be(newCron);
-        _jobRepoMock.Verify(r => r.UpdateAsync(job), Times.Once);
+        _jobRepoMock.Verify(r => r.Update(job), Times.Once);
         _jobRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
@@ -328,7 +328,7 @@ public sealed class JobSchedulerServiceTests
         };
 
         _jobRepoMock.Setup(r => r.GetByIdAsync(jobId)).ReturnsAsync(job);
-        _executionRepoMock.Setup(r => r.GetExecutionsByJobAsync(jobId, It.IsAny<int>()))
+        _executionRepoMock.Setup(r => r.GetExecutionsByJobAsync(jobId))
             .ReturnsAsync(new List<JobExecution> { execution });
 
         var service = CreateService();
@@ -338,7 +338,7 @@ public sealed class JobSchedulerServiceTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.Id.Should().Be(jobId);
+        result!.Job.Id.Should().Be(jobId);
     }
 
     [Fact]
