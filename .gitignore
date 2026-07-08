@@ -56,3 +56,7 @@ Thumbs.db
 
 # Artifacts
 artifacts/
+bin/
+obj/
+BenchmarkDotNet.Artifacts/
+.aider*
