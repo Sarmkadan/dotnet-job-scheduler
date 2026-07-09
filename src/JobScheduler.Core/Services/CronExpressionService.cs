@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using NCrontab;
 using JobScheduler.Core.Exceptions;
 
@@ -18,10 +19,10 @@ namespace JobScheduler.Core.Services;
 /// </summary>
 public sealed class CronExpressionService
 {
-    // Parsed schedules are immutable and cheap to share; cache by expression string
-    // to avoid paying NCronTab parse cost on every evaluation cycle.
     private static readonly ConcurrentDictionary<string, CrontabSchedule> _scheduleCache =
         new(StringComparer.Ordinal);
+
+    private readonly ILogger<CronExpressionService>? _logger;
 
     /// <summary>
     /// Validates a cron expression syntax.
@@ -29,15 +30,20 @@ public sealed class CronExpressionService
     public bool IsValidCronExpression(string cronExpression)
     {
         if (string.IsNullOrWhiteSpace(cronExpression))
+        {
+            _logger?.LogDebug("Cron expression validation failed: expression is null or whitespace");
             return false;
+        }
 
         try
         {
             ParseCronExpression(cronExpression);
+            _logger?.LogDebug("Cron expression '{Expression}' validated successfully", cronExpression);
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger?.LogWarning(ex, "Cron expression '{Expression}' validation failed", cronExpression);
             return false;
         }
     }
@@ -49,18 +55,26 @@ public sealed class CronExpressionService
     public CrontabSchedule ParseCronExpression(string cronExpression)
     {
         if (string.IsNullOrWhiteSpace(cronExpression))
+        {
+            _logger?.LogError("Cron expression parsing failed: expression is null or whitespace");
             throw new CronExpressionException(cronExpression, "Expression cannot be null or empty");
+        }
 
         if (_scheduleCache.TryGetValue(cronExpression, out var cached))
+        {
+            _logger?.LogDebug("Cron expression '{Expression}' retrieved from cache", cronExpression);
             return cached;
+        }
 
         CrontabSchedule parsed;
         try
         {
             parsed = CrontabSchedule.Parse(cronExpression);
+            _logger?.LogDebug("Cron expression '{Expression}' parsed successfully", cronExpression);
         }
         catch (Exception ex)
         {
+            _logger?.LogError(ex, "Cron expression '{Expression}' parsing failed", cronExpression);
             throw new CronExpressionException(cronExpression, "Failed to parse expression", ex);
         }
 
@@ -207,6 +221,7 @@ public sealed class CronExpressionService
         try
         {
             var schedule = ParseCronExpression(cronExpression);
+            _logger?.LogDebug("Checking if cron expression '{Expression}' should execute at {CheckTime}", cronExpression, checkTime);
 
             // NCrontab only exposes forward occurrence lookup, so the previous
             // occurrence relative to checkTime is found by scanning forward from
@@ -225,15 +240,22 @@ public sealed class CronExpressionService
             }
 
             if (previous is null)
+            {
+                _logger?.LogDebug("No matching execution time found for cron '{Expression}' at {CheckTime}", cronExpression, checkTime);
                 return false;
+            }
 
             var difference = (checkTime - previous.Value).TotalSeconds;
 
             // Consider it a match if within 60 seconds (accounting for scheduling delays)
-            return difference >= 0 && difference < 60;
+            var shouldExecute = difference >= 0 && difference < 60;
+            _logger?.LogDebug("Cron '{Expression}' at {CheckTime}: difference={Difference}s, shouldExecute={ShouldExecute}",
+                cronExpression, checkTime, difference, shouldExecute);
+            return shouldExecute;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger?.LogWarning(ex, "Error checking if cron expression '{Expression}' should execute at {CheckTime}", cronExpression, checkTime);
             return false;
         }
     }
