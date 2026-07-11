@@ -36,23 +36,23 @@ public sealed class CacheServiceBenchmarks
 
     /// <summary>Cache miss followed by cache hit for same key.</summary>
     [Benchmark]
-    public async Task<string?> GetOrAdd_CacheMissThenHit()
+    public async Task<string?> GetOrAdd_CacheMissThenHit(string key = "test-cron-expression-0 9 * * *")
     {
-        const string key = "test-cron-expression-0 9 * * *";
-        var value = await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>(key), TimeSpan.FromHours(1));
+        string keyParam = key;
+        var value = await _cacheService!.GetOrSetAsync(keyParam, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
         // Second access should hit cache
-        var cachedValue = await _cacheService.GetOrSetAsync(key, () => Task.FromResult<string?>("different-value"), TimeSpan.FromHours(1));
+        var cachedValue = await _cacheService.GetOrSetAsync(keyParam, () => Task.FromResult<string?>("different-value"), TimeSpan.FromHours(1));
         return cachedValue;
     }
 
     /// <summary>Cache expiration and cleanup.</summary>
     [Benchmark]
-    public async Task GetOrAdd_WithExpiration()
+    public async Task GetOrAdd_WithExpiration(TimeSpan expirationTime = default)
     {
-        const string key = "expiring-key";
-        var value = await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromMilliseconds(10));
+        var keyParam = "expiring-key";
+        var value = await _cacheService!.GetOrSetAsync(keyParam, () => Task.FromResult<string?>("value"), expirationTime);
         await Task.Delay(20); // Wait for expiration
-        var expiredValue = await _cacheService.GetOrSetAsync(key, () => Task.FromResult<string?>("new-value"), TimeSpan.FromHours(1));
+        var expiredValue = await _cacheService.GetOrSetAsync(keyParam, () => Task.FromResult<string?>("new-value"), TimeSpan.FromHours(1));
         _ = expiredValue;
     }
 
@@ -82,13 +82,13 @@ public sealed class CacheServiceBenchmarks
 
     /// <summary>Cache hit vs miss performance comparison.</summary>
     [Benchmark(Baseline = true)]
-    public async Task<string?> GetOrAdd_CacheHit()
+    public async Task<string?> GetOrAdd_CacheHit(string key = "hot-cache-key")
     {
-        const string key = "hot-cache-key";
+        var keyParam = key;
         // Prime the cache
-        _ = await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
+        _ = await _cacheService!.GetOrSetAsync(keyParam, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
         // Access from cache
-        return await _cacheService.GetOrSetAsync(key, () => Task.FromResult<string?>("different-value"), TimeSpan.FromHours(1));
+        return await _cacheService.GetOrSetAsync(keyParam, () => Task.FromResult<string?>("different-value"), TimeSpan.FromHours(1));
     }
 
     /// <summary>Cache removal operations.</summary>
