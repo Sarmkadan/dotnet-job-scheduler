@@ -30,6 +30,7 @@ public static class JobSchedulerServiceExtensions
     /// <param name="priorityFilter">Optional job priority filter.</param>
     /// <param name="isActiveOnly">If true, returns only active jobs.</param>
     /// <returns>Filtered collection of jobs.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="service"/> is <c>null</c>.</exception>
     public static async Task<IEnumerable<Job>> GetFilteredJobsAsync(
         this JobSchedulerService service,
         string? nameFilter = null,
@@ -37,8 +38,7 @@ public static class JobSchedulerServiceExtensions
         JobPriority? priorityFilter = null,
         bool isActiveOnly = false)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
+        ArgumentNullException.ThrowIfNull(service);
 
         var jobs = await service.GetJobsAsync(statusFilter);
 
@@ -62,29 +62,37 @@ public static class JobSchedulerServiceExtensions
     }
 
     /// <summary>
-    /// Creates a new job from a simplified request object with default values.
+    /// Creates a new job from a request object.
     /// </summary>
     /// <param name="service">The job scheduler service instance.</param>
     /// <param name="request">The job creation request.</param>
     /// <param name="createdBy">Optional creator identifier.</param>
     /// <returns>The created job.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if <paramref name="service"/> or <paramref name="request"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown if <paramref name="request"/>.Name is null, empty, or whitespace.
+    /// </exception>
     public static async Task<Job> CreateJobAsync(
         this JobSchedulerService service,
         CreateJobRequest request,
         string? createdBy = null)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
-        if (request is null)
-            throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(service);
+        ArgumentNullException.ThrowIfNull(request);
+
+        ArgumentException.ThrowIfNullOrEmpty(request.Name, nameof(request));
+        ArgumentException.ThrowIfNullOrEmpty(request.CronExpression, nameof(request));
+        ArgumentException.ThrowIfNullOrEmpty(request.HandlerType, nameof(request));
 
         var job = new Job
         {
-            Name = request.Name ?? throw new ArgumentException("Job name is required", nameof(request)),
+            Name = request.Name,
             Description = request.Description ?? string.Empty,
-            CronExpression = request.CronExpression ?? throw new ArgumentException("Cron expression is required", nameof(request)),
+            CronExpression = request.CronExpression,
             TimeZoneId = request.TimeZoneId,
-            HandlerType = request.HandlerType ?? string.Empty,
+            HandlerType = request.HandlerType,
             HandlerParameters = request.HandlerParameters ?? string.Empty,
             Priority = request.Priority,
             MaxRetries = request.MaxRetries,
@@ -104,15 +112,17 @@ public static class JobSchedulerServiceExtensions
     /// <param name="timeoutSeconds">Maximum execution time in seconds.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Collection of execution records.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="service"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown if <paramref name="timeoutSeconds"/> is less than or equal to zero.
+    /// </exception>
     public static async Task<IEnumerable<JobExecution>> ExecuteDueJobsWithTimeoutAsync(
         this JobSchedulerService service,
         int timeoutSeconds = 30,
         System.Threading.CancellationToken cancellationToken = default)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
-        if (timeoutSeconds <= 0)
-            throw new ArgumentException("Timeout must be positive", nameof(timeoutSeconds));
+        ArgumentNullException.ThrowIfNull(service);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeoutSeconds, 0, nameof(timeoutSeconds));
 
         using var timeoutCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
@@ -125,11 +135,14 @@ public static class JobSchedulerServiceExtensions
     /// </summary>
     /// <param name="service">The job scheduler service instance.</param>
     /// <returns>Dictionary mapping job IDs to their statistics.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="service"/> is <c>null</c>.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if a job's execution statistics are unexpectedly null.
+    /// </exception>
     public static async Task<Dictionary<Guid, ExecutionStatistics>> GetAllJobExecutionStatisticsAsync(
         this JobSchedulerService service)
     {
-        if (service is null)
-            throw new ArgumentNullException(nameof(service));
+        ArgumentNullException.ThrowIfNull(service);
 
         var jobs = await service.GetJobsAsync(null);
         var statsDict = new Dictionary<Guid, ExecutionStatistics>();
@@ -137,7 +150,8 @@ public static class JobSchedulerServiceExtensions
         foreach (var job in jobs)
         {
             var stats = await service.GetJobDetailsAsync(job.Id);
-            statsDict[job.Id] = stats.ExecutionStatistics;
+            statsDict[job.Id] = stats.ExecutionStatistics ?? throw new InvalidOperationException(
+                $"Execution statistics for job {job.Id} ({job.Name}) are unexpectedly null.");
         }
 
         return statsDict;
