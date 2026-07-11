@@ -18,21 +18,14 @@ public static class JobResponseExtensions
     /// <summary>
     /// Determines if the job is currently due for execution based on its cron expression and next execution time.
     /// </summary>
-    /// <param name="job">The job response instance</param>
-    /// <returns>True if the job should be executed now or in the past; otherwise false</returns>
+    /// <param name="job">The job response instance.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is <see langword="null"/>.</exception>
+    /// <returns>True if the job should be executed now or in the past; otherwise false.</returns>
     public static bool IsDueForExecution(this JobResponse job)
     {
-        if (job is null)
-        {
-            throw new ArgumentNullException(nameof(job));
-        }
+        ArgumentNullException.ThrowIfNull(job);
 
         if (!job.IsActive)
-        {
-            return false;
-        }
-
-        if (job.NextExecutionAt is null)
         {
             return false;
         }
@@ -43,14 +36,12 @@ public static class JobResponseExtensions
     /// <summary>
     /// Calculates the estimated time remaining until the next scheduled execution.
     /// </summary>
-    /// <param name="job">The job response instance</param>
-    /// <returns>TimeSpan representing the duration until next execution, or TimeSpan.Zero if already due</returns>
+    /// <param name="job">The job response instance.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is <see langword="null"/>.</exception>
+    /// <returns>TimeSpan representing the duration until next execution, or TimeSpan.Zero if already due.</returns>
     public static TimeSpan TimeUntilNextExecution(this JobResponse job)
     {
-        if (job is null)
-        {
-            throw new ArgumentNullException(nameof(job));
-        }
+        ArgumentNullException.ThrowIfNull(job);
 
         if (job.NextExecutionAt is null)
         {
@@ -66,14 +57,12 @@ public static class JobResponseExtensions
     /// <summary>
     /// Determines if the job has exceeded its maximum allowed execution attempts.
     /// </summary>
-    /// <param name="job">The job response instance</param>
-    /// <returns>True if the job has failed more times than its MaxRetries setting; otherwise false</returns>
+    /// <param name="job">The job response instance.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is <see langword="null"/>.</exception>
+    /// <returns>True if the job has failed more times than its MaxRetries setting; otherwise false.</returns>
     public static bool HasExceededMaxRetries(this JobResponse job)
     {
-        if (job is null)
-        {
-            throw new ArgumentNullException(nameof(job));
-        }
+        ArgumentNullException.ThrowIfNull(job);
 
         return job.FailedExecutions > job.MaxRetries;
     }
@@ -81,20 +70,18 @@ public static class JobResponseExtensions
     /// <summary>
     /// Gets a human-readable status message for the job based on its current state.
     /// </summary>
-    /// <param name="job">The job response instance</param>
-    /// <returns>Formatted status message describing the job's current state</returns>
+    /// <param name="job">The job response instance.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is <see langword="null"/>.</exception>
+    /// <returns>Formatted status message describing the job's current state.</returns>
     public static string GetStatusMessage(this JobResponse job)
     {
-        if (job is null)
-        {
-            throw new ArgumentNullException(nameof(job));
-        }
+        ArgumentNullException.ThrowIfNull(job);
 
         var priority = job.Priority;
         var nextExecution = job.NextExecutionAt;
         var successRate = job.SuccessRate;
 
-        return job.Status.ToLowerInvariant() switch
+        return job.Status switch
         {
             "running" when job.IsDueForExecution() =>
                 $"Job '{job.Name}' (Priority: {priority}) is RUNNING and due for execution at {nextExecution?.ToString("o") ?? "unknown"}",
