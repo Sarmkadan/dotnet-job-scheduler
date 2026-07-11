@@ -10,24 +10,23 @@ namespace JobScheduler.Core.Middleware
     /// The validation logic is defensive: it inspects the public members that are likely to represent
     /// configuration values (e.g., numeric limits, strings, dates) and reports any values that appear
     /// to be invalid (null, empty, zero, negative, or default dates). This approach works even if the
-    /// exact set of members changes, because it relies on reflection rather than hard‑coded member
+    /// exact set of members changes, because it relies on reflection rather than hard-coded member
     /// names.
     /// </summary>
     public static class RateLimitMiddlewareValidation
     {
         /// <summary>
-        /// Returns a list of human‑readable validation problems for the supplied <paramref name="value"/>.
+        /// Returns a list of human-readable validation problems for the supplied <paramref name="value"/>.
         /// If the list is empty the instance is considered valid.
         /// </summary>
+        /// <param name="value">The <see cref="RateLimitMiddleware"/> instance to validate.</param>
+        /// <returns>A list of validation problems; empty if valid.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
         public static IReadOnlyList<string> Validate(this RateLimitMiddleware value)
         {
-            var problems = new List<string>();
+            ArgumentNullException.ThrowIfNull(value);
 
-            if (value is null)
-            {
-                problems.Add("RateLimitMiddleware instance is null.");
-                return problems;
-            }
+            var problems = new List<string>();
 
             // Use reflection to examine public instance properties that are likely to be configuration values.
             var type = value.GetType();
@@ -46,19 +45,11 @@ namespace JobScheduler.Core.Middleware
                 // String checks
                 if (propType == typeof(string))
                 {
-                    var str = (string?)propValue;
-                    if (string.IsNullOrWhiteSpace(str))
+                    if (string.IsNullOrWhiteSpace((string?)propValue))
                         problems.Add($"{propName} must not be null or empty.");
                 }
                 // Integer checks (including int, long, short, byte, etc.)
-                else if (propType == typeof(int) ||
-                         propType == typeof(long) ||
-                         propType == typeof(short) ||
-                         propType == typeof(byte) ||
-                         propType == typeof(uint) ||
-                         propType == typeof(ulong) ||
-                         propType == typeof(ushort) ||
-                         propType == typeof(sbyte))
+                else if (IsIntegerType(propType))
                 {
                     // Convert to long for a unified comparison
                     var numericValue = Convert.ToInt64(propValue);
@@ -76,26 +67,16 @@ namespace JobScheduler.Core.Middleware
                 else if (propType == typeof(DateTime))
                 {
                     var dt = (DateTime?)propValue;
-                    if (dt == null || dt.Value == default)
-                        problems.Add($"{propName} must be a valid (non‑default) DateTime.");
+                    if (dt == null || !dt.Value.IsValidDateTime())
+                        problems.Add($"{propName} must be a valid (non-default) DateTime.");
                 }
                 // Nullable versions of the above types
-                else if (Nullable.GetUnderlyingType(propType) != null)
+                else if (Nullable.GetUnderlyingType(propType) is Type underlying)
                 {
-                    var underlying = Nullable.GetUnderlyingType(propType)!;
-                    if (underlying == typeof(int) ||
-                        underlying == typeof(long) ||
-                        underlying == typeof(short) ||
-                        underlying == typeof(byte) ||
-                        underlying == typeof(uint) ||
-                        underlying == typeof(ulong) ||
-                        underlying == typeof(ushort) ||
-                        underlying == typeof(sbyte))
+                    if (IsIntegerType(underlying))
                     {
                         if (propValue == null)
-                        {
                             problems.Add($"{propName} must have a value.");
-                        }
                         else
                         {
                             var numericValue = Convert.ToInt64(propValue);
@@ -106,9 +87,7 @@ namespace JobScheduler.Core.Middleware
                     else if (underlying == typeof(TimeSpan))
                     {
                         if (propValue == null)
-                        {
                             problems.Add($"{propName} must have a value.");
-                        }
                         else
                         {
                             var ts = (TimeSpan)propValue;
@@ -119,14 +98,12 @@ namespace JobScheduler.Core.Middleware
                     else if (underlying == typeof(DateTime))
                     {
                         if (propValue == null)
-                        {
                             problems.Add($"{propName} must have a value.");
-                        }
                         else
                         {
                             var dt = (DateTime)propValue;
-                            if (dt == default)
-                                problems.Add($"{propName} must be a valid (non‑default) DateTime.");
+                            if (!dt.IsValidDateTime())
+                                problems.Add($"{propName} must be a valid (non-default) DateTime.");
                         }
                     }
                 }
@@ -142,17 +119,20 @@ namespace JobScheduler.Core.Middleware
         }
 
         /// <summary>
-        /// Returns <c>true</c> if the supplied <paramref name="value"/> has no validation problems.
+        /// Returns <see langword="true"/> if the supplied <paramref name="value"/> has no validation problems.
         /// </summary>
-        public static bool IsValid(this RateLimitMiddleware value)
-        {
-            return !value.Validate().Any();
-        }
+        /// <param name="value">The <see cref="RateLimitMiddleware"/> instance to check.</param>
+        /// <returns><see langword="true"/> if valid; otherwise, <see langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
+        public static bool IsValid(this RateLimitMiddleware value) => !value.Validate().Any();
 
         /// <summary>
         /// Ensures the supplied <paramref name="value"/> is valid. If not, throws an
         /// <see cref="ArgumentException"/> containing the validation problems.
         /// </summary>
+        /// <param name="value">The <see cref="RateLimitMiddleware"/> instance to validate.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException">Thrown when validation fails.</exception>
         public static void EnsureValid(this RateLimitMiddleware value)
         {
             var problems = value.Validate();
@@ -161,6 +141,30 @@ namespace JobScheduler.Core.Middleware
                 var message = $"RateLimitMiddleware configuration is invalid: {string.Join("; ", problems)}";
                 throw new ArgumentException(message, nameof(value));
             }
+        }
+
+        /// <summary>
+        /// Determines whether a <see cref="DateTime"/> value is valid (not default).
+        /// </summary>
+        /// <param name="dateTime">The <see cref="DateTime"/> to check.</param>
+        /// <returns><see langword="true"/> if valid; otherwise, <see langword="false"/>.</returns>
+        private static bool IsValidDateTime(this DateTime dateTime) => dateTime != default;
+
+        /// <summary>
+        /// Determines whether a type is an integer type (int, long, short, byte, uint, ulong, ushort, sbyte).
+        /// </summary>
+        /// <param name="type">The type to check.</param>
+        /// <returns><see langword="true"/> if the type is an integer type; otherwise, <see langword="false"/>.</returns>
+        private static bool IsIntegerType(this Type type)
+        {
+            return type == typeof(int) ||
+                   type == typeof(long) ||
+                   type == typeof(short) ||
+                   type == typeof(byte) ||
+                   type == typeof(uint) ||
+                   type == typeof(ulong) ||
+                   type == typeof(ushort) ||
+                   type == typeof(sbyte);
         }
     }
 }
