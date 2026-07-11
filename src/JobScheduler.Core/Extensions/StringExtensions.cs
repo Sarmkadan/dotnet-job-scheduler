@@ -25,8 +25,11 @@ public static class StringExtensions
     /// Computes SHA256 hash of the string.
     /// Used for secure job handler parameter hashing and fingerprinting.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is <see langword="null"/>.</exception>
     public static string ToSha256(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (string.IsNullOrEmpty(input))
             return string.Empty;
 
@@ -42,9 +45,13 @@ public static class StringExtensions
     /// Truncates string to specified length with optional ellipsis.
     /// Prevents UI overflow and database field size issues.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is <see langword="null"/>.</exception>
     public static string Truncate(this string input, int maxLength, bool addEllipsis = true)
     {
-        if (string.IsNullOrEmpty(input) || input.Length <= maxLength)
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxLength, 0);
+
+        if (input.Length <= maxLength)
             return input;
 
         var result = input.Substring(0, maxLength);
@@ -55,10 +62,10 @@ public static class StringExtensions
     /// Converts string to slug format (lowercase with hyphens).
     /// Useful for generating URL-friendly identifiers from job names.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is <see langword="null"/>.</exception>
     public static string ToSlug(this string input)
     {
-        if (string.IsNullOrEmpty(input))
-            return string.Empty;
+        ArgumentNullException.ThrowIfNull(input);
 
         // Single-pass over source characters — no intermediate strings, no LINQ overhead.
         // Rent a buffer from the pool for inputs that exceed safe stackalloc size.
@@ -111,8 +118,11 @@ public static class StringExtensions
     /// Safely encodes string for JSON without manual escaping.
     /// Prevents JSON injection vulnerabilities.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is <see langword="null"/>.</exception>
     public static string JsonEscape(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (string.IsNullOrEmpty(input))
             return input;
 
@@ -133,11 +143,11 @@ public static class StringExtensions
             switch (span[i])
             {
                 case '\\': sb.Append("\\\\"); break;
-                case '"':  sb.Append("\\\""); break;
-                case '\n': sb.Append("\\n");  break;
-                case '\r': sb.Append("\\r");  break;
-                case '\t': sb.Append("\\t");  break;
-                default:   sb.Append(span[i]); break;
+                case '"': sb.Append("\\\""); break;
+                case '\n': sb.Append("\\n"); break;
+                case '\r': sb.Append("\\r"); break;
+                case '\t': sb.Append("\\t"); break;
+                default: sb.Append(span[i]); break;
             }
         }
 
@@ -148,8 +158,10 @@ public static class StringExtensions
     /// Determines if string is a valid GUID.
     /// Used for parameter validation in job handlers.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is <see langword="null"/>.</exception>
     public static bool IsValidGuid(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
         return Guid.TryParse(input, out _);
     }
 
@@ -157,8 +169,11 @@ public static class StringExtensions
     /// Determines if string is a valid email address.
     /// Used for notification service configuration validation.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is <see langword="null"/>.</exception>
     public static bool IsValidEmail(this string input)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (string.IsNullOrEmpty(input))
             return false;
 
@@ -177,15 +192,19 @@ public static class StringExtensions
     /// Repeats a string N times.
     /// Useful for formatting and test data generation.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="count"/> is negative.</exception>
     public static string Repeat(this string input, int count)
     {
-        if (count <= 0)
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+
+        if (count == 0)
             return string.Empty;
 
-        var sb = new StringBuilder();
+        var sb = new StringBuilder(input.Length * count);
         for (int i = 0; i < count; i++)
             sb.Append(input);
-
         return sb.ToString();
     }
 
@@ -193,10 +212,14 @@ public static class StringExtensions
     /// Masks sensitive parts of string (e.g., API keys, passwords).
     /// Used in logging to prevent credential leakage.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is <see langword="null"/>.</exception>
     public static string Mask(this string input, int revealEnd = 4)
     {
-        if (string.IsNullOrEmpty(input) || input.Length <= revealEnd)
-            return new string('*', Math.Max(0, input?.Length ?? 0));
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentOutOfRangeException.ThrowIfNegative(revealEnd);
+
+        if (input.Length <= revealEnd)
+            return new string('*', Math.Max(0, input.Length));
 
         var reveal = input.Substring(input.Length - revealEnd);
         return new string('*', input.Length - revealEnd) + reveal;
@@ -206,8 +229,12 @@ public static class StringExtensions
     /// Converts delimited string to list.
     /// Common for parsing CSV-like configuration values.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is <see langword="null"/>.</exception>
     public static List<string> ToList(this string input, string delimiter = ",")
     {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(delimiter);
+
         if (string.IsNullOrEmpty(input))
             return new();
 
@@ -222,10 +249,10 @@ public static class StringExtensions
     /// Checks if string contains only alphanumeric characters and underscores.
     /// Used for validating job names and handler identifiers.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="input"/> is <see langword="null"/>.</exception>
     public static bool IsAlphanumericWithUnderscore(this string input)
     {
-        if (string.IsNullOrEmpty(input))
-            return false;
+        ArgumentNullException.ThrowIfNull(input);
 
         return input.All(c => char.IsLetterOrDigit(c) || c == '_');
     }
