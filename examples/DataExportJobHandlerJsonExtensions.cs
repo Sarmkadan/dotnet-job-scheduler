@@ -21,6 +21,7 @@ public static class DataExportJobHandlerJsonExtensions
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
     /// <returns>A JSON string representation of the handler.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
+    /// <remarks>This method uses the <see cref="JsonSerializerOptions"/> instance to determine whether to write the JSON with indentation.</remarks>
     public static string ToJson(this DataExportJobHandler value, bool indented = false)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -38,6 +39,7 @@ public static class DataExportJobHandlerJsonExtensions
     /// <param name="json">The JSON string to deserialize. Cannot be null or empty.</param>
     /// <returns>The deserialized handler instance, or null if deserialization fails.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is null or empty.</exception>
+    /// <remarks>This method uses the <see cref="JsonSerializerOptions"/> instance to deserialize the JSON string.</remarks>
     public static DataExportJobHandler? FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrEmpty(json);
@@ -52,6 +54,7 @@ public static class DataExportJobHandlerJsonExtensions
     /// <param name="value">Receives the deserialized handler instance if successful; otherwise, null.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is null or empty.</exception>
+    /// <remarks>This method uses the <see cref="JsonSerializerOptions"/> instance to deserialize the JSON string.</remarks>
     public static bool TryFromJson(string json, out DataExportJobHandler? value)
     {
         ArgumentException.ThrowIfNullOrEmpty(json);
