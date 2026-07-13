@@ -19,7 +19,7 @@ public sealed class JobSchedulerServiceTests
     private readonly Mock<IJobRepository> _jobRepoMock = new();
     private readonly Mock<IExecutionRepository> _executionRepoMock = new();
     private readonly Mock<JobExecutorService> _executorServiceMock = new(
-        Mock.Of<IJobRepository>(), Mock.Of<IExecutionRepository>(), Mock.Of<ConcurrencyManager>());
+        Mock.Of<IJobRepository>(), Mock.Of<IExecutionRepository>(), new ConcurrencyManager(Mock.Of<IExecutionRepository>()));
     private readonly Mock<CronExpressionService> _cronServiceMock = new();
     private readonly Mock<RetryService> _retryServiceMock = new(
         Mock.Of<IJobRepository>(), Mock.Of<IExecutionRepository>());
@@ -154,7 +154,7 @@ public sealed class JobSchedulerServiceTests
         _jobRepoMock.Setup(r => r.GetByNameAsync(job.Name)).ReturnsAsync((Job?)null);
         _cronServiceMock.Setup(c => c.IsValidCronExpression(job.CronExpression)).Returns(true);
         var expectedNextRun = DateTime.UtcNow.AddHours(2);
-        _cronServiceMock.Setup(c => c.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId, It.IsAny<DateTime>()))
+        _cronServiceMock.Setup(c => c.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId, It.IsAny<DateTime?>()))
             .Returns(expectedNextRun);
 
         // Act
@@ -164,7 +164,7 @@ public sealed class JobSchedulerServiceTests
         // Assert
         result.NextExecutionAt.Should().Be(expectedNextRun);
         _cronServiceMock.Verify(c => c.GetNextExecutionTimeInZone(
-            job.CronExpression, job.TimeZoneId, It.IsAny<DateTime>()), Times.Once);
+            job.CronExpression, job.TimeZoneId, It.IsAny<DateTime?>()), Times.Once);
     }
 
     /// <summary>
@@ -413,17 +413,14 @@ public sealed class JobSchedulerServiceTests
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
     [Fact]
-    public async Task GetJobDetailsAsync_WithNonexistentJob_ReturnsNull()
+    public async Task GetJobDetailsAsync_WithNonexistentJob_ThrowsJobNotFoundException()
     {
         // Arrange
         _jobRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Job?)null);
         var service = CreateService();
 
-        // Act
-        var result = await service.GetJobDetailsAsync(Guid.NewGuid());
-
-        // Assert
-        result.Should().BeNull();
+        // Act & Assert
+        await Assert.ThrowsAsync<JobNotFoundException>(() => service.GetJobDetailsAsync(Guid.NewGuid()));
     }
 
     /// <summary>

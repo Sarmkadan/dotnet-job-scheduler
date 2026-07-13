@@ -45,8 +45,8 @@ public sealed class ScheduleServiceTests
 
         _jobRepoMock.Setup(r => r.GetByIdAsync(jobId)).ReturnsAsync(job);
 
-        _cronServiceMock.Setup(c => c.GetNextExecutionTime(job.CronExpression, It.IsAny<DateTime>()))
-            .Returns<string, DateTime>((cron, current) => current.AddHours(1));
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(job.CronExpression, It.IsAny<DateTime?>()))
+            .Returns<string, DateTime?>((cron, current) => current.GetValueOrDefault().AddHours(1));
 
         var service = CreateService();
 
@@ -109,9 +109,9 @@ public sealed class ScheduleServiceTests
         var execution2 = execution1.AddDays(1);
         var execution3 = execution2.AddDays(1);
 
-        var executions = new Queue<DateTime>(new[] { execution1, execution2, execution3 });
-        _cronServiceMock.Setup(c => c.GetNextExecutionTime(job.CronExpression, It.IsAny<DateTime>()))
-            .Returns(() => executions.Count > 0 ? executions.Dequeue() : (DateTime?)null);
+        var executions = new Queue<DateTime>([execution1, execution2, execution3]);
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(job.CronExpression, It.IsAny<DateTime?>()))
+            .Returns(() => executions.Count > 0 ? executions.Dequeue() : DateTime.MaxValue);
 
         var service = CreateService();
 
@@ -133,8 +133,8 @@ public sealed class ScheduleServiceTests
         var job = CreateJob(jobId);
 
         _jobRepoMock.Setup(r => r.GetByIdAsync(jobId)).ReturnsAsync(job);
-        _cronServiceMock.Setup(c => c.GetNextExecutionTime(job.CronExpression, It.IsAny<DateTime>()))
-            .Returns<string, DateTime>((cron, current) => current.AddHours(1));
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(job.CronExpression, It.IsAny<DateTime?>()))
+            .Returns<string, DateTime?>((cron, current) => current.GetValueOrDefault().AddHours(1));
 
         var service = CreateService();
 
@@ -151,15 +151,14 @@ public sealed class ScheduleServiceTests
         // Arrange
         var cronExpression = "0 * * * *"; // Hourly
 
-        var executionTimes = new Queue<DateTime?>();
+        var executionTimes = new Queue<DateTime>();
         for (int i = 0; i < 24; i++)
         {
             executionTimes.Enqueue(DateTime.UtcNow.Date.AddHours(i));
         }
-        executionTimes.Enqueue(null); // End marker
 
-        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime>()))
-            .Returns(() => executionTimes.Count > 0 ? executionTimes.Dequeue() : null);
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime?>()))
+            .Returns(() => executionTimes.Count > 0 ? executionTimes.Dequeue() : DateTime.MaxValue);
 
         var service = CreateService();
 
@@ -176,12 +175,11 @@ public sealed class ScheduleServiceTests
         // Arrange
         var cronExpression = "0 0 * * *"; // Daily at midnight
 
-        var executions = new Queue<DateTime?>();
-        executions.Enqueue(DateTime.UtcNow.Date.AddDays(1)); // Next midnight
-        executions.Enqueue(null); // End
+        var executions = new Queue<DateTime>();
+        executions.Enqueue(DateTime.UtcNow.Date); // Midnight of the current day
 
-        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime>()))
-            .Returns(() => executions.Count > 0 ? executions.Dequeue() : null);
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime?>()))
+            .Returns(() => executions.Count > 0 ? executions.Dequeue() : DateTime.MaxValue);
 
         var service = CreateService();
 
@@ -198,16 +196,13 @@ public sealed class ScheduleServiceTests
         // Arrange
         var cronExpression = "*/5 * * * *"; // Every 5 minutes
 
-        var executionCount = 0;
-        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime>()))
-            .Returns<string, DateTime>((cron, current) =>
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime?>()))
+            .Returns<string, DateTime?>((cron, current) =>
             {
-                if (current.Date.AddDays(1) <= current.AddMinutes(5))
-                {
-                    executionCount++;
-                    return current.AddMinutes(5);
-                }
-                return DateTime.MaxValue;
+                // Round up to the next five minute boundary, as the real expression would.
+                var from = current.GetValueOrDefault();
+                var slot = new DateTime(from.Year, from.Month, from.Day, from.Hour, from.Minute - (from.Minute % 5), 0, from.Kind);
+                return slot <= from ? slot.AddMinutes(5) : slot;
             });
 
         var service = CreateService();
@@ -224,8 +219,8 @@ public sealed class ScheduleServiceTests
     {
         // Arrange
         var cronExpression = "invalid cron";
-        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime>()))
-            .Throws<Exception>();
+        _cronServiceMock.Setup(c => c.GetNextExecutionTime(cronExpression, It.IsAny<DateTime?>()))
+            .Throws<InvalidOperationException>();
 
         var service = CreateService();
 

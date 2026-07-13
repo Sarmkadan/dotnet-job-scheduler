@@ -11,6 +11,19 @@ using Xunit;
 
 namespace DotnetJobScheduler.Tests;
 
+/// <summary>
+/// Handler used by the executor tests: it does a short piece of cancellable work so that
+/// the timeout and cancellation paths can be exercised.
+/// </summary>
+public sealed class DelayingJobHandler : IJobHandler
+{
+    public async Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)
+    {
+        await Task.Delay(100, cancellationToken);
+        return $"Job {job.Name} executed successfully";
+    }
+}
+
 public sealed class JobExecutorServiceTests
 {
     private readonly Mock<IJobRepository> _jobRepoMock = new();
@@ -28,7 +41,7 @@ public sealed class JobExecutorServiceTests
         Id = Guid.NewGuid(),
         Name = name,
         CronExpression = "0 9 * * *",
-        HandlerType = "TestApp.Jobs.TestJob, TestApp",
+        HandlerType = typeof(DelayingJobHandler).AssemblyQualifiedName!,
         MaxRetries = 3,
         ExecutionTimeoutSeconds = 5,
         MaxConcurrentExecutions = 1,
@@ -79,7 +92,10 @@ public sealed class JobExecutorServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ConcurrencyException>(() => service.ExecuteJobAsync(job));
-        _concurrencyManagerMock.Verify(c => c.DecrementConcurrencyCount(job.Id), Times.Once);
+
+        // The slot was never taken, so it must not be released either.
+        _concurrencyManagerMock.Verify(c => c.IncrementConcurrencyCount(job.Id), Times.Never);
+        _concurrencyManagerMock.Verify(c => c.DecrementConcurrencyCount(job.Id), Times.Never);
     }
 
     [Fact]
@@ -105,7 +121,7 @@ public sealed class JobExecutorServiceTests
         // Arrange
         var job = CreateValidJob();
         var cts = new CancellationTokenSource();
-        cts.CancelAfter(100); // Cancel almost immediately
+        cts.Cancel(); // Cancelled before the handler can finish its work
 
         _concurrencyManagerMock.Setup(c => c.EnsureCanExecuteAsync(job))
             .Returns(Task.CompletedTask);
@@ -202,7 +218,9 @@ public sealed class JobExecutorServiceTests
 
         // Assert
         _executionRepoMock.Verify(r => r.AddAsync(It.IsAny<JobExecution>()), Times.Once);
-        _executionRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
+
+        // Once for the Running record, once for the terminal state.
+        _executionRepoMock.Verify(r => r.SaveChangesAsync(), Times.Exactly(2));
     }
 
     [Fact]
