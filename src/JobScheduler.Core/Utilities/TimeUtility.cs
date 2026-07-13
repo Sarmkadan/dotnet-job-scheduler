@@ -4,6 +4,8 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Globalization;
+
 namespace JobScheduler.Core.Utilities;
 
 /// <summary>
@@ -42,7 +44,7 @@ public static class TimeUtility
     /// </summary>
     public static string ToIso8601(DateTime dateTime)
     {
-        return dateTime.ToUniversalTime().ToString("o");
+        return dateTime.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
     }
 
     /// <summary>
@@ -53,7 +55,8 @@ public static class TimeUtility
         if (string.IsNullOrEmpty(isoString))
             return null;
 
-        if (DateTime.TryParse(isoString, out var result))
+        if (DateTime.TryParse(isoString, CultureInfo.InvariantCulture,
+            DateTimeStyles.RoundtripKind | DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var result))
             return result.ToUniversalTime();
 
         return null;
@@ -65,7 +68,7 @@ public static class TimeUtility
     /// </summary>
     public static DateTime RoundDown(DateTime dateTime, TimeSpan interval)
     {
-        return new DateTime((dateTime.Ticks / interval.Ticks) * interval.Ticks);
+        return new DateTime((dateTime.Ticks / interval.Ticks) * interval.Ticks, dateTime.Kind);
     }
 
     /// <summary>
@@ -73,7 +76,7 @@ public static class TimeUtility
     /// </summary>
     public static DateTime RoundUp(DateTime dateTime, TimeSpan interval)
     {
-        return new DateTime(((dateTime.Ticks + interval.Ticks - 1) / interval.Ticks) * interval.Ticks);
+        return new DateTime(((dateTime.Ticks + interval.Ticks - 1) / interval.Ticks) * interval.Ticks, dateTime.Kind);
     }
 
     /// <summary>

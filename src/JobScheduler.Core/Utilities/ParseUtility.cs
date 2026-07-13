@@ -47,7 +47,7 @@ public static class ParseUtility
         if (string.IsNullOrWhiteSpace(value))
             return defaultValue;
 
-        return int.TryParse(value, out var result) ? result : defaultValue;
+        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : defaultValue;
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public static class ParseUtility
         if (string.IsNullOrWhiteSpace(value))
             return defaultValue;
 
-        return long.TryParse(value, out var result) ? result : defaultValue;
+        return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : defaultValue;
     }
 
     /// <summary>
@@ -70,8 +70,9 @@ public static class ParseUtility
         if (string.IsNullOrWhiteSpace(value))
             return defaultValue;
 
-        return double.TryParse(value, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
-            CultureInfo.InvariantCulture, out var result) ? result : defaultValue;
+        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result)
+            ? result
+            : defaultValue;
     }
 
     /// <summary>
@@ -83,7 +84,7 @@ public static class ParseUtility
         if (string.IsNullOrWhiteSpace(value))
             return defaultValue;
 
-        return value switch
+        return value.Trim().ToLowerInvariant() switch
         {
             "true" or "yes" or "1" or "on" => true,
             "false" or "no" or "0" or "off" => false,
@@ -132,7 +133,7 @@ public static class ParseUtility
             return result;
 
         // Try parsing by numeric value
-        if (int.TryParse(value, out var numValue) && Enum.IsDefined(typeof(T), numValue))
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var numValue) && Enum.IsDefined(typeof(T), numValue))
             return (T)Enum.ToObject(typeof(T), numValue);
 
         return defaultValue;
@@ -171,7 +172,7 @@ public static class ParseUtility
             return result;
 
         // Try parsing as total seconds
-        if (long.TryParse(value, out var seconds))
+        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds))
             return TimeSpan.FromSeconds(seconds);
 
         return defaultValue ?? TimeSpan.Zero;
@@ -204,7 +205,7 @@ public static class ParseUtility
             len = len / 1024;
         }
 
-        return $"{len:F2} {sizes[order]}";
+        return string.Create(CultureInfo.InvariantCulture, $"{len:F2} {sizes[order]}");
     }
 
     /// <summary>
@@ -232,7 +233,7 @@ public static class ParseUtility
     /// </summary>
     public static string FormatPercentage(double value, int decimals = 2)
     {
-        return value.ToString("F" + decimals) + "%";
+        return value.ToString("F" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture) + "%";
     }
 
     /// <summary>

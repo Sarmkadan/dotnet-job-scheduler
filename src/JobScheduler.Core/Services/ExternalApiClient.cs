@@ -34,14 +34,14 @@ public sealed class ExternalApiClient
     {
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
 
             if (!string.IsNullOrEmpty(authToken))
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
-                var response = await _httpClient.SendAsync(request, cts.Token);
+                using var response = await _httpClient.SendAsync(request, cts.Token);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -81,14 +81,14 @@ public sealed class ExternalApiClient
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-            var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+            using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
 
             if (!string.IsNullOrEmpty(authToken))
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
-                var response = await _httpClient.SendAsync(request, cts.Token);
+                using var response = await _httpClient.SendAsync(request, cts.Token);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -130,14 +130,14 @@ public sealed class ExternalApiClient
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-            var request = new HttpRequestMessage(HttpMethod.Put, url) { Content = content };
+            using var request = new HttpRequestMessage(HttpMethod.Put, url) { Content = content };
 
             if (!string.IsNullOrEmpty(authToken))
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
-                var response = await _httpClient.SendAsync(request, cts.Token);
+                using var response = await _httpClient.SendAsync(request, cts.Token);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -171,14 +171,14 @@ public sealed class ExternalApiClient
     {
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Delete, url);
+            using var request = new HttpRequestMessage(HttpMethod.Delete, url);
 
             if (!string.IsNullOrEmpty(authToken))
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
-                var response = await _httpClient.SendAsync(request, cts.Token);
+                using var response = await _httpClient.SendAsync(request, cts.Token);
 
                 if (response.IsSuccessStatusCode)
                 {

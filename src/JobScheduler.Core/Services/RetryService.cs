@@ -17,16 +17,29 @@ namespace JobScheduler.Core.Services;
 /// Service for handling job retry logic, backoff strategies, and retry scheduling.
 /// Manages exponential, linear, and fixed backoff delays.
 /// </summary>
-public sealed class RetryService
+public class RetryService
 {
     private readonly IJobRepository _jobRepository;
     private readonly IExecutionRepository _executionRepository;
     private readonly ILogger<RetryService>? _logger;
 
+    /// <summary>
+    /// Creates a retry service without a logger.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">A repository is null.</exception>
+    public RetryService(IJobRepository jobRepository, IExecutionRepository executionRepository)
+        : this(jobRepository, executionRepository, null)
+    {
+    }
+
+    /// <summary>
+    /// Creates a retry service.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">A repository is null.</exception>
     public RetryService(
         IJobRepository jobRepository,
         IExecutionRepository executionRepository,
-        ILogger<RetryService>? logger = null)
+        ILogger<RetryService>? logger)
     {
         _jobRepository = jobRepository ?? throw new ArgumentNullException(nameof(jobRepository));
         _executionRepository = executionRepository ?? throw new ArgumentNullException(nameof(executionRepository));
@@ -36,7 +49,7 @@ public sealed class RetryService
     /// <summary>
     /// Determines if a failed execution should be retried.
     /// </summary>
-    public ValueTask<bool> ShouldRetryAsync(Job job, JobExecution execution)
+    public virtual ValueTask<bool> ShouldRetryAsync(Job job, JobExecution execution)
     {
         if (job is null || execution is null)
             return ValueTask.FromResult(false);
@@ -60,7 +73,7 @@ public sealed class RetryService
     /// <summary>
     /// Calculates the next retry time based on job's retry policy.
     /// </summary>
-    public DateTime CalculateNextRetryTime(Job job, JobExecution failedExecution)
+    public virtual DateTime CalculateNextRetryTime(Job job, JobExecution failedExecution)
     {
         if (job is null || failedExecution is null)
             throw new ArgumentNullException(nameof(job));
@@ -78,7 +91,7 @@ public sealed class RetryService
     /// Calculates the backoff delay for a retry attempt.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int CalculateBackoffDelay(Job job, int attemptNumber)
+    public virtual int CalculateBackoffDelay(Job job, int attemptNumber)
     {
         // Fix: Ensure job and attemptNumber are valid inputs.
         if (job is null) throw new ArgumentNullException(nameof(job));
@@ -91,9 +104,12 @@ public sealed class RetryService
             baseDelay = 1;
         }
 
-        // Simple exponential backoff: initial_delay * (2 ^ (attempt - 1))
-        // attemptNumber is the 1-based attempt number that failed. For the first retry, attemptNumber will be 1.
-        var delay = (int)(baseDelay * Math.Pow(2, attemptNumber - 1));
+        // Exponential backoff: initial_delay * (2 ^ (attempt - 1)).
+        // attemptNumber is the 1-based attempt number that failed; attempt 0 (no attempt recorded
+        // yet) and attempt 1 both use the initial backoff, so the exponent is clamped at zero to
+        // avoid a fractional multiplier that would shrink the delay below the configured base.
+        var exponent = Math.Max(0, attemptNumber - 1);
+        var delay = (int)(baseDelay * Math.Pow(2, exponent));
 
         // Fix: Ensure minimum delay is 1 second after calculation to prevent immediate retries.
         if (delay <= 0)
@@ -108,7 +124,7 @@ public sealed class RetryService
     /// <summary>
     /// Prepares a job execution for retry by incrementing attempt and resetting status.
     /// </summary>
-    public JobExecution CreateRetryExecution(Job job, JobExecution failedExecution)
+    public virtual JobExecution CreateRetryExecution(Job job, JobExecution failedExecution)
     {
         if (job is null || failedExecution is null)
             throw new ArgumentNullException(nameof(job));
@@ -133,7 +149,7 @@ public sealed class RetryService
     /// <summary>
     /// Checks if retry budget has been exceeded (too many retries in short period).
     /// </summary>
-    public async Task<bool> IsRetryBudgetExceededAsync(Guid jobId, int retryBudgetCount = 5, int timeWindowMinutes = 5)
+    public virtual async Task<bool> IsRetryBudgetExceededAsync(Guid jobId, int retryBudgetCount = 5, int timeWindowMinutes = 5)
     {
         var startTime = DateTime.UtcNow.AddMinutes(-timeWindowMinutes);
         var recentFailures = await _executionRepository.GetExecutionsByDateRangeAsync(startTime, DateTime.UtcNow);
@@ -147,7 +163,7 @@ public sealed class RetryService
     /// <summary>
     /// Gets retry statistics for a job.
     /// </summary>
-    public async Task<RetryStatistics> GetRetryStatisticsAsync(Guid jobId)
+    public virtual async Task<RetryStatistics> GetRetryStatisticsAsync(Guid jobId)
     {
         var executions = await _executionRepository.GetExecutionsByJobAsync(jobId);
         var failedExecutions = executions.Where(e => e.Status == ExecutionStatus.Failed).ToList();
@@ -190,7 +206,7 @@ public sealed class RetryService
     /// Standalone helper (independent of job/execution state) used by callers that want to
     /// preview delays without a full <see cref="Job"/>/<see cref="JobExecution"/> pair.
     /// </summary>
-    public TimeSpan CalculateRetryDelay(int attemptNumber, JobRetryBackoffStrategy strategy, int baseDelaySeconds = 5)
+    public virtual TimeSpan CalculateRetryDelay(int attemptNumber, JobRetryBackoffStrategy strategy, int baseDelaySeconds = 5)
     {
         var seconds = strategy switch
         {
@@ -206,7 +222,7 @@ public sealed class RetryService
     /// <summary>
     /// Determines if another retry attempt is allowed given a simple attempt/limit pair.
     /// </summary>
-    public bool ShouldRetry(int currentAttempts, int maxRetries)
+    public virtual bool ShouldRetry(int currentAttempts, int maxRetries)
     {
         return currentAttempts < maxRetries;
     }
@@ -214,7 +230,7 @@ public sealed class RetryService
     /// <summary>
     /// Calculates the cumulative delay across all retry attempts for a given backoff strategy.
     /// </summary>
-    public TimeSpan CalculateTotalRetryTime(int retries, JobRetryBackoffStrategy strategy, int baseDelaySeconds)
+    public virtual TimeSpan CalculateTotalRetryTime(int retries, JobRetryBackoffStrategy strategy, int baseDelaySeconds)
     {
         var total = TimeSpan.Zero;
         for (var attempt = 0; attempt < retries; attempt++)
@@ -226,7 +242,7 @@ public sealed class RetryService
     /// <summary>
     /// Formats a human-readable retry message for logging or notifications.
     /// </summary>
-    public string FormatRetryMessage(int attemptNumber, TimeSpan delay, string serverName)
+    public virtual string FormatRetryMessage(int attemptNumber, TimeSpan delay, string serverName)
     {
         return $"Retry attempt {attemptNumber} scheduled in {delay.TotalSeconds:F0}s on server '{serverName}'.";
     }

@@ -4,6 +4,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System.Globalization;
 using System.Text;
 using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Utilities;
@@ -45,10 +46,10 @@ public sealed class CsvExportFormatter
                 ParseUtility.EscapeCsvField(job.HandlerType),
                 ParseUtility.EscapeCsvField(job.MaxRetries.ToString()),
                 ParseUtility.EscapeCsvField(job.ExecutionTimeoutSeconds.ToString()),
-                ParseUtility.EscapeCsvField(job.NextExecutionAt?.ToString("o") ?? string.Empty),
-                ParseUtility.EscapeCsvField(job.LastExecutedAt?.ToString("o") ?? string.Empty),
+                ParseUtility.EscapeCsvField(job.NextExecutionAt?.ToString("o", CultureInfo.InvariantCulture) ?? string.Empty),
+                ParseUtility.EscapeCsvField(job.LastExecutedAt?.ToString("o", CultureInfo.InvariantCulture) ?? string.Empty),
                 ParseUtility.EscapeCsvField(job.TotalExecutions.ToString()),
-                ParseUtility.EscapeCsvField(job.GetSuccessRate().ToString("F2"))
+                ParseUtility.EscapeCsvField(job.GetSuccessRate().ToString("F2", CultureInfo.InvariantCulture))
             };
 
             sb.AppendLine(string.Join(",", row));
@@ -77,8 +78,8 @@ public sealed class CsvExportFormatter
                 ParseUtility.EscapeCsvField(execution.Id.ToString()),
                 ParseUtility.EscapeCsvField(execution.JobId.ToString()),
                 ParseUtility.EscapeCsvField(execution.Status.ToString()),
-                ParseUtility.EscapeCsvField(execution.StartedAt.ToString("o")),
-                ParseUtility.EscapeCsvField(execution.CompletedAt?.ToString("o") ?? string.Empty),
+                ParseUtility.EscapeCsvField(execution.StartedAt.ToString("o", CultureInfo.InvariantCulture)),
+                ParseUtility.EscapeCsvField(execution.CompletedAt?.ToString("o", CultureInfo.InvariantCulture) ?? string.Empty),
                 ParseUtility.EscapeCsvField(execution.ExecutionTimeMs.ToString()),
                 ParseUtility.EscapeCsvField(execution.ErrorMessage ?? string.Empty),
                 ParseUtility.EscapeCsvField(execution.RetryAttempt.ToString()),
@@ -113,7 +114,7 @@ public sealed class CsvExportFormatter
                 ParseUtility.EscapeCsvField(kvp.Key.ToString()),
                 ParseUtility.EscapeCsvField(total.ToString()),
                 ParseUtility.EscapeCsvField(successful.ToString()),
-                ParseUtility.EscapeCsvField(successRate.ToString("F2")),
+                ParseUtility.EscapeCsvField(successRate.ToString("F2", CultureInfo.InvariantCulture)),
                 ParseUtility.EscapeCsvField(avgTime.ToString())
             };
 
