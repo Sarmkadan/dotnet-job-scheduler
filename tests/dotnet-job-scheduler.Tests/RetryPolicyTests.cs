@@ -11,8 +11,14 @@ using Xunit;
 
 namespace DotnetJobScheduler.Tests;
 
+/// <summary>
+/// Tests for the <see cref="RetryPolicy"/> class.
+/// </summary>
 public sealed class RetryPolicyTests
 {
+    /// <summary>
+    /// Verifies that the backoff delay remains constant for the Fixed strategy across attempts.
+    /// </summary>
     [Fact]
     public void CalculateBackoffDelay_WithFixedStrategy_ReturnsConstantDelayAcrossAttempts()
     {
@@ -33,6 +39,9 @@ public sealed class RetryPolicyTests
         delayAttempt5.Should().Be(10, "fixed strategy never changes the delay");
     }
 
+    /// <summary>
+    /// Verifies that the backoff delay increments proportionally to the attempt number for the Linear strategy.
+    /// </summary>
     [Fact]
     public void CalculateBackoffDelay_WithLinearStrategy_IncrementsProportionallyToAttempt()
     {
@@ -53,6 +62,9 @@ public sealed class RetryPolicyTests
         delayAttempt3.Should().Be(15);
     }
 
+    /// <summary>
+    /// Verifies that the backoff delay doubles on each attempt for the Exponential strategy.
+    /// </summary>
     [Fact]
     public void CalculateBackoffDelay_WithExponentialStrategy_DoublesOnEachAttempt()
     {
@@ -76,6 +88,9 @@ public sealed class RetryPolicyTests
         delayAttempt3.Should().Be(20);
     }
 
+    /// <summary>
+    /// Verifies that the calculated delay is capped at <see cref="RetryPolicy.MaxBackoffSeconds"/> when it would otherwise exceed the maximum.
+    /// </summary>
     [Fact]
     public void CalculateBackoffDelay_WhenCalculatedDelayExceedsMax_CapsAtMaxBackoff()
     {
@@ -95,6 +110,9 @@ public sealed class RetryPolicyTests
         delay.Should().Be(100);
     }
 
+    /// <summary>
+    /// Verifies that when <see cref="RetryPolicy.RetryableExceptions"/> is null, any exception type is considered retryable.
+    /// </summary>
     [Fact]
     public void ShouldRetryOnException_WhenRetryableExceptionsIsEmpty_AllowsAnyException()
     {
@@ -108,6 +126,9 @@ public sealed class RetryPolicyTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that an exception type present in the allowlist is considered retryable.
+    /// </summary>
     [Fact]
     public void ShouldRetryOnException_WhenExceptionMatchesAllowlist_ReturnsTrue()
     {
@@ -121,6 +142,9 @@ public sealed class RetryPolicyTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that an exception type not present in the allowlist is not considered retryable.
+    /// </summary>
     [Fact]
     public void ShouldRetryOnException_WhenExceptionNotInAllowlist_ReturnsFalse()
     {
@@ -134,6 +158,9 @@ public sealed class RetryPolicyTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that a well‑formed configuration passes validation.
+    /// </summary>
     [Fact]
     public void IsValid_WithWellFormedConfiguration_ReturnsTrue()
     {
@@ -153,6 +180,9 @@ public sealed class RetryPolicyTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Verifies that a configuration where the initial backoff exceeds the maximum backoff fails validation.
+    /// </summary>
     [Fact]
     public void IsValid_WhenInitialBackoffExceedsMaxBackoff_ReturnsFalse()
     {
