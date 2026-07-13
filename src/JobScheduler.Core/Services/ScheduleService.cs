@@ -72,7 +72,10 @@ public sealed class ScheduleService
             var times = new List<DateTime>();
             var start = DateTime.UtcNow.Date;
             var end = start.AddDays(1);
-            var current = start;
+
+            // Step back one second so an occurrence falling exactly on midnight is counted:
+            // the window is [start, end) and cron returns the strictly next occurrence.
+            var current = start.AddSeconds(-1);
 
             while (current < end)
             {
@@ -100,9 +103,11 @@ public sealed class ScheduleService
     {
         try
         {
-            // This would use a library like CronExpressionDescriptor
-            // For now, return a basic description
-            return _cronService.GetCronDescription(cronExpression) ?? "Custom schedule";
+            if (string.IsNullOrWhiteSpace(cronExpression))
+                return "Invalid schedule";
+
+            var description = _cronService.GetCronDescription(cronExpression);
+            return string.IsNullOrWhiteSpace(description) ? "Custom schedule" : description;
         }
         catch (Exception ex)
         {

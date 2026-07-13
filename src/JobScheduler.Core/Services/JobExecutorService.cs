@@ -39,11 +39,27 @@ public class JobExecutorService
     private readonly ConcurrencyManager _concurrencyManager;
     private readonly ILogger<JobExecutorService>? _logger;
 
+    /// <summary>
+    /// Creates an executor service without a logger.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">A dependency is null.</exception>
+    public JobExecutorService(
+        IJobRepository jobRepository,
+        IExecutionRepository executionRepository,
+        ConcurrencyManager concurrencyManager)
+        : this(jobRepository, executionRepository, concurrencyManager, null)
+    {
+    }
+
+    /// <summary>
+    /// Creates an executor service.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">A dependency is null.</exception>
     public JobExecutorService(
         IJobRepository jobRepository,
         IExecutionRepository executionRepository,
         ConcurrencyManager concurrencyManager,
-        ILogger<JobExecutorService>? logger = null)
+        ILogger<JobExecutorService>? logger)
     {
         _jobRepository = jobRepository ?? throw new ArgumentNullException(nameof(jobRepository));
         _executionRepository = executionRepository ?? throw new ArgumentNullException(nameof(executionRepository));
@@ -54,88 +70,17 @@ public class JobExecutorService
     /// <summary>
     /// Executes a job with timeout, error handling, and state management.
     /// </summary>
-    public async Task<JobExecution> ExecuteJobAsync(Job job, CancellationToken cancellationToken = default)
+    /// <exception cref="ArgumentNullException"><paramref name="job"/> is null.</exception>
+    /// <exception cref="ConcurrencyException">The job cannot run because a concurrency limit is reached.</exception>
+    public virtual async Task<JobExecution> ExecuteJobAsync(Job job, CancellationToken cancellationToken = default)
     {
-        if (job is null)
-            throw new ArgumentNullException(nameof(job));
+        ArgumentNullException.ThrowIfNull(job);
 
-        var execution = new JobExecution
-        {
-            Id = Guid.NewGuid(),
-            JobId = job.Id,
-            Status = ExecutionStatus.Running,
-            ExecutorName = Environment.MachineName,
-            AttemptNumber = 1
-        };
+        // Concurrency is checked before an execution record exists: persisting a record for a run
+        // that never starts would corrupt the history and the success-rate metrics.
+        await _concurrencyManager.EnsureCanExecuteAsync(job);
 
-        try
-        {
-            // Check concurrency limits
-            await _concurrencyManager.EnsureCanExecuteAsync(job);
-            _concurrencyManager.IncrementConcurrencyCount(job.Id);
-
-            // Create execution record
-            await _executionRepository.AddAsync(execution);
-            await _executionRepository.SaveChangesAsync();
-
-            _logger?.LogInformation("Starting execution {ExecutionId} for job {JobId} ({JobName})",
-                execution.Id, job.Id, job.Name);
-
-            // Execute with timeout
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(TimeSpan.FromSeconds(job.ExecutionTimeoutSeconds));
-
-            var stopwatch = Stopwatch.StartNew();
-            var jobTask = ExecuteJobHandlerAsync(job, execution, cts.Token);
-
-            try
-            {
-                var result = await jobTask;
-                stopwatch.Stop();
-                execution.SetOutput(result);
-                execution.MarkAsCompleted(ExecutionStatus.Success);
-
-                _logger?.LogInformation("Job {JobId} execution {ExecutionId} completed successfully in {Duration}ms",
-                    job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
-            }
-            catch (OperationCanceledException) when (cts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-            {
-                stopwatch.Stop();
-                execution.MarkAsCompleted(ExecutionStatus.TimedOut);
-                execution.ErrorMessage = $"Execution timed out after {job.ExecutionTimeoutSeconds} seconds";
-
-                _logger?.LogWarning("Job {JobId} execution {ExecutionId} timed out after {Duration}ms",
-                    job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
-            }
-        }
-        catch (ConcurrencyException ex)
-        {
-            _logger?.LogWarning("Job {JobId} rejected due to concurrency limits: {Message}", job.Id, ex.Message);
-            execution.Status = ExecutionStatus.Skipped;
-            execution.ErrorMessage = "Execution skipped due to concurrency limits";
-        }
-        catch (Exception ex)
-        {
-            execution.MarkAsFailed(ex.Message, ex.StackTrace, true);
-
-            _logger?.LogError(ex, "Job {JobId} execution {ExecutionId} failed with error: {Message}",
-                job.Id, execution.Id, ex.Message);
-        }
-        finally
-        {
-            _concurrencyManager.DecrementConcurrencyCount(job.Id);
-
-            // Update job metrics
-            job.UpdateExecutionMetrics(execution.Status == ExecutionStatus.Success);
-            job.LastExecutedAt = DateTime.UtcNow;
-
-            // Save execution record
-            _executionRepository.Update(execution);
-            _jobRepository.Update(job);
-            await _executionRepository.SaveChangesAsync();
-        }
-
-        return execution;
+        return await RunAsync(job, handler: null, Environment.MachineName, cancellationToken);
     }
 
     /// <summary>
@@ -143,13 +88,23 @@ public class JobExecutorService
     /// default handler-type dispatch. Useful for tests and benchmarks that want to inject
     /// custom execution logic without registering a handler type.
     /// </summary>
-    public async Task<JobExecution> ExecuteJobAsync(Job job, IJobHandler handler, string executorName, CancellationToken cancellationToken = default)
+    public virtual async Task<JobExecution> ExecuteJobAsync(Job job, IJobHandler handler, string executorName, CancellationToken cancellationToken = default)
     {
-        if (job is null)
-            throw new ArgumentNullException(nameof(job));
-        if (handler is null)
-            throw new ArgumentNullException(nameof(handler));
+        ArgumentNullException.ThrowIfNull(job);
+        ArgumentNullException.ThrowIfNull(handler);
+        ArgumentException.ThrowIfNullOrWhiteSpace(executorName);
 
+        await _concurrencyManager.EnsureCanExecuteAsync(job);
+
+        return await RunAsync(job, handler, executorName, cancellationToken);
+    }
+
+    /// <summary>
+    /// Shared execution pipeline: records the attempt, runs the handler under a timeout,
+    /// classifies the outcome and always releases the concurrency slot.
+    /// </summary>
+    private async Task<JobExecution> RunAsync(Job job, IJobHandler? handler, string executorName, CancellationToken cancellationToken)
+    {
         var execution = new JobExecution
         {
             Id = Guid.NewGuid(),
@@ -159,38 +114,60 @@ public class JobExecutorService
             AttemptNumber = 1
         };
 
+        _concurrencyManager.IncrementConcurrencyCount(job.Id);
+
         try
         {
-            await _concurrencyManager.EnsureCanExecuteAsync(job);
-            _concurrencyManager.IncrementConcurrencyCount(job.Id);
-
             await _executionRepository.AddAsync(execution);
             await _executionRepository.SaveChangesAsync();
+
+            _logger?.LogInformation("Starting execution {ExecutionId} for job {JobId} ({JobName})",
+                execution.Id, job.Id, job.Name);
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(job.ExecutionTimeoutSeconds));
 
+            var stopwatch = Stopwatch.StartNew();
+
             try
             {
-                var result = await handler.ExecuteAsync(job, cts.Token);
+                var result = handler is null
+                    ? await ExecuteJobHandlerAsync(job, execution, cts.Token)
+                    : await handler.ExecuteAsync(job, cts.Token);
+
+                stopwatch.Stop();
                 execution.SetOutput(result);
                 execution.MarkAsCompleted(ExecutionStatus.Success);
+
+                _logger?.LogInformation("Job {JobId} execution {ExecutionId} completed successfully in {Duration}ms",
+                    job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
             }
-            catch (OperationCanceledException) when (cts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                stopwatch.Stop();
+                execution.MarkAsCompleted(ExecutionStatus.Cancelled);
+                execution.ErrorMessage = "Execution cancelled by caller";
+
+                _logger?.LogWarning("Job {JobId} execution {ExecutionId} was cancelled after {Duration}ms",
+                    job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
+            }
+            catch (OperationCanceledException)
+            {
+                stopwatch.Stop();
                 execution.MarkAsCompleted(ExecutionStatus.TimedOut);
                 execution.ErrorMessage = $"Execution timed out after {job.ExecutionTimeoutSeconds} seconds";
+
+                _logger?.LogWarning("Job {JobId} execution {ExecutionId} timed out after {Duration}ms",
+                    job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
             }
-        }
-        catch (ConcurrencyException ex)
-        {
-            execution.Status = ExecutionStatus.Skipped;
-            execution.ErrorMessage = "Execution skipped due to concurrency limits";
-            _logger?.LogWarning("Job {JobId} rejected due to concurrency limits: {Message}", job.Id, ex.Message);
-        }
-        catch (Exception ex)
-        {
-            execution.MarkAsFailed(ex.Message, ex.StackTrace, true);
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                execution.MarkAsFailed(ex.Message, ex.StackTrace, true);
+
+                _logger?.LogError(ex, "Job {JobId} execution {ExecutionId} failed with error: {Message}",
+                    job.Id, execution.Id, ex.Message);
+            }
         }
         finally
         {
@@ -208,24 +185,84 @@ public class JobExecutorService
     }
 
     /// <summary>
-    /// Executes the actual job handler based on handler type.
-    /// Override or extend this to support custom job handlers.
+    /// Resolves <see cref="Job.HandlerType"/> to a type implementing <see cref="IJobHandler"/>,
+    /// instantiates it and executes it. Override to plug in a container-based handler factory.
     /// </summary>
+    /// <exception cref="ExecutionException">
+    /// The handler type is missing, cannot be resolved, does not implement <see cref="IJobHandler"/>
+    /// or cannot be instantiated.
+    /// </exception>
     protected virtual async Task<string> ExecuteJobHandlerAsync(Job job, JobExecution execution, CancellationToken cancellationToken)
     {
-        // This is a placeholder implementation
-        // In a real system, this would instantiate and execute the handler type
-        // based on job.HandlerType, passing job.HandlerParameters
+        ArgumentNullException.ThrowIfNull(job);
+        ArgumentNullException.ThrowIfNull(execution);
 
-        await Task.Delay(100, cancellationToken);
+        var handler = CreateHandler(job, execution);
+        var output = await handler.ExecuteAsync(job, cancellationToken).ConfigureAwait(false);
 
-        return $"Job {job.Name} executed successfully";
+        return output ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Resolves and instantiates the <see cref="IJobHandler"/> named by <see cref="Job.HandlerType"/>.
+    /// The name may be an assembly-qualified name or a plain full name, in which case every loaded
+    /// assembly is searched. A handler may declare a parameterless constructor or a constructor
+    /// taking the raw <see cref="Job.HandlerParameters"/> string.
+    /// </summary>
+    private IJobHandler CreateHandler(Job job, JobExecution execution)
+    {
+        if (string.IsNullOrWhiteSpace(job.HandlerType))
+            throw new ExecutionException("Job has no handler type configured", execution.Id, job.Id);
+
+        var handlerType = ResolveHandlerType(job.HandlerType)
+            ?? throw new ExecutionException($"Handler type '{job.HandlerType}' could not be resolved", execution.Id, job.Id);
+
+        if (!typeof(IJobHandler).IsAssignableFrom(handlerType) || handlerType.IsAbstract || handlerType.IsInterface)
+            throw new ExecutionException($"Handler type '{job.HandlerType}' does not implement {nameof(IJobHandler)}", execution.Id, job.Id);
+
+        try
+        {
+            var withParameters = handlerType.GetConstructor([typeof(string)]);
+            var instance = withParameters is not null
+                ? withParameters.Invoke([job.HandlerParameters ?? string.Empty])
+                : Activator.CreateInstance(handlerType);
+
+            return instance as IJobHandler
+                ?? throw new ExecutionException($"Handler type '{job.HandlerType}' could not be instantiated", execution.Id, job.Id);
+        }
+        catch (Exception ex) when (ex is not ExecutionException)
+        {
+            throw new ExecutionException($"Handler type '{job.HandlerType}' could not be instantiated", execution.Id, job.Id, ex);
+        }
+    }
+
+    /// <summary>
+    /// Resolves a type name against the assembly-qualified name first, then against the
+    /// full names of the types in every assembly loaded into the current domain.
+    /// </summary>
+    private static Type? ResolveHandlerType(string handlerType)
+    {
+        var direct = Type.GetType(handlerType, throwOnError: false, ignoreCase: false);
+        if (direct is not null)
+            return direct;
+
+        // The name may carry an assembly part that is not loadable here; match on the type name alone.
+        var typeName = handlerType.Split(',', 2)[0].Trim();
+
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var candidate = assembly.GetType(typeName, throwOnError: false, ignoreCase: false);
+            if (candidate is not null)
+                return candidate;
+        }
+
+        return null;
     }
 
     /// <summary>
     /// Validates if a job can be executed immediately.
     /// </summary>
-    public async Task<(bool CanExecute, string? Reason)> ValidateJobForExecutionAsync(Job job)
+    public virtual async Task<(bool CanExecute, string? Reason)> ValidateJobForExecutionAsync(Job job)
     {
         if (job is null)
             return (false, "Job is null");
@@ -254,7 +291,7 @@ public class JobExecutorService
     /// <summary>
     /// Gets execution statistics for a job.
     /// </summary>
-    public async Task<ExecutionStatistics> GetExecutionStatisticsAsync(Guid jobId)
+    public virtual async Task<ExecutionStatistics> GetExecutionStatisticsAsync(Guid jobId)
     {
         var executions = await _executionRepository.GetExecutionsByJobAsync(jobId);
         var job = await _jobRepository.GetByIdAsync(jobId);

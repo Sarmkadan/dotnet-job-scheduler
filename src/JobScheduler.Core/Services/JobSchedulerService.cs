@@ -103,6 +103,14 @@ public sealed class JobSchedulerService
 
             try
             {
+                // Ask before executing: the executor throws when a limit is hit, and a job that is
+                // merely saturated is not an error worth logging on every scheduler tick.
+                if (!await _concurrencyManager.CanExecuteAsync(job))
+                {
+                    _logger?.LogDebug("Job {JobId} skipped: concurrency limit reached", job.Id);
+                    continue;
+                }
+
                 var execution = await _executorService.ExecuteJobAsync(job, cancellationToken);
                 executions.Add(execution);
 
