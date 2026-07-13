@@ -10,6 +10,10 @@ using JobScheduler.Core.Constants;
 using JobScheduler.Core.Domain.Entities;
 using Xunit;
 
+/// <summary>
+/// Provides unit tests for the <see cref="Job"/> entity, verifying validation logic,
+/// execution metrics updates, success rate calculations, and concurrency checks.
+/// </summary>
 namespace DotnetJobScheduler.Tests;
 
 public sealed class JobEntityTests
