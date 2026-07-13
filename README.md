@@ -97,4 +97,34 @@ else
 }
 ```
 
+## JobSchedulerContextExtensions
+
+The `JobSchedulerContextExtensions` class provides extension methods for the `JobSchedulerContext` to simplify job scheduling operations, including finding next executable jobs, retrieving jobs with recent executions, creating job executions, and analyzing job execution statistics.
+
+Example usage:
+```csharp
+var context = new JobSchedulerContext();
+
+// Find next job to execute
+var nextJob = await context.FindNextExecutableJobAsync(DateTime.UtcNow);
+
+// Get recently active jobs
+var recentJobs = await context.GetJobsWithRecentExecutionsAsync();
+
+// Create a new job execution
+var execution = await context.CreateJobExecutionAsync(
+    jobId: Guid.Parse("12345678-0000-0000-0000-000000000001"),
+    executorName: "SchedulerWorker-1"
+);
+
+// Get execution stats for a job
+var stats = await context.GetJobExecutionStatsAsync(Guid.Parse("12345678-0000-0000-0000-000000000001"));
+
+Console.WriteLine($"Job {stats.JobId} has {stats.TotalExecutions} total executions");
+Console.WriteLine($"Success rate: {stats.SuccessRate:F2}%");
+Console.WriteLine($"Average duration: {stats.AverageDurationMs}ms");
+Console.WriteLine($"Last success: {stats.LastSuccessTime}");
+Console.WriteLine($"Last failure: {stats.LastFailureTime}");
+```
+
 // ... (rest of README.md content)
