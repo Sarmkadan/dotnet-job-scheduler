@@ -70,3 +70,41 @@ Console.WriteLine($"Is cleanup enabled: {isCleanupEnabled}");
 Console.WriteLine($"Effective timeout: {effectiveTimeoutMs}ms");
 Console.WriteLine($"Max job name length: {maxJobNameLength}");
 ```
+
+## JobManagementBenchmarks
+
+The `JobManagementBenchmarks` class measures performance of core job management operations including slug generation, JSON escaping, handler type masking, and status formatting. It benchmarks both simple and complex scenarios to provide realistic performance baselines for job identifier generation and string processing used throughout the scheduler.
+
+Example usage:
+```csharp
+// Generate job slugs from different job names
+var simpleSlug = JobManagementBenchmarks.GenerateJobSlug_Simple();
+var complexSlug = JobManagementBenchmarks.GenerateJobSlug_Complex();
+var longSlug = JobManagementBenchmarks.GenerateJobSlug_Long();
+
+// Escape job descriptions for JSON serialization
+var cleanEscaped = JobManagementBenchmarks.EscapeJobDescription_Clean();
+var specialEscaped = JobManagementBenchmarks.EscapeJobDescription_Special();
+
+// Process job descriptions
+var truncatedDesc = JobManagementBenchmarks.TruncateJobDescription();
+
+// Mask handler type names for security/logging
+var maskedHandler = JobManagementBenchmarks.MaskHandlerType();
+
+// Parse job priority values
+var highPriority = JobManagementBenchmarks.ParseJobPriority_High();
+var normalPriority = JobManagementBenchmarks.ParseJobPriority_Normal();
+var lowPriority = JobManagementBenchmarks.ParseJobPriority_Low();
+var defaultPriority = JobManagementBenchmarks.ParseJobPriority_Default();
+
+// Create job identifiers
+var jobId = JobManagementBenchmarks.CreateJobIdentifier();
+
+// Format job status
+var statusText = JobManagementBenchmarks.FormatJobStatus();
+
+Console.WriteLine($"Job ID: {jobId}");
+Console.WriteLine($"Status: {statusText}");
+Console.WriteLine($"High priority: {highPriority}");
+```
