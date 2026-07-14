@@ -1,5 +1,31 @@
 // ... (rest of README.md content)
 
+## StringProcessingBenchmarks
+
+The `StringProcessingBenchmarks` class measures string manipulation operations used throughout the scheduler, including slug generation, JSON escaping, truncation, and credential masking.
+
+Example usage:
+```csharp
+// Create a new instance of StringProcessingBenchmarks
+var benchmarks = new StringProcessingBenchmarks();
+
+// Measure slug generation for short, complex, and long names
+var shortSlug = benchmarks.ToSlug_Short;
+var complexSlug = benchmarks.ToSlug_Complex;
+var longSlug = benchmarks.ToSlug_Long;
+
+// Measure JSON escaping for clean and special payloads
+var cleanJson = benchmarks.JsonEscape_Clean;
+var specialJson = benchmarks.JsonEscape_Special;
+
+// Measure truncation for needed and no-op cases
+var neededTruncated = benchmarks.Truncate_Needed;
+var noOpTruncated = benchmarks.Truncate_NoOp;
+
+// Measure credential masking for API keys
+var maskedApiKey = benchmarks.Mask_ApiKey;
+```
+
 ## RetryServiceBenchmarks
 
 The `RetryServiceBenchmarks` class measures performance of retry logic operations in the `RetryService`, including retry delay calculations, retry policy validation, and retry attempt tracking.
