@@ -1,35 +1,37 @@
 // ... (rest of README.md content)
 
-## JobPipelineServiceBenchmarks
+## RetryServiceBenchmarks
 
-The `JobPipelineServiceBenchmarks` class measures performance of `JobPipelineService` operations for job chain/pipeline support. It provides a set of benchmarks to evaluate the performance of pipeline creation, validation, execution flow control, dependency chain resolution, and pipeline status tracking.
+The `RetryServiceBenchmarks` class measures performance of retry logic operations in the `RetryService`, including retry delay calculations, retry policy validation, and retry attempt tracking.
 
 Example usage:
 ```csharp
-// Create a new instance of JobPipelineServiceBenchmarks
-var benchmarks = new JobPipelineServiceBenchmarks();
+// Create a new instance of RetryServiceBenchmarks
+var benchmarks = new RetryServiceBenchmarks();
 
 // Setup the benchmarks
 benchmarks.Setup();
 
-// Measure pipeline creation with 3 steps
-await benchmarks.CreatePipeline_3Steps();
+// Measure retry delay calculations
+var exponentialFirstAttemptDelay = benchmarks.CalculateRetryDelay_ExponentialBackoff_FirstAttempt();
+var linearFifthAttemptDelay = benchmarks.CalculateRetryDelay_LinearBackoff_FifthAttempt();
+var fixedBackoffDelay = benchmarks.CalculateRetryDelay_FixedBackoff();
 
-// Measure pipeline creation with 10 steps
-await benchmarks.CreatePipeline_10Steps();
+// Evaluate retry policy
+var shouldRetryWithinMax = benchmarks.ShouldRetry_WithinMaxRetries();
+var shouldRetryExceededMax = benchmarks.ShouldRetry_ExceededMaxRetries();
+var shouldRetryZeroMax = benchmarks.ShouldRetry_ZeroMaxRetries();
 
-// Get pipeline status
-await benchmarks.GetPipelineStatus();
+// Calculate total retry times
+var totalExponentialRetryTime = benchmarks.CalculateTotalRetryTime_Exponential();
+var totalLinearRetryTime = benchmarks.CalculateTotalRetryTime_Linear();
+var totalFixedRetryTime = benchmarks.CalculateTotalRetryTime_Fixed();
 
-// Get all pipelines
-await benchmarks.GetAllPipelines();
+// Format retry messages
+var retryMessage = benchmarks.FormatRetryMessage();
 
-// Get pipeline by ID
-await benchmarks.GetPipelineById();
-
-// Delete pipeline
-await benchmarks.DeletePipeline();
-
-// Check pipeline ready status
-await benchmarks.CheckPipelineReadyStatus();
+// Access retry policy properties
+var maxAttempts = benchmarks.MaxAttempts;
+var backoffStrategy = benchmarks.BackoffStrategy;
+var baseDelaySeconds = benchmarks.BaseDelaySeconds;
 ```
