@@ -65,3 +65,34 @@ var shouldExecute = benchmarks.ShouldExecuteAt_Miss();
 // Get human-readable description of cron expression
 var description = benchmarks.GetCronDescription_Simple();
 ```
+
+## JobExecutorServiceBenchmarks
+
+The `JobExecutorServiceBenchmarks` class measures the performance of job execution operations in the `JobExecutorService`. It benchmarks various scenarios including successful job execution, error handling, timeout scenarios, concurrency control, priority handling, and metrics collection to evaluate the efficiency of the job execution pipeline.
+
+Example usage:
+```csharp
+// Create a new instance of JobExecutorServiceBenchmarks
+var benchmarks = new JobExecutorServiceBenchmarks();
+
+// Setup the benchmarks
+benchmarks.Setup();
+
+// Measure successful job execution
+var successfulResult = await benchmarks.ExecuteJob_Successful();
+
+// Measure failing job execution with retry logic
+var failingResult = await benchmarks.ExecuteJob_Failing();
+
+// Measure job execution with timeout enforcement
+var timeoutResult = await benchmarks.ExecuteJob_Timeout();
+
+// Measure concurrency limit enforcement
+var concurrencyResult = await benchmarks.ExecuteJob_WithConcurrencyLimit();
+
+// Measure priority-based execution ordering
+var priorityResult = await benchmarks.ExecuteJob_WithPriority();
+
+// Measure metrics collection during execution
+var metricsResult = await benchmarks.ExecuteJob_WithMetricsCollection();
+```
