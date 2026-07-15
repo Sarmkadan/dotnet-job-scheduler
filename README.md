@@ -1,36 +1,46 @@
 // ... (rest of README.md content)
 
-## JobSchedulerException
+## IEventPublisher
 
-The `JobSchedulerException` is a base exception class for all job scheduler-related errors. It provides a way to handle errors that occur during job scheduling and execution. The exception includes an optional `ErrorCode` property to provide additional information about the error.
+The `IEventPublisher` interface is responsible for publishing events to all registered subscribers in the job scheduler. It provides a way to decouple event producers from consumers, allowing for a more flexible and scalable architecture.
 
 Example usage:
 ```csharp
-try
-{
-    // Attempt to execute a job
-    await jobExecutorService.ExecuteJobAsync(job);
-}
-catch (JobSchedulerException ex)
-{
-    Console.WriteLine($"Job scheduler error: {ex.Message}");
-    if (ex.ErrorCode != null)
-    {
-        Console.WriteLine($"Error code: {ex.ErrorCode}");
-    }
-}
+// Create an instance of IEventPublisher
+var eventPublisher = new EventPublisher();
 
-// Alternatively, you can throw a JobSchedulerException with an error code
-throw new JobSchedulerException("Job scheduling failed", "SCHEDULING_ERROR");
+// Publish a JobCreatedEvent
+var jobCreatedEvent = new JobCreatedEvent
+{
+    EventId = Guid.NewGuid(),
+    Timestamp = DateTime.UtcNow,
+    JobId = Guid.NewGuid(),
+    JobName = "My Job",
+    CreatedBy = "John Doe"
+};
+await eventPublisher.PublishAsync(jobCreatedEvent);
 
-// Or throw a JobSchedulerException with an inner exception
-try
+// Publish a JobExecutionStartedEvent
+var jobExecutionStartedEvent = new JobExecutionStartedEvent
 {
-    // Attempt to execute a job
-    await jobExecutorService.ExecuteJobAsync(job);
-}
-catch (Exception ex)
+    EventId = Guid.NewGuid(),
+    Timestamp = DateTime.UtcNow,
+    JobId = Guid.NewGuid(),
+    ExecutionId = Guid.NewGuid(),
+    JobName = "My Job"
+};
+await eventPublisher.PublishAsync(jobExecutionStartedEvent);
+
+// Publish a JobExecutionCompletedEvent
+var jobExecutionCompletedEvent = new JobExecutionCompletedEvent
 {
-    throw new JobSchedulerException("Job execution failed", ex);
-}
+    EventId = Guid.NewGuid(),
+    Timestamp = DateTime.UtcNow,
+    JobId = Guid.NewGuid(),
+    ExecutionId = Guid.NewGuid(),
+    JobName = "My Job",
+    Success = true,
+    ExecutionTimeMs = 1000
+};
+await eventPublisher.PublishAsync(jobExecutionCompletedEvent);
 ```
