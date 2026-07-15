@@ -75,6 +75,40 @@ var jobExecutionCompletedEvent = new JobExecutionCompletedEvent
 await eventPublisher.PublishAsync(jobExecutionCompletedEvent);
 ```
 
+## DateTimeExtensions
+
+The `DateTimeExtensions` class provides a comprehensive set of extension methods for common date and time operations in job scheduling scenarios. These utilities simplify working with dates, times, and time spans by offering convenient methods for checking temporal relationships, rounding dates, and calculating time boundaries.
+
+Example usage:
+```csharp
+using JobScheduler.Core.Extensions;
+
+// Check if a date is in the past or future
+DateTime scheduledTime = DateTime.UtcNow.AddHours(2);
+bool isPast = scheduledTime.IsInThePast();      // false
+bool isFuture = scheduledTime.IsInTheFuture();    // true
+
+// Calculate time until or since a specific date
+TimeSpan timeUntil = scheduledTime.TimeUntil();    // TimeSpan until scheduledTime
+TimeSpan timeSince = DateTime.UtcNow.AddMinutes(-30).TimeSince(); // TimeSpan since 30 minutes ago
+
+// Check if two dates are on the same day
+DateTime today = DateTime.UtcNow;
+DateTime tomorrow = DateTime.UtcNow.AddDays(1);
+bool sameDay = today.IsSameDay(tomorrow); // false
+
+// Round dates to specific boundaries
+DateTime roundedToMinute = DateTime.UtcNow.RoundToNearestMinute();
+DateTime roundedToHour = DateTime.UtcNow.RoundToNearestHour();
+
+// Get start/end of day, week, or month
+DateTime startOfDay = DateTime.UtcNow.StartOfDay();
+DateTime endOfDay = DateTime.UtcNow.EndOfDay();
+DateTime startOfWeek = DateTime.UtcNow.StartOfWeek();
+DateTime startOfMonth = DateTime.UtcNow.StartOfMonth();
+DateTime endOfMonth = DateTime.UtcNow.EndOfMonth();
+```
+
 ## CollectionExtensions
 
 The `CollectionExtensions` class provides a comprehensive set of extension methods for working with collections, lists, and enumerables in a fluent and memory-efficient way. These utilities are designed to simplify common operations like batching, filtering, and transformation while preventing common exceptions like `NullReferenceException` or `ArgumentOutOfRangeException`.
