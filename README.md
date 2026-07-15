@@ -45,6 +45,83 @@ var jobExecutionCompletedEvent = new JobExecutionCompletedEvent
 await eventPublisher.PublishAsync(jobExecutionCompletedEvent);
 ```
 
+## CollectionExtensions
+
+The `CollectionExtensions` class provides a comprehensive set of extension methods for working with collections, lists, and enumerables in a fluent and memory-efficient way. These utilities are designed to simplify common operations like batching, filtering, and transformation while preventing common exceptions like `NullReferenceException` or `ArgumentOutOfRangeException`.
+
+The extensions include safe accessors, batching operations for pagination, random sampling, and conditional iteration patterns that are particularly useful in job scheduling scenarios where collections need to be processed in chunks or filtered based on conditions.
+
+Example usage:
+```csharp
+// Sample job data
+var jobs = new List<Job>
+{
+    new Job { Id = Guid.NewGuid(), Name = "Data Sync Job", Priority = 1 },
+    new Job { Id = Guid.NewGuid(), Name = "Report Generation Job", Priority = 2 },
+    new Job { Id = Guid.NewGuid(), Name = "Cleanup Job", Priority = 3 },
+    new Job { Id = Guid.NewGuid(), Name = "Backup Job", Priority = 1 },
+    new Job { Id = Guid.NewGuid(), Name = "Indexing Job", Priority = 2 }
+};
+
+// Batch jobs for parallel processing (prevents memory exhaustion)
+var jobBatches = jobs.Batch(2);
+foreach (var batch in jobBatches)
+{
+    Console.WriteLine($"Processing batch with {batch.Count()} jobs");
+    // Process each batch in parallel
+}
+
+// Safely get job at specific index
+var firstJob = jobs.SafeGetAt(0);
+var nonExistentJob = jobs.SafeGetAt(100); // Returns null instead of throwing
+
+// Check if collection is empty or has items
+if (jobs.IsEmpty())
+{
+    Console.WriteLine("No jobs available");
+}
+
+if (jobs.HasItems())
+{
+    Console.WriteLine($"Found {jobs.Count} jobs");
+}
+
+// Process only high priority jobs
+var highPriorityJobs = jobs.ForEachWhere(
+    job => job.Priority > 1,
+    job => Console.WriteLine($"Processing high priority job: {job.Name}")
+);
+
+// Get random sample of jobs for analysis
+var randomJobs = jobs.Random(3);
+Console.WriteLine($"Random sample: {string.Join(", ", randomJobs.Select(j => j.Name))}");
+
+// Chunk jobs into fixed-size groups
+var jobChunks = jobs.Chunk(2);
+foreach (var chunk in jobChunks)
+{
+    Console.WriteLine($"Chunk with {chunk.Count} jobs");
+}
+
+// Distinct jobs by priority
+var distinctPriorityJobs = jobs.DistinctBy(job => job.Priority);
+
+// Convert to page for pagination
+var page1 = jobs.ToPage(1, 2);
+Console.WriteLine($"Page 1 has {page1.Count} jobs");
+
+// Count jobs matching a condition
+var highPriorityCount = jobs.CountWhere(job => job.Priority > 1);
+Console.WriteLine($"High priority jobs: {highPriorityCount}");
+
+// Safe cast from non-generic collection
+var objectList = new ArrayList { new Job { Name = "Test Job" } };
+var typedJobs = objectList.SafeCast<Job>();
+
+// Take jobs while condition is true
+var priorityJobs = jobs.TakeWhile(job => job.Priority <= 2);
+```
+
 ## EventPublisher
 
 The `EventPublisher` class implements the `IEventPublisher` interface and provides an in-memory event publishing system using the pub-sub pattern. It enables decoupled communication between components in the job scheduler by allowing event producers to publish events without knowing their consumers.
