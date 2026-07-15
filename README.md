@@ -1,5 +1,36 @@
 // ... (rest of README.md content)
 
+## CacheServiceBenchmarks
+
+The `CacheServiceBenchmarks` class measures the performance of the `CacheService` operations, including cache hits and misses, cache expiration, concurrent cache access, cache size limit eviction, and cache removal.
+
+Example usage:
+```csharp
+// Create a new instance of CacheServiceBenchmarks
+var benchmarks = new CacheServiceBenchmarks();
+
+// Measure cache miss followed by cache hit for same key
+var result = await benchmarks.GetOrAdd_CacheMissThenHit();
+
+// Measure cache expiration and cleanup
+await benchmarks.GetOrAdd_WithExpiration();
+
+// Measure concurrent cache access
+benchmarks.GetOrAdd_ConcurrentAccess();
+
+// Measure cache size limit eviction
+await benchmarks.GetOrAdd_SizeLimitEviction();
+
+// Measure cache hit performance
+var cachedValue = await benchmarks.GetOrAdd_CacheHit();
+
+// Remove a cache item
+await benchmarks.Remove();
+
+// Clear the entire cache
+await benchmarks.Clear();
+```
+
 ## StringProcessingBenchmarks
 
 The `StringProcessingBenchmarks` class measures string manipulation operations used throughout the scheduler, including slug generation, JSON escaping, truncation, and credential masking.
