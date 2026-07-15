@@ -1,8 +1,8 @@
 // ... (rest of README.md content)
 
-## ExecutionException
+## JobSchedulerException
 
-Thrown when a job execution fails or encounters an error. This exception provides information about the failed execution, including the execution ID, job ID, and attempt number.
+The `JobSchedulerException` is a base exception class for all job scheduler-related errors. It provides a way to handle errors that occur during job scheduling and execution. The exception includes an optional `ErrorCode` property to provide additional information about the error.
 
 Example usage:
 ```csharp
@@ -11,11 +11,26 @@ try
     // Attempt to execute a job
     await jobExecutorService.ExecuteJobAsync(job);
 }
-catch (ExecutionException ex)
+catch (JobSchedulerException ex)
 {
-    Console.WriteLine($"Execution failed: {ex.Message}");
-    Console.WriteLine($"Execution ID: {ex.ExecutionId}");
-    Console.WriteLine($"Job ID: {ex.JobId}");
-    Console.WriteLine($"Attempt number: {ex.AttemptNumber}");
+    Console.WriteLine($"Job scheduler error: {ex.Message}");
+    if (ex.ErrorCode != null)
+    {
+        Console.WriteLine($"Error code: {ex.ErrorCode}");
+    }
+}
+
+// Alternatively, you can throw a JobSchedulerException with an error code
+throw new JobSchedulerException("Job scheduling failed", "SCHEDULING_ERROR");
+
+// Or throw a JobSchedulerException with an inner exception
+try
+{
+    // Attempt to execute a job
+    await jobExecutorService.ExecuteJobAsync(job);
+}
+catch (Exception ex)
+{
+    throw new JobSchedulerException("Job execution failed", ex);
 }
 ```
