@@ -186,6 +186,46 @@ var typedJobs = objectList.SafeCast<Job>();
 var priorityJobs = jobs.TakeWhile(job => job.Priority <= 2);
 ```
 
+## HttpContextExtensions
+
+The `HttpContextExtensions` class provides a set of helper methods for the ASP.NET Core `HttpContext`, simplifying common tasks such as claim retrieval, IP address extraction, and header manipulation. These extensions enable cleaner controller code by abstracting repetitive HTTP request operations into reusable, fluent methods.
+
+Example usage:
+```csharp
+using JobScheduler.Core.Extensions;
+
+// Inside an ASP.NET Core controller action
+public IActionResult ProcessRequest(HttpContext context)
+{
+    if (!context.IsHttps())
+    {
+        return BadRequest("HTTPS is required.");
+    }
+
+    if (!context.HasClaim("role", "admin"))
+    {
+        return Forbid();
+    }
+
+    string? userId = context.GetUserId();
+    string clientIp = context.GetClientIpAddress();
+    string correlationId = context.GetCorrelationId();
+    string fullUrl = context.GetFullRequestUrl();
+    bool acceptsJson = context.AcceptsJson();
+    string scheme = context.GetRequestScheme();
+
+    // Safe query parameter retrieval
+    int? limit = context.GetQueryParameter<int>("limit");
+
+    // Header manipulation
+    context.SetNoCache();
+    context.SetSecurityHeaders();
+    context.SetCacheControl(3600);
+
+    return Ok(new { userId, clientIp, correlationId, acceptsJson });
+}
+```
+
 ## EventPublisher
 
 The `EventPublisher` class implements the `IEventPublisher` interface and provides an in-memory event publishing system using the pub-sub pattern. It enables decoupled communication between components in the job scheduler by allowing event producers to publish events without knowing their consumers.
