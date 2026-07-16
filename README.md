@@ -715,6 +715,72 @@ var staleJobs = await jobRepository.GetJobsWithoutRecentExecutionAsync(60); // 6
 Console.WriteLine($"Stale jobs (>60 min since last execution): {staleJobs.Count()}");
 ```
 
+## JobSchedulerSettings
+
+The `JobSchedulerSettings` class encapsulates all configuration settings for the job scheduler. It provides a centralized, type-safe way to configure database connections, concurrency limits, timeouts, retries, queue polling, cleanup operations, and job naming constraints. This settings class is used throughout the scheduler for consistent configuration management and can be configured via dependency injection or configuration files.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+// Create settings instance with default values
+var settings = new JobSchedulerSettings
+{
+    ConnectionString = "Data Source=jobscheduler.db",
+    MaxConcurrentJobs = 50,
+    DefaultTimeoutSeconds = 600,
+    DefaultMaxRetries = 5,
+    DefaultRetryBackoffSeconds = 15,
+    QueuePollIntervalMs = 2000,
+    EnableCleanup = true,
+    CleanupIntervalMs = 7200000, // 2 hours
+    MaxJobNameLength = 100,
+    MaxCronExpressionLength = 100
+};
+
+// OR use with dependency injection in ASP.NET Core
+var services = new ServiceCollection();
+
+services.Configure<JobSchedulerSettings>(options =>
+{
+    options.ConnectionString = "Server=localhost;Database=JobScheduler;User Id=sa;Password=your_password;";
+    options.MaxConcurrentJobs = 100;
+    options.DefaultTimeoutSeconds = 300;
+    options.DefaultMaxRetries = 3;
+    options.DefaultRetryBackoffSeconds = 10;
+    options.QueuePollIntervalMs = 1000;
+    options.EnableCleanup = true;
+    options.CleanupIntervalMs = 3600000; // 1 hour
+    options.MaxJobNameLength = 255;
+    options.MaxCronExpressionLength = 255;
+});
+
+// Build service provider and access settings
+var serviceProvider = services.BuildServiceProvider();
+var configuredSettings = serviceProvider.GetRequiredService<IOptions<JobSchedulerSettings>>().Value;
+
+Console.WriteLine($"Connection String: {configuredSettings.ConnectionString}");
+Console.WriteLine($"Max Concurrent Jobs: {configuredSettings.MaxConcurrentJobs}");
+Console.WriteLine($"Default Timeout: {configuredSettings.DefaultTimeoutSeconds}s");
+```
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ConnectionString` | `string?` | `null` | Database connection string (SQLite, SQL Server, PostgreSQL, etc.) |
+| `MaxConcurrentJobs` | `int` | `10` | Maximum concurrent job executions allowed globally |
+| `DefaultTimeoutSeconds` | `int` | `300` | Default job execution timeout in seconds |
+| `DefaultMaxRetries` | `int` | `3` | Default maximum retry attempts for failed jobs |
+| `DefaultRetryBackoffSeconds` | `int` | `5` | Default retry backoff interval in seconds |
+| `QueuePollIntervalMs` | `int` | `5000` | Poll interval for checking due jobs in milliseconds |
+| `EnableCleanup` | `bool` | `true` | Enable automatic cleanup of orphaned executions |
+| `CleanupIntervalMs` | `int` | `300000` | Cleanup interval in milliseconds (5 minutes) |
+| `MaxJobNameLength` | `int` | `255` | Maximum allowed length for job names |
+| `MaxCronExpressionLength` | `int` | `255` | Maximum allowed length for cron expressions |
+
 ## DependencyInjectionExtensions
 
 The `DependencyInjectionExtensions` class provides extension methods for registering job scheduler services with the .NET dependency injection container. It centralizes service registration, configuration, and validation, ensuring consistent setup across applications. The extension methods support both minimal configuration and advanced features like caching, monitoring, leader election, and distributed job locking.
