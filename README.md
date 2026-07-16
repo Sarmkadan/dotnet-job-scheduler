@@ -152,4 +152,75 @@ await controller.CleanupOldExecutionsAsync(olderThanDays: 90);
 - `MaxRetries`: Maximum number of retries configured for the job
 - `Output`: Output or result of the execution
 
+## HistoryController
+
+The `HistoryController` class provides RESTful API endpoints for querying job execution history and aggregated statistics. It exposes endpoints for retrieving both per-job and system-wide execution history with flexible filtering and pagination capabilities.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Controllers;
+using JobScheduler.Core.Domain.Models;
+
+// Create history controller with required services
+var historyService = new JobHistoryService();
+var logger = new Logger<HistoryController>(new LoggerFactory());
+
+var controller = new HistoryController(historyService, logger);
+
+// Get paginated execution history for a specific job
+var jobHistory = await controller.GetJobHistory(
+    jobId: Guid.Parse("123e4567-e89b-12d3-a456-426614174000"),
+    status: ExecutionStatus.Success,
+    from: DateTime.UtcNow.AddDays(-7),
+    to: DateTime.UtcNow,
+    pageNumber: 1,
+    pageSize: 50
+);
+
+// Get aggregated execution statistics for a specific job
+var jobSummary = await controller.GetJobSummary(
+    jobId: Guid.Parse("123e4567-e89b-12d3-a456-426614174000"),
+    from: DateTime.UtcNow.AddDays(-30),
+    to: DateTime.UtcNow
+);
+
+// Get paginated execution history across all jobs (system-wide)
+var systemHistory = await controller.GetSystemHistory(
+    status: ExecutionStatus.Failed,
+    from: DateTime.UtcNow.AddDays(-1),
+    to: DateTime.UtcNow,
+    pageNumber: 1,
+    pageSize: 20
+);
+
+// Get aggregated execution statistics across all jobs (system-wide)
+var systemSummary = await controller.GetSystemSummary(
+    from: DateTime.UtcNow.AddDays(-7),
+    to: DateTime.UtcNow
+);
+```
+
+### Endpoints
+
+- `GET /api/history/jobs/{jobId}`: Returns paginated execution history for a specific job
+- `GET /api/history/jobs/{jobId}/summary`: Returns aggregated statistics for a specific job
+- `GET /api/history`: Returns paginated execution history across all jobs
+- `GET /api/history/summary`: Returns aggregated statistics across all jobs
+
+### Response Types
+
+- `GetJobHistory`: Returns `PagedResult<ExecutionResponse>` with filtered, paginated execution history for a specific job
+- `GetJobSummary`: Returns `JobExecutionSummary` with aggregated execution statistics for a specific job
+- `GetSystemHistory`: Returns `PagedResult<ExecutionResponse>` with filtered, paginated execution history across all jobs
+- `GetSystemSummary`: Returns `JobExecutionSummary` with aggregated execution statistics across all jobs
+
+### Query Parameters
+
+- `status`: Filter by execution status (Success, Failed, Running, etc.)
+- `from`: Start date for filtering execution records
+- `to`: End date for filtering execution records
+- `pageNumber`: Page number for pagination (default: 1)
+- `pageSize`: Number of items per page (default: 20)
+
 <!-- ... rest of README content -->
