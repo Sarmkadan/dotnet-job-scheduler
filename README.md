@@ -127,6 +127,49 @@ dependency.CreatedAt = DateTime.UtcNow;
 Console.WriteLine($"Dependency created at: {dependency.CreatedAt:u}");
 ```
 
+## Job
+
+The `Job` entity represents a scheduled job in the distributed job scheduler system. It contains the job's configuration, scheduling rules (via cron expression), retry policies, execution limits, and tracking metrics. Jobs can be prioritized, have configurable concurrency limits, and support timezone-aware scheduling.
+
+Example usage:
+```csharp
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Domain.Enums;
+
+// Create a new scheduled job
+var job = new Job
+{
+    Name = "Data Export Job",
+    Description = "Exports customer data to CSV format every day at midnight",
+    CronExpression = "0 0 * * *",
+    TimeZoneId = "America/New_York",
+    HandlerType = "JobScheduler.Jobs.DataExportJob, JobScheduler.Jobs",
+    HandlerParameters = "{\"format\":\"csv\",\"exportPath\":\"/data/exports\"}",
+    Priority = JobPriority.High,
+    MaxConcurrentExecutions = 2,
+    MaxRetries = 3,
+    RetryBackoffSeconds = 60,
+    ExecutionTimeoutSeconds = 3600,
+    IsActive = true,
+    CreatedBy = "admin@example.com"
+};
+
+// Validate job configuration before scheduling
+bool isValid = job.IsValidForScheduling();
+Console.WriteLine($"Job is valid for scheduling: {isValid}");
+
+// Update execution metrics after job runs
+job.UpdateExecutionMetrics(success: true);
+Console.WriteLine($"Success rate: {job.GetSuccessRate()}%");
+
+// Check if job can execute now based on concurrency limits
+bool canExecute = job.CanExecuteNow(currentConcurrentCount: 0);
+Console.WriteLine($"Can execute now: {canExecute}");
+
+// Mark job as updated by a specific user
+job.MarkAsUpdated(updatedBy: "scheduler-service");
+```
+
 ## RetryPolicy
 
 `RetryPolicy` defines how a job should be retried after a failure, including the maximum number of attempts, back‑off strategy, and which exception types are considered retryable. It provides helper methods to calculate delay intervals, validate the configuration, and generate human‑readable descriptions of the strategy.
