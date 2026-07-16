@@ -664,6 +664,57 @@ Console.WriteLine($"Has active jobs: {hasActiveJobs}");
 await jobRepository.SaveChangesAsync();
 ```
 
+## JobRepository
+
+The `JobRepository` provides specialized data access methods for job entities, extending the base `Repository<Job>` with job-specific queries. It handles job retrieval by name, status, priority, and execution state, supporting common scheduler operations like finding active jobs, failed jobs, long-running jobs, and jobs due for execution. The repository integrates with EF Core for efficient database queries and includes ordering extensions to prioritize jobs appropriately.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+// Setup (typically via dependency injection)
+var options = new DbContextOptionsBuilder<JobSchedulerContext>()
+    .UseSqlite("Data Source=jobscheduler.db")
+    .Options;
+var dbContext = new JobSchedulerContext(options);
+var jobRepository = new JobRepository(dbContext);
+
+// Get a job by name
+var jobByName = await jobRepository.GetByNameAsync("DataProcessor");
+Console.WriteLine(jobByName?.Name);
+
+// Get all active jobs (ordered by priority)
+var activeJobs = await jobRepository.GetActiveJobsAsync();
+Console.WriteLine($"Active jobs: {activeJobs.Count()}");
+
+// Get jobs by specific status
+var pausedJobs = await jobRepository.GetJobsByStatusAsync(JobStatus.Paused);
+Console.WriteLine($"Paused jobs: {pausedJobs.Count()}");
+
+// Get jobs by priority level
+var highPriorityJobs = await jobRepository.GetJobsByPriorityAsync(JobPriority.High);
+Console.WriteLine($"High priority jobs: {highPriorityJobs.Count()}");
+
+// Get jobs scheduled for immediate execution (due jobs)
+var jobsForExecution = await jobRepository.GetScheduledJobsForExecutionAsync();
+Console.WriteLine($"Jobs ready to execute: {jobsForExecution.Count()}");
+
+// Get failed jobs that need attention
+var failedJobs = await jobRepository.GetFailedJobsAsync();
+Console.WriteLine($"Failed jobs requiring attention: {failedJobs.Count()}");
+
+// Get long-running jobs (executing longer than threshold)
+var longRunningJobs = await jobRepository.GetLongRunningJobsAsync(300); // 5 minutes
+Console.WriteLine($"Long-running jobs (>5 min): {longRunningJobs.Count()}");
+
+// Get jobs that haven't executed recently (stale jobs)
+var staleJobs = await jobRepository.GetJobsWithoutRecentExecutionAsync(60); // 60 minutes
+Console.WriteLine($"Stale jobs (>60 min since last execution): {staleJobs.Count()}");
+```
+
 ## JobSchedulerContext
 
 The `JobSchedulerContext` is the Entity Framework Core database context for the job scheduler. It serves as the primary data access layer, providing `DbSet<T>` collections for all scheduler entities and managing database connections, migrations, and transactions. The context is designed to work with dependency injection and supports both SQLite and SQL Server backends through EF Core's provider model.
