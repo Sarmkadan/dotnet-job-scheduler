@@ -411,6 +411,39 @@ DateTime nextRetry = policy.GetNextRetryTime(lastFailure, attemptNumber: 2);
 Console.WriteLine($"Next retry scheduled at: {nextRetry:u}");
 ```
 
+## PerformanceAnalysisResponse
+
+`PerformanceAnalysisResponse` provides detailed performance metrics and timing analysis for job executions, including percentile data (median, P95, P99), average, minimum, and maximum execution times, as well as timestamps for the fastest and slowest executions. This model is useful for performance monitoring, identifying outliers, and optimizing job execution times.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Domain.Models;
+
+// Create a PerformanceAnalysisResponse instance with execution metrics
+var analysis = new PerformanceAnalysisResponse
+{
+    JobId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+    AverageExecutionTimeMs = 150,
+    MedianExecutionTimeMs = 120,
+    P95ExecutionTimeMs = 300,
+    P99ExecutionTimeMs = 500,
+    SlowestExecutionTimeMs = 2500,
+    FastestExecutionTimeMs = 50,
+    SlowestExecutionAt = DateTime.UtcNow.AddHours(-1),
+    FastestExecutionAt = DateTime.UtcNow.AddDays(-7)
+};
+
+// Display performance metrics
+Console.WriteLine($"Performance analysis for job {analysis.JobId}:");
+Console.WriteLine($"Average execution time: {analysis.AverageExecutionTimeMs}ms");
+Console.WriteLine($"Median execution time: {analysis.MedianExecutionTimeMs}ms");
+Console.WriteLine($"P95 execution time: {analysis.P95ExecutionTimeMs}ms");
+Console.WriteLine($"P99 execution time: {analysis.P99ExecutionTimeMs}ms");
+Console.WriteLine($"Slowest execution: {analysis.SlowestExecutionTimeMs}ms at {analysis.SlowestExecutionAt?.ToString("u")}");
+Console.WriteLine($"Fastest execution: {analysis.FastestExecutionTimeMs}ms at {analysis.FastestExecutionAt?.ToString("u")}");
+```
+
 ## ExecutionStatsResponse
 
 `ExecutionStatsResponse` is a response model that provides comprehensive execution statistics for a job, including success rates, execution time metrics, and timing information. It's typically returned by API endpoints that query job performance data and is useful for monitoring, alerting, and performance analysis.
