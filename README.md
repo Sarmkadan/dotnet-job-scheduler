@@ -548,6 +548,76 @@ app.MapGet("/jobs/{id}", (Guid id) =>
 app.Run();
 ```
 
+## LoggingMiddleware
+
+The `LoggingMiddleware` is an ASP.NET Core middleware component that logs HTTP request details including method, path, query string, headers, request body, response status code, response headers, and response body. It captures timing information and provides a structured way to track request execution for debugging and monitoring purposes.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Middleware;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure logging
+builder.Logging.AddConsole();
+
+// Add services to the container
+builder.Services.AddControllers();
+
+var app = builder.Build();
+
+// Use LoggingMiddleware to log HTTP requests and responses
+app.UseMiddleware<LoggingMiddleware>();
+
+// Configure other middleware
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
+```
+
+Example with custom configuration:
+
+```csharp
+using JobScheduler.Core.Middleware;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure logging
+builder.Logging.AddConsole();
+
+// Add services to the container
+builder.Services.AddControllers();
+
+var app = builder.Build();
+
+// Use LoggingMiddleware with custom configuration
+app.UseMiddleware<LoggingMiddleware>(new LoggingMiddlewareOptions
+{
+    LogRequestBody = true,
+    LogResponseBody = true,
+    LogHeaders = true,
+    IncludeTiming = true
+});
+
+// Configure other middleware
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
+```
+
 ## JobHistoryQuery
 
 `JobHistoryQuery` is a model for filtering and paginating job execution history records. It provides optional filters for execution status, time ranges, and pagination controls to retrieve specific subsets of historical job executions.
