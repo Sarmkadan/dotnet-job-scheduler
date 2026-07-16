@@ -312,6 +312,44 @@ DateTime nextRetry = policy.GetNextRetryTime(lastFailure, attemptNumber: 2);
 Console.WriteLine($"Next retry scheduled at: {nextRetry:u}");
 ```
 
+## ExecutionStatsResponse
+
+`ExecutionStatsResponse` is a response model that provides comprehensive execution statistics for a job, including success rates, execution time metrics, and timing information. It's typically returned by API endpoints that query job performance data and is useful for monitoring, alerting, and performance analysis.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Domain.Models;
+
+// Create an ExecutionStatsResponse instance from job statistics
+var stats = new ExecutionStatsResponse
+{
+    JobId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+    TotalExecutions = 1000,
+    SuccessfulExecutions = 950,
+    FailedExecutions = 50,
+    SuccessRate = 95.0,
+    AverageExecutionTimeMs = 150,
+    MinExecutionTimeMs = 50,
+    MaxExecutionTimeMs = 2500,
+    LastExecutionAt = DateTime.UtcNow
+};
+
+// Display statistics
+Console.WriteLine($"Job {stats.JobId} statistics:");
+Console.WriteLine($"Total executions: {stats.TotalExecutions}");
+Console.WriteLine($"Successful: {stats.SuccessfulExecutions} ({stats.SuccessRate}%)");
+Console.WriteLine($"Failed: {stats.FailedExecutions}");
+Console.WriteLine($"Average execution time: {stats.AverageExecutionTimeMs}ms");
+Console.WriteLine($"Min execution time: {stats.MinExecutionTimeMs}ms");
+Console.WriteLine($"Max execution time: {stats.MaxExecutionTimeMs}ms");
+Console.WriteLine($"Last execution: {stats.LastExecutionAt?.ToString("u") ?? "Never"}");
+
+// Calculate derived metrics
+int failureRate = (int)(100 - stats.SuccessRate);
+Console.WriteLine($"Failure rate: {failureRate}%");
+```
+
 ## JobPipeline
 
 `JobPipeline` represents an ordered collection of jobs that are executed sequentially. Each pipeline contains a list of `JobPipelineStep` objects that define which job runs at each position and whether the pipeline should stop if a step fails. Pipelines are useful for modeling linear workflows where later jobs depend on the successful completion of earlier ones.
