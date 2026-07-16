@@ -561,6 +561,48 @@ foreach (var step in pipeline.Steps)
 }
 ```
 
+## CreateJobRequest
+
+`CreateJobRequest` is a request model used to create a new scheduled job. It encapsulates all job configuration from client requests including scheduling rules (cron expression), retry policies, execution limits, and handler configuration. The model includes validation logic to ensure required fields are provided and provides a `ToJob()` method to convert the request into a `Job` entity for persistence.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Domain.Models;
+using JobScheduler.Core.Domain.Enums;
+using System;
+
+// Create a request to schedule a data export job
+var request = new CreateJobRequest
+{
+    Name = "Daily Customer Data Export",
+    Description = "Exports customer data to CSV format every day at midnight",
+    CronExpression = "0 0 * * *",
+    TimeZoneId = "America/New_York",
+    HandlerType = "JobScheduler.Jobs.DataExportJob, JobScheduler.Jobs",
+    HandlerParameters = "{\"format\":\"csv\",\"exportPath\":\"/data/exports\"}",
+    Priority = JobPriority.High,
+    MaxConcurrentExecutions = 2,
+    MaxRetries = 3,
+    RetryBackoffSeconds = 60,
+    ExecutionTimeoutSeconds = 3600,
+    IsActive = true
+};
+
+// Validate the request before sending to API
+bool isValid = request.IsValid();
+Console.WriteLine($"Job request is valid: {isValid}");
+
+// Convert to Job entity for persistence
+var job = request.ToJob();
+Console.WriteLine($"Created job: {job.Name} (Id: {job.Id})");
+Console.WriteLine($"Cron expression: {job.CronExpression}");
+Console.WriteLine($"Handler type: {job.HandlerType}");
+Console.WriteLine($"Max concurrent executions: {job.MaxConcurrentExecutions}");
+Console.WriteLine($"Max retries: {job.MaxRetries}");
+Console.WriteLine($"Execution timeout: {job.ExecutionTimeoutSeconds}s");
+```
+
 ## CreatePipelineRequest
 
 `CreatePipelineRequest` is a request model used to create a new job pipeline. It defines the pipeline's name, optional description, and an ordered list of steps (jobs) that will execute sequentially. Each step can be configured to stop the pipeline on failure, enabling you to model linear workflows where jobs depend on the successful completion of previous jobs.
