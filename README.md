@@ -715,6 +715,111 @@ var staleJobs = await jobRepository.GetJobsWithoutRecentExecutionAsync(60); // 6
 Console.WriteLine($"Stale jobs (>60 min since last execution): {staleJobs.Count()}");
 ```
 
+## DependencyInjectionExtensions
+
+The `DependencyInjectionExtensions` class provides extension methods for registering job scheduler services with the .NET dependency injection container. It centralizes service registration, configuration, and validation, ensuring consistent setup across applications. The extension methods support both minimal configuration and advanced features like caching, monitoring, leader election, and distributed job locking.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Configuration;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Configure services in your application startup
+var services = new ServiceCollection();
+
+// Basic configuration with SQLite
+services.AddJobScheduler(options =>
+{
+    options.ConnectionString = "Data Source=jobscheduler.db";
+    options.MaxConcurrentJobs = 50;
+    options.DefaultTimeoutSeconds = 60;
+    options.DefaultMaxRetries = 3;
+    options.DefaultRetryBackoffSeconds = 10;
+    options.QueuePollIntervalMs = 1000;
+});
+
+// Advanced configuration with leader election for multi-node deployments
+services.AddJobScheduler(options =>
+{
+    options.ConnectionString = "Data Source=jobscheduler.db";
+    options.MaxConcurrentJobs = 100;
+    options.EnableLeaderElection = true;
+    options.LeaderElectionInstanceId = "scheduler-node-01";
+    options.LeaderElectionLeaseDurationSeconds = 60;
+});
+
+// Build service provider
+var serviceProvider = services.BuildServiceProvider();
+
+// Initialize database and apply migrations
+await serviceProvider.InitializeDatabaseAsync();
+
+// Validate that all required services are properly registered
+serviceProvider.ValidateSchedulerConfiguration();
+
+// Use middleware in your ASP.NET Core pipeline
+var appBuilder = new ApplicationBuilder(null);
+appBuilder.UseJobSchedulerMiddleware();
+
+// Access configuration values
+var optionsSnapshot = serviceProvider.GetRequiredService<IOptions<JobSchedulerOptions>>();
+var connectionString = optionsSnapshot.Value.ConnectionString;
+var maxConcurrentJobs = optionsSnapshot.Value.MaxConcurrentJobs;
+```
+
+### Configuration Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ConnectionString` | `string?` | `null` | Database connection string (SQLite, SQL Server, etc.) |
+| `MaxConcurrentJobs` | `int` | `10` | Maximum concurrent job executions allowed globally |
+| `DefaultTimeoutSeconds` | `int` | `300` | Default job execution timeout in seconds |
+| `DefaultMaxRetries` | `int` | `3` | Default maximum retry attempts for failed jobs |
+| `DefaultRetryBackoffSeconds` | `int` | `10` | Default retry backoff interval in seconds |
+| `QueuePollIntervalMs` | `int` | `1000` | Poll interval for checking due jobs in milliseconds |
+| `EnableCleanup` | `bool` | `true` | Enable automatic cleanup of orphaned executions |
+| `CleanupIntervalMs` | `int` | `3600000` | Cleanup interval in milliseconds |
+| `EnableLeaderElection` | `bool` | `false` | Enable distributed leader election for multi-node deployments |
+| `LeaderElectionInstanceId` | `string?` | `null` | Unique identifier for this scheduler instance |
+| `LeaderElectionLeaseDurationSeconds` | `int` | `30` | Leadership lease duration in seconds |
+
+### Services Registered
+
+The `AddJobScheduler` method registers the following services:
+
+**Phase 1 (Core):**
+- `JobSchedulerContext` (DbContext)
+- `IJobRepository` / `JobRepository`
+- `IExecutionRepository` / `ExecutionRepository`
+- `CronExpressionService` (singleton)
+- `ConcurrencyManager` (scoped)
+- `RetryService` (scoped)
+- `JobExecutorService` (scoped)
+- `JobSchedulerService` (scoped)
+
+**Phase 2 (Features):**
+- `CacheService` (scoped)
+- `PerformanceMonitor` (singleton)
+- `ExecutionStatisticsService` (scoped)
+- `AuditLogger` (scoped)
+- `IEventPublisher` / `EventPublisher` (singleton)
+- `WebhookNotificationService` (with HttpClient)
+- `SlackNotificationService` (with HttpClient)
+- `ExternalApiClient` (with HttpClient)
+- `ScheduleService` (scoped)
+- `IJobDependencyService` / `JobDependencyService` (scoped)
+- `JobHistoryService` (scoped)
+- `JobPipelineService` (scoped)
+- `IDistributedJobLockService` / `DistributedJobLockService` (scoped)
+
+**Middleware:**
+- `GlobalExceptionMiddleware`
+- `LoggingMiddleware`
+- `RateLimitMiddleware`
+
 ## JobSchedulerContext
 
 The `JobSchedulerContext` is the Entity Framework Core database context for the job scheduler. It serves as the primary data access layer, providing `DbSet<T>` collections for all scheduler entities and managing database connections, migrations, and transactions. The context is designed to work with dependency injection and supports both SQLite and SQL Server backends through EF Core's provider model.
