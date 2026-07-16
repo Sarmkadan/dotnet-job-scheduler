@@ -171,6 +171,60 @@ var imminentJobs = await scheduleService.GetJobsExecutingInNextMinutesAsync(5);
 Console.WriteLine($"Jobs executing in next 5 minutes: {imminentJobs.Count}");
 ```
 
+## CronExpressionService
+
+The `CronExpressionService` provides parsing, validation, and evaluation of cron expressions for job scheduling. It uses the NCrontab library to parse POSIX-compliant cron expressions and offers methods for validating expressions, calculating next execution times (including timezone-aware calculations), and generating human-readable descriptions of cron schedules.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.Logging;
+
+// Create the service (typically via dependency injection)
+var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+var logger = loggerFactory.CreateLogger<CronExpressionService>();
+var cronService = new CronExpressionService(logger);
+
+// Validate a cron expression
+bool isValid = cronService.IsValidCronExpression("0 9 * * 1-5");
+Console.WriteLine($"Is valid: {isValid}"); // true
+
+// Parse a cron expression (throws on invalid expression)
+var schedule = cronService.ParseCronExpression("*/15 * * * *");
+Console.WriteLine("Expression parsed successfully");
+
+// Get the next execution time from now
+var nextExecution = cronService.GetNextExecutionTime("0 9 * * 1-5");
+Console.WriteLine($"Next execution: {nextExecution:yyyy-MM-dd HH:mm:ss}");
+
+// Get the next execution time in a specific timezone
+var nextInZone = cronService.GetNextExecutionTimeInZone(
+    "0 9 * * 1-5",
+    "America/New_York"
+);
+Console.WriteLine($"Next execution in New York timezone: {nextInZone:yyyy-MM-dd HH:mm:ss} UTC");
+
+// Get multiple upcoming execution times
+var nextFive = cronService.GetNextExecutionTimes("0 9 * * 1-5", 5);
+Console.WriteLine("Next 5 execution times:");
+foreach (var time in nextFive)
+{
+    Console.WriteLine($"- {time:yyyy-MM-dd HH:mm:ss}");
+}
+
+// Check if a specific time matches the cron expression
+bool shouldExecute = cronService.ShouldExecuteAt(
+    "0 9 * * 1-5",
+    DateTime.Parse("2024-06-10 09:00:00") // Monday
+);
+Console.WriteLine($"Should execute at 9:00 AM on Monday: {shouldExecute}"); // true
+
+// Get a human-readable description of the cron expression
+string description = cronService.GetCronDescription("0 9 * * 1-5");
+Console.WriteLine(description); // "At 09:00, Monday through Friday"
+```
+
 ## JobPipelineService
 
 The `JobPipelineService` manages job pipelines — ordered chains of jobs where each step is triggered only after the previous step succeeds. It handles pipeline creation, retrieval, status monitoring, and cleanup, automatically establishing sequential dependency edges between pipeline steps to enforce execution order.
