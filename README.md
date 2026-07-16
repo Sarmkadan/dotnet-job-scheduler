@@ -181,6 +181,46 @@ dependency.CreatedAt = DateTime.UtcNow;
 Console.WriteLine($"Dependency created at: {dependency.CreatedAt:u}");
 ```
 
+## DependencyGraphValidationResult
+
+`DependencyGraphValidationResult` represents the outcome of validating the entire job dependency graph for cycles and structural integrity. It indicates whether the graph is a valid Directed Acyclic Graph (DAG) and provides details about any detected cycles, including the nodes involved and a human-readable message.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Domain.Entities;
+
+// Create a job dependency service (typically injected via DI)
+var service = new JobDependencyService(dbContext);
+
+// Validate the dependency graph
+var validationResult = await service.ValidateGraphAsync();
+
+// Check if the graph is valid
+if (validationResult.IsValid)
+{
+    Console.WriteLine("✅ Dependency graph is valid - no cycles detected.");
+    Console.WriteLine($"Message: {validationResult.Message}");
+}
+else
+{
+    Console.WriteLine("❌ Dependency graph validation failed - cycle detected!");
+    Console.WriteLine($"Message: {validationResult.Message}");
+    
+    // Access cycle information
+    Console.WriteLine($"Cycle involves {validationResult.CycleNodes.Count} job(s):");
+    foreach (var nodeId in validationResult.CycleNodes)
+    {
+        var job = await dbContext.Jobs.FindAsync(nodeId);
+        Console.WriteLine($"  - {job?.Name ?? nodeId.ToString()}");
+    }
+    
+    // The cycle can be visualized as: A → B → C → A
+    Console.WriteLine($"Cycle path: {string.Join(" → ", validationResult.CycleNodes)}");
+}
+```
+
 ## Job
 
 The `Job` entity represents a scheduled job in the distributed job scheduler system. It contains the job's configuration, scheduling rules (via cron expression), retry policies, execution limits, and tracking metrics. Jobs can be prioritized, have configurable concurrency limits, and support timezone-aware scheduling.
