@@ -1,4 +1,12 @@
-// ... (rest of README.md content)
+# dotnet-job-scheduler
+
+A .NET job scheduling library for background tasks, cron schedules, retries, pipelines and distributed execution, built on EF Core.
+
+## Architecture
+
+The scheduler is a single package (`JobScheduler.Core`): a polling `BackgroundService` picks up due jobs, `JobExecutorService` dispatches them to your `IJobHandler` implementations with timeout/retry/concurrency handling, and everything persists through EF Core repositories. Multi-node deployments coordinate via database-backed job locks and optional leader election.
+
+Full breakdown - components, data flow, design decisions with trade-offs, extension points and known limitations - in [docs/architecture.md](docs/architecture.md).
 
 ## JobExecution
 
