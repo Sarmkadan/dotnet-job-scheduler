@@ -886,6 +886,71 @@ The `AddJobScheduler` method registers the following services:
 - `LoggingMiddleware`
 - `RateLimitMiddleware`
 
+## DotnetJobSchedulerOptions
+
+The `DotnetJobSchedulerOptions` class provides configuration settings for the Dotnet Job Scheduler. It allows you to customize database connections, concurrency limits, timeouts, retries, queue polling, cleanup operations, and other scheduler behaviors through strongly-typed properties.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+// Create options instance with required connection string
+var options = new DotnetJobSchedulerOptions
+{
+    ConnectionString = "Data Source=jobscheduler.db",
+    MaxConcurrentJobs = 50,
+    DefaultTimeoutSeconds = 600,
+    DefaultMaxRetries = 5,
+    DefaultRetryBackoffSeconds = 15,
+    QueuePollIntervalMs = 2000,
+    EnableCleanup = true,
+    CleanupIntervalMs = 7200000 // 2 hours
+};
+
+// OR configure via dependency injection in ASP.NET Core
+var services = new ServiceCollection();
+
+services.Configure<DotnetJobSchedulerOptions>(options =>
+{
+    options.ConnectionString = "Server=localhost;Database=JobScheduler;User Id=sa;Password=your_password;";
+    options.MaxConcurrentJobs = 100;
+    options.DefaultTimeoutSeconds = 300;
+    options.DefaultMaxRetries = 3;
+    options.DefaultRetryBackoffSeconds = 10;
+    options.QueuePollIntervalMs = 1000;
+    options.EnableCleanup = true;
+    options.CleanupIntervalMs = 3600000; // 1 hour
+});
+
+// Build service provider and access configured options
+var serviceProvider = services.BuildServiceProvider();
+var configuredOptions = serviceProvider.GetRequiredService<IOptions<DotnetJobSchedulerOptions>>().Value;
+
+Console.WriteLine($"Connection String: {configuredOptions.ConnectionString}");
+Console.WriteLine($"Max Concurrent Jobs: {configuredOptions.MaxConcurrentJobs}");
+Console.WriteLine($"Default Timeout: {configuredOptions.DefaultTimeoutSeconds}s");
+Console.WriteLine($"Default Max Retries: {configuredOptions.DefaultMaxRetries}");
+Console.WriteLine($"Default Retry Backoff: {configuredOptions.DefaultRetryBackoffSeconds}s");
+Console.WriteLine($"Queue Poll Interval: {configuredOptions.QueuePollIntervalMs}ms");
+Console.WriteLine($"Enable Cleanup: {configuredOptions.EnableCleanup}");
+Console.WriteLine($"Cleanup Interval: {configuredOptions.CleanupIntervalMs}ms");
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `ConnectionString` | `string` | Database connection string (SQLite, SQL Server, PostgreSQL, etc.) |
+| `MaxConcurrentJobs` | `int` | Maximum concurrent job executions allowed globally |
+| `DefaultTimeoutSeconds` | `int` | Default job execution timeout in seconds |
+| `DefaultMaxRetries` | `int` | Default maximum retry attempts for failed jobs |
+| `DefaultRetryBackoffSeconds` | `int` | Default retry backoff interval in seconds |
+| `QueuePollIntervalMs` | `int` | Poll interval for checking due jobs in milliseconds |
+| `EnableCleanup` | `bool` | Enable automatic cleanup of completed jobs |
+| `CleanupIntervalMs` | `int` | Cleanup interval in milliseconds |
+
 ## JobSchedulerContext
 
 The `JobSchedulerContext` is the Entity Framework Core database context for the job scheduler. It serves as the primary data access layer, providing `DbSet<T>` collections for all scheduler entities and managing database connections, migrations, and transactions. The context is designed to work with dependency injection and supports both SQLite and SQL Server backends through EF Core's provider model.
