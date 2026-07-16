@@ -147,6 +147,88 @@ bool hasFailureTrend = metrics.HasFailureTrend();
 Console.WriteLine($"Has failure trend: {hasFailureTrend}");
 ```
 
+## JobHistoryService
+
+`JobHistoryService` provides rich querying, filtering, and aggregation capabilities over job execution history. It complements the per-job history exposed by `JobSchedulerService` with system-wide views, time-range filtering, and aggregated statistics for monitoring and analysis purposes.
+
+The service offers both job-specific and system-wide history retrieval with pagination support, allowing you to query execution records by status, date range, and page through results efficiently.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Domain.Models;
+using JobScheduler.Core.Domain.Enums;
+using Microsoft.Extensions.DependencyInjection;
+
+// Setup DI services (typically done in Program.cs)
+var services = new ServiceCollection();
+services.AddLogging(configure => configure.AddConsole());
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Create JobHistoryService (requires repositories)
+var executionRepository = new ExecutionRepository(dbContext);
+var jobRepository = new JobRepository(dbContext);
+var historyService = new JobHistoryService(executionRepository, jobRepository);
+
+// Query job-specific execution history with pagination
+var jobHistory = await historyService.GetJobHistoryAsync(
+    jobId: Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+    query: new JobHistoryQuery
+    {
+        Status = ExecutionStatus.Success,
+        From = DateTime.UtcNow.AddDays(-30),
+        To = DateTime.UtcNow,
+        PageNumber = 1,
+        PageSize = 25
+    }
+);
+
+Console.WriteLine($"Found {jobHistory.TotalCount} total executions");
+Console.WriteLine($"Page {jobHistory.PageNumber} of {jobHistory.TotalPages}");
+Console.WriteLine($"Items on page: {jobHistory.Items.Count}");
+
+foreach (var execution in jobHistory.Items)
+{
+    Console.WriteLine($"Execution {execution.Id}: {execution.GetStatusText()} in {execution.DurationMilliseconds}ms");
+}
+
+// Query system-wide execution history
+var systemHistory = await historyService.GetSystemHistoryAsync(
+    query: new JobHistoryQuery
+    {
+        PageNumber = 1,
+        PageSize = 50
+    }
+);
+
+Console.WriteLine($"\nSystem history: {systemHistory.TotalCount} total executions across all jobs");
+
+// Get aggregated summary for a specific job
+var jobSummary = await historyService.GetJobSummaryAsync(
+    jobId: Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+    from: DateTime.UtcNow.AddDays(-7),
+    to: DateTime.UtcNow
+);
+
+Console.WriteLine($"\nJob Summary:");
+Console.WriteLine($"Total executions: {jobSummary.TotalExecutions}");
+Console.WriteLine($"Success rate: {jobSummary.SuccessRate}%");
+Console.WriteLine($"Average duration: {jobSummary.AverageDurationMs}ms");
+Console.WriteLine($"Last executed: {jobSummary.LastExecutedAt?.ToString("u")}");
+
+// Get system-wide aggregated summary
+var systemSummary = await historyService.GetSystemSummaryAsync(
+    from: DateTime.UtcNow.AddDays(-1),
+    to: DateTime.UtcNow
+);
+
+Console.WriteLine($"\nSystem Summary:");
+Console.WriteLine($"Total executions: {systemSummary.TotalExecutions}");
+Console.WriteLine($"Success rate: {systemSummary.SuccessRate}%");
+```
+
 ## JobDependency
 
 The `JobDependency` entity defines a dependency relationship between two jobs, ensuring that one job (`Job`) only executes after another job (`DependsOnJob`) has completed successfully. It tracks the dependency through foreign keys and provides navigation properties for easy access to both jobs. This is useful for creating workflows where certain operations must run in a specific order.
