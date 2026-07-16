@@ -147,6 +147,121 @@ bool hasFailureTrend = metrics.HasFailureTrend();
 Console.WriteLine($"Has failure trend: {hasFailureTrend}");
 ```
 
+## JobSchedulerService
+
+`JobSchedulerService` is the central orchestrator for the job scheduler system. It manages job scheduling, execution, retries, monitoring, and lifecycle operations through a comprehensive API of public methods. The service coordinates between repositories, execution services, retry logic, and concurrency management to provide a unified interface for managing scheduled jobs in a distributed environment.
+
+The service handles:
+
+- Job creation, scheduling, and lifecycle management
+- Cron-based execution scheduling with timezone support
+- Job execution and retry processing
+- Concurrency control and resource management
+- Job suspension, resumption, and deletion
+- Execution history and statistics tracking
+- System-wide monitoring and reporting
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Domain.Models;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Setup DI services (typically done in Program.cs)
+var services = new ServiceCollection();
+services.AddLogging(configure => configure.AddConsole());
+
+// Create repositories (in real app these would be registered with DI)
+var jobRepository = new JobRepository(dbContext);
+var executionRepository = new ExecutionRepository(dbContext);
+
+// Create required services
+var cronService = new CronExpressionService();
+var retryService = new RetryService(jobRepository, executionRepository, LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<RetryService>());
+var concurrencyManager = new ConcurrencyManager();
+var executorService = new JobExecutorService(jobRepository, executionRepository, retryService, concurrencyManager, LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<JobExecutorService>());
+
+// Create JobSchedulerService
+var schedulerService = new JobSchedulerService(
+    jobRepository,
+    executionRepository,
+    executorService,
+    cronService,
+    retryService,
+    concurrencyManager,
+    LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<JobSchedulerService>()
+);
+
+// Create and schedule a new job
+var newJob = new Job
+{
+    Name = "Data Export Job",
+    Description = "Exports customer data to external system every hour",
+    CronExpression = "0 * * * *",
+    TimeZoneId = "America/New_York",
+    HandlerType = "JobScheduler.Jobs.DataExportJob, JobScheduler.Jobs",
+    HandlerParameters = "{\"format\":\"csv\",\"exportPath\":\"/data/exports\"}",
+    Priority = JobPriority.High,
+    MaxConcurrentExecutions = 2,
+    MaxRetries = 3,
+    RetryBackoffSeconds = 60,
+    ExecutionTimeoutSeconds = 3600,
+    IsActive = true
+};
+
+var createdJob = await schedulerService.CreateJobAsync(newJob, "admin@example.com");
+Console.WriteLine($"Created job: {createdJob.Name} (Id: {createdJob.Id})");
+Console.WriteLine($"Next execution: {createdJob.NextExecutionAt}");
+
+// Execute due jobs (typically called by background service)
+var executions = await schedulerService.ExecuteDueJobsAsync();
+Console.WriteLine($"Executed {executions.Count()} jobs");
+
+// Process retries for failed executions
+var retryExecutions = await schedulerService.ProcessRetriesAsync();
+Console.WriteLine($"Created {retryExecutions.Count()} retry executions");
+
+// Get job details
+var jobDetails = await schedulerService.GetJobDetailsAsync(createdJob.Id);
+Console.WriteLine($"Job {jobDetails.Job.Name} has {jobDetails.TotalExecutions} total executions");
+
+// Update job schedule
+var updatedJob = await schedulerService.UpdateJobScheduleAsync(
+    createdJob.Id,
+    "0 */2 * * *", // Every 2 hours
+    "admin@example.com"
+);
+Console.WriteLine($"Updated schedule: {updatedJob.CronExpression}");
+
+// Suspend and resume a job
+await schedulerService.SuspendJobAsync(createdJob.Id, "Maintenance window", "admin@example.com");
+Console.WriteLine("Job suspended");
+
+await schedulerService.ResumeJobAsync(createdJob.Id, "admin@example.com");
+Console.WriteLine("Job resumed");
+
+// Trigger immediate execution
+var execution = await schedulerService.TriggerJobExecutionAsync(createdJob.Id);
+Console.WriteLine($"Triggered execution: {execution?.Id}");
+
+// Get system statistics
+var stats = await schedulerService.GetSchedulerStatisticsAsync();
+Console.WriteLine($"Total jobs: {stats.TotalJobs}");
+Console.WriteLine($"Active jobs: {stats.ActiveJobs}");
+Console.WriteLine($"Success rate: {stats.AverageSuccessRate}%");
+
+// Get execution history
+var history = await schedulerService.GetExecutionHistoryAsync(createdJob.Id, limit: 10);
+Console.WriteLine($"Found {history.Count()} execution records");
+
+// Delete a job
+await schedulerService.DeleteJobAsync(createdJob.Id);
+Console.WriteLine("Job deleted");
+```
+
 ## JobHistoryService
 
 `JobHistoryService` provides rich querying, filtering, and aggregation capabilities over job execution history. It complements the per-job history exposed by `JobSchedulerService` with system-wide views, time-range filtering, and aggregated statistics for monitoring and analysis purposes.
