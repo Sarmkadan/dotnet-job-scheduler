@@ -55,6 +55,52 @@ bool isValid = execution.IsValid();
 Console.WriteLine($"Is valid: {isValid}");
 ```
 
+## JobExecutionSummary
+
+`JobExecutionSummary` is a model that provides aggregated execution statistics for a single job, including success rates, timing metrics, and the status of the most recent execution. It's useful for monitoring job health and performance.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Domain.Models;
+using JobScheduler.Core.Constants;
+
+// Create a JobExecutionSummary for a specific job
+var summary = new JobExecutionSummary
+{
+    JobId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+    JobName = "Data Export Job",
+    TotalExecutions = 1000,
+    SuccessCount = 950,
+    FailureCount = 30,
+    TimedOutCount = 15,
+    CancelledCount = 5,
+    AverageDurationMs = 150,
+    MinDurationMs = 50,
+    MaxDurationMs = 2500,
+    LastExecutedAt = DateTime.UtcNow,
+    LastStatus = ExecutionStatus.Success
+};
+
+// Display summary statistics
+Console.WriteLine($"Job: {summary.JobName} (Id: {summary.JobId})");
+Console.WriteLine($"Total executions: {summary.TotalExecutions}");
+Console.WriteLine($"Success rate: {summary.SuccessRate}%");
+Console.WriteLine($"Successes: {summary.SuccessCount}");
+Console.WriteLine($"Failures: {summary.FailureCount}");
+Console.WriteLine($"Timeouts: {summary.TimedOutCount}");
+Console.WriteLine($"Cancelled: {summary.CancelledCount}");
+Console.WriteLine($"Average duration: {summary.AverageDurationMs}ms");
+Console.WriteLine($"Min duration: {summary.MinDurationMs}ms");
+Console.WriteLine($"Max duration: {summary.MaxDurationMs}ms");
+Console.WriteLine($"Last executed: {summary.LastExecutedAt?.ToString("u") ?? "Never"}");
+Console.WriteLine($"Last status: {summary.LastStatus}");
+
+// Calculate derived metrics
+int failureRate = (int)(100 - summary.SuccessRate);
+Console.WriteLine($"Failure rate: {failureRate}%");
+```
+
 ## ExecutionMetrics
 
 The `ExecutionMetrics` class provides aggregated metrics and statistics for job executions, offering insights into job performance and reliability. It tracks various execution outcomes, such as successes, failures, timeouts, and cancellations, and calculates key performance indicators like average duration and success rate.
