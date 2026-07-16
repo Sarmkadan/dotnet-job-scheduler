@@ -495,5 +495,133 @@ Console.WriteLine($"Cleared {clearedCount} old audit log entries");
 - **Method**: Gets the HTTP method for API call events
 - **Path**: Gets the HTTP path for API call events
 
+## JobSchedulerContext
+
+The `JobSchedulerContext` is the Entity Framework Core database context for the job scheduler. It serves as the primary data access layer, providing `DbSet<T>` collections for all scheduler entities and managing database connections, migrations, and transactions. The context is designed to work with dependency injection and supports both SQLite and SQL Server backends through EF Core's provider model.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Data;
+using JobScheduler.Core.Domain.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+// Configure DbContextOptions (typically in Startup.cs or Program.cs)
+var options = new DbContextOptionsBuilder<JobSchedulerContext>()
+    .UseSqlite("Data Source=jobscheduler.db")
+    // OR for SQL Server:
+    // .UseSqlServer("Server=localhost;Database=JobScheduler;User Id=sa;Password=your_password;")
+    .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()))
+    .Options;
+
+// Create the context
+var context = new JobSchedulerContext(options);
+
+// Access DbSet collections for all scheduler entities
+var jobs = await context.Jobs.ToListAsync();
+var executions = await context.JobExecutions.ToListAsync();
+var schedules = await context.JobScheduleHistories.ToListAsync();
+var retryPolicies = await context.RetryPolicies.ToListAsync();
+var metrics = await context.ExecutionMetrics.ToListAsync();
+var dependencies = await context.JobDependencies.ToListAsync();
+var leaderLocks = await context.SchedulerLeaderLocks.ToListAsync();
+var pipelines = await context.JobPipelines.ToListAsync();
+var pipelineSteps = await context.JobPipelineSteps.ToListAsync();
+var distributedLocks = await context.DistributedJobLocks.ToListAsync();
+
+// Query jobs with filtering
+var activeJobs = await context.Jobs
+    .Where(j => j.Status == "Active")
+    .OrderBy(j => j.Priority)
+    .ToListAsync();
+
+// Add a new job
+var newJob = new Job
+{
+    Id = Guid.NewGuid(),
+    Name = "DataProcessor",
+    Description = "Processes customer data",
+    CronExpression = "0 * * * *",
+    Status = "Active",
+    Priority = 1,
+    MaxConcurrentExecutions = 3,
+    TimeoutSeconds = 300,
+    CreatedAt = DateTime.UtcNow
+};
+context.Jobs.Add(newJob);
+
+// Save changes asynchronously
+var changes = await context.SaveChangesAsync();
+Console.WriteLine($"Saved {changes} changes to database");
+
+// Find a job by ID
+var jobId = Guid.Parse("your-job-id-here");
+var job = await context.Jobs.FindAsync(jobId);
+if (job != null)
+{
+    Console.WriteLine($"Found job: {job.Name}");
+}
+
+// Update a job
+if (job != null)
+{
+    job.Status = "Paused";
+    job.UpdatedAt = DateTime.UtcNow;
+    await context.SaveChangesAsync();
+}
+
+// Remove a job (with related data cleanup)
+context.Jobs.Remove(job);
+await context.SaveChangesAsync();
+
+// Query with joins (jobs with their executions)
+var jobsWithStats = await context.Jobs
+    .Include(j => j.Executions)
+    .ThenInclude(e => e.Metrics)
+    .Where(j => j.Status == "Active")
+    .Select(j => new
+    {
+        JobName = j.Name,
+        ExecutionCount = j.Executions.Count,
+        SuccessRate = j.Executions.Count(e => e.Status == "Completed") / (double)j.Executions.Count
+    })
+    .ToListAsync();
+```
+
+### Key DbSet Collections
+
+- **Jobs**: The main collection of scheduled jobs with their configuration
+- **JobExecutions**: Records of every job execution attempt with status and timing
+- **JobScheduleHistories**: Historical tracking of schedule changes and executions
+- **RetryPolicies**: Retry configuration for failed job executions
+- **ExecutionMetrics**: Performance metrics and statistics for job executions
+- **JobDependencies**: Dependency relationships between jobs
+- **SchedulerLeaderLocks**: Leader election locks for multi-node deployments
+- **JobPipelines**: Pipeline definitions for ordered job execution chains
+- **JobPipelineSteps**: Individual steps within job pipelines
+- **DistributedJobLocks**: Distributed locks to prevent duplicate executions
+
+
+### Entity Relationships
+
+The context establishes these key relationships:
+- Jobs → Executions (one-to-many)
+- Jobs → Dependencies (many-to-many)
+- Jobs → Pipelines (via JobPipelineSteps)
+- Executions → Metrics (one-to-one)
+- SchedulerLeaderLocks → Jobs (one-to-one for leader election)
+
+
+### Best Practices
+
+- Use dependency injection to inject `JobSchedulerContext` into services
+- Always use async methods (`ToListAsync`, `SaveChangesAsync`, etc.)
+- Configure appropriate connection strings for your environment
+- Use migrations for database schema changes (`dotnet ef migrations add ...`)
+- Consider using repository pattern for complex queries to keep business logic separate
+- Enable sensitive data logging only in development environments
+```
+
 ## JobExecution
 ... rest of file content ...
