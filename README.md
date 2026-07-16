@@ -482,6 +482,72 @@ int failureRate = (int)(100 - stats.SuccessRate);
 Console.WriteLine($"Failure rate: {failureRate}%");
 ```
 
+## GlobalExceptionMiddleware
+
+The `GlobalExceptionMiddleware` is an ASP.NET Core middleware component that catches all unhandled exceptions during HTTP request processing. It ensures consistent error responses, prevents sensitive error information leakage in production, and logs all errors for audit and debugging purposes. The middleware maps specific exception types to appropriate HTTP status codes and provides detailed error information in development environments.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Middleware;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add the middleware to the pipeline
+builder.Services.AddControllers();
+var app = builder.Build();
+
+// Register GlobalExceptionMiddleware
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
+// Configure other middleware
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
+```
+
+Example with custom exception handling:
+
+```csharp
+using JobScheduler.Core.Middleware;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure logging
+builder.Logging.AddConsole();
+
+// Add services to the container
+builder.Services.AddControllers();
+
+var app = builder.Build();
+
+// Use GlobalExceptionMiddleware for consistent error handling
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
+// Example endpoint that might throw exceptions
+app.MapGet("/jobs/{id}", (Guid id) => 
+{
+    if (id == Guid.Empty)
+    {
+        throw new JobValidationException("Job ID cannot be empty");
+    }
+    
+    // Job processing logic here
+    return Results.Ok(new { JobId = id });
+});
+
+app.Run();
+```
+
 ## JobHistoryQuery
 
 `JobHistoryQuery` is a model for filtering and paginating job execution history records. It provides optional filters for execution status, time ranges, and pagination controls to retrieve specific subsets of historical job executions.
