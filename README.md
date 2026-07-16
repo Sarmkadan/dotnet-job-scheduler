@@ -1079,5 +1079,89 @@ The context establishes these key relationships:
 - Enable sensitive data logging only in development environments
 ```
 
+## TimeUtility
+
+The `TimeUtility` class provides a comprehensive set of static methods for time and date operations, ensuring consistent timezone handling and time conversions across the job scheduler. It serves as a centralized utility for common temporal calculations, conversions, and formatting operations.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Utilities;
+
+// Get current UTC time (preferred over DateTime.Now for consistency)
+var currentTime = TimeUtility.GetUtcNow();
+Console.WriteLine($"Current UTC time: {currentTime:yyyy-MM-dd HH:mm:ss}");
+
+// Convert Unix timestamp to DateTime
+var dateFromTimestamp = TimeUtility.FromUnixTimestamp(1717000000);
+Console.WriteLine($"Date from timestamp: {dateFromTimestamp:yyyy-MM-dd HH:mm:ss}");
+
+// Convert DateTime to Unix timestamp
+var timestamp = TimeUtility.ToUnixTimestamp(currentTime);
+Console.WriteLine($"Current timestamp: {timestamp}");
+
+// Convert DateTime to ISO 8601 string
+var isoString = TimeUtility.ToIso8601(currentTime);
+Console.WriteLine($"ISO 8601 format: {isoString}");
+
+// Parse ISO 8601 string to DateTime
+var parsedDate = TimeUtility.ParseIso8601(isoString);
+Console.WriteLine($"Parsed date: {parsedDate:yyyy-MM-dd HH:mm:ss}");
+
+// Round time down to nearest interval (e.g., 15 minutes)
+var roundedDown = TimeUtility.RoundDown(currentTime, TimeSpan.FromMinutes(15));
+Console.WriteLine($"Rounded down to 15-min interval: {roundedDown:yyyy-MM-dd HH:mm:ss}");
+
+// Round time up to nearest interval (e.g., 30 minutes)
+var roundedUp = TimeUtility.RoundUp(currentTime, TimeSpan.FromMinutes(30));
+Console.WriteLine($"Rounded up to 30-min interval: {roundedUp:yyyy-MM-dd HH:mm:ss}");
+
+// Get age in years
+var birthDate = new DateTime(1990, 5, 15);
+var age = TimeUtility.GetAge(birthDate);
+Console.WriteLine($"Age: {age} years");
+
+// Check if time falls within a time range
+var isBetween = TimeUtility.IsBetweenTimes(currentTime, new TimeSpan(9, 0, 0), new TimeSpan(17, 0, 0));
+Console.WriteLine($"Is between 9 AM and 5 PM: {isBetween}");
+
+// Check if date falls within a date range
+var startDate = new DateTime(2024, 1, 1);
+var endDate = new DateTime(2024, 12, 31);
+var isInRange = TimeUtility.IsBetweenDates(currentTime, startDate, endDate);
+Console.WriteLine($"Is in 2024 date range: {isInRange}");
+
+// Get number of business days between two dates
+var businessDays = TimeUtility.GetBusinessDaysBetween(startDate, endDate);
+Console.WriteLine($"Business days in 2024: {businessDays}");
+
+// Get next business day
+var nextBusinessDay = TimeUtility.GetNextBusinessDay(currentTime);
+Console.WriteLine($"Next business day: {nextBusinessDay:yyyy-MM-dd}");
+
+// Get previous business day
+var prevBusinessDay = TimeUtility.GetPreviousBusinessDay(currentTime);
+Console.WriteLine($"Previous business day: {prevBusinessDay:yyyy-MM-dd}");
+
+// Get start and end of week (Monday to Sunday)
+var startOfWeek = TimeUtility.GetStartOfWeek(currentTime);
+var endOfWeek = TimeUtility.GetEndOfWeek(currentTime);
+Console.WriteLine($"Week: {startOfWeek:yyyy-MM-dd} to {endOfWeek:yyyy-MM-dd}");
+
+// Get start and end of month
+var startOfMonth = TimeUtility.GetStartOfMonth(currentTime);
+var endOfMonth = TimeUtility.GetEndOfMonth(currentTime);
+Console.WriteLine($"Month: {startOfMonth:yyyy-MM-dd} to {endOfMonth:yyyy-MM-dd}");
+
+// Format duration in human-readable format
+var duration = TimeSpan.FromSeconds(125);
+var formattedDuration = TimeUtility.FormatDuration(duration);
+Console.WriteLine($"Duration: {formattedDuration}"); // "2 minutes 5 seconds"
+
+// Check if year is a leap year
+var isLeap = TimeUtility.IsLeapYear(2024);
+Console.WriteLine($"Is 2024 a leap year: {isLeap}");
+```
+
 ## JobExecution
 ... rest of file content ...
