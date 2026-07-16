@@ -111,6 +111,66 @@ Use `CacheKeyGenerator` static methods to ensure consistent key naming throughou
 - `SchedulerConfigKey()` - Cache scheduler configuration
 - `ExecutionKey(Guid executionId)` - Cache a specific execution
 
+## ScheduleService
+
+The `ScheduleService` provides schedule analysis, next execution time calculation, and schedule distribution analysis for jobs. It helps with schedule visualization, capacity planning, and load balancing by offering methods to query upcoming executions, analyze cron expressions, and inspect schedule patterns across your job collection.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using Microsoft.Extensions.Logging;
+
+// Setup dependencies (typically via DI)
+var jobRepository = new JobRepository(dbContext);
+var cronService = new CronExpressionService();
+var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+var logger = loggerFactory.CreateLogger<ScheduleService>();
+var scheduleService = new ScheduleService(jobRepository, cronService, logger);
+
+// Get upcoming execution times for a job
+var jobId = Guid.Parse("your-job-id");
+var upcomingTimes = await scheduleService.GetUpcomingExecutionTimesAsync(jobId, 5);
+foreach (var time in upcomingTimes)
+{
+    Console.WriteLine($"Next execution: {time:yyyy-MM-dd HH:mm:ss}");
+}
+
+// Get human-readable cron expression description
+var cronDescription = await scheduleService.GetCronExpressionDescriptionAsync("0 9 * * 1-5");
+Console.WriteLine(cronDescription); // "At 9:00 AM, Monday through Friday"
+
+// Calculate execution frequency per day
+var frequency = await scheduleService.GetExecutionFrequencyPerDayAsync("*/15 * * * *");
+Console.WriteLine($"Runs {frequency} times per day");
+
+// Estimate execution count for capacity planning
+var estimatedExecutions = await scheduleService.EstimateExecutionCountAsync(jobId, 7);
+Console.WriteLine($"Expected executions in 7 days: {estimatedExecutions}");
+
+// Get next scheduled jobs (immediate workload)
+var nextJobs = await scheduleService.GetNextScheduledJobsAsync(10);
+Console.WriteLine($"Next {nextJobs.Count} jobs to execute:");
+foreach (var job in nextJobs)
+{
+    Console.WriteLine($"- {job.Name} at {job.NextExecutionAt}");
+}
+
+// Analyze schedule distribution by hour (load balancing)
+var distribution = await scheduleService.GetScheduleDistributionByHourAsync();
+Console.WriteLine("Schedule distribution by hour:");
+for (int hour = 0; hour < 24; hour++)
+{
+    Console.WriteLine($"Hour {hour:00}: {distribution[hour]} jobs");
+}
+
+// Get jobs that will execute in the next N minutes
+var imminentJobs = await scheduleService.GetJobsExecutingInNextMinutesAsync(5);
+Console.WriteLine($"Jobs executing in next 5 minutes: {imminentJobs.Count}");
+```
+
 ## DistributedJobLock
 
 The `DistributedJobLock` class represents a database-backed distributed lock entry for a single job. It ensures that only one scheduler node runs a given job at a time in multi-instance deployments, preventing duplicate job executions across multiple nodes.
