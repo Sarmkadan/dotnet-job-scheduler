@@ -604,6 +604,58 @@ int failureRate = (int)(100 - stats.SuccessRate);
 Console.WriteLine($"Failure rate: {failureRate}%");
 ```
 
+## DatabaseLeaderElectionService
+
+`DatabaseLeaderElectionService` provides distributed leader election for multi-node scheduler deployments using a simple database row as the coordination mechanism. It ensures that only one scheduler instance is active at any time by managing a lease in the `SchedulerLeaderLock` table. This approach requires no external dependencies beyond the existing database and provides automatic failover when the leader instance becomes unavailable.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Setup DI services (typically done in Program.cs)
+var services = new ServiceCollection();
+services.AddDbContext<JobSchedulerContext>(options =>
+    options.UseSqlServer("Server=localhost;Database=JobScheduler;Trusted_Connection=True;"));
+services.AddLogging(configure => configure.AddConsole());
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Create DatabaseLeaderElectionService (typically injected via DI)
+var electionService = serviceProvider.GetRequiredService<DatabaseLeaderElectionService>();
+
+// Acquire leadership
+bool acquired = await electionService.TryAcquireLeadershipAsync();
+Console.WriteLine($"Leader election successful: {acquired}");
+Console.WriteLine($"Is current instance leader: {electionService.IsLeader}");
+
+// Check leadership status periodically
+if (electionService.IsLeader)
+{
+    Console.WriteLine("This instance is the leader - performing leader tasks...");
+    
+    // Release leadership when shutting down
+    await electionService.ReleaseLeadershipAsync();
+}
+
+// Get leader information from the database
+using var scope = serviceProvider.CreateScope();
+var context = scope.ServiceProvider.GetRequiredService<JobSchedulerContext>();
+var leaderLock = await context.SchedulerLeaderLocks
+    .FirstOrDefaultAsync(l => l.LockName == "scheduler-leader");
+
+if (leaderLock != null)
+{
+    Console.WriteLine($"Current leader: {leaderLock.LeaderInstanceId}");
+    Console.WriteLine($"Lease expires at: {leaderLock.LeaseExpiresAt:u}");
+    Console.WriteLine($"Acquired at: {leaderLock.AcquiredAt:u}");
+}
+```
+
 ## ExternalApiClient
 
 The `ExternalApiClient` is a generic HTTP client for making API calls to external services. It provides methods for GET, POST, PUT, and DELETE requests with built-in timeout management, authentication support, and automatic retry logic for transient failures. The client returns strongly-typed responses through the `ApiResponse<T>` wrapper, which includes success status, error messages, and the deserialized response data.
