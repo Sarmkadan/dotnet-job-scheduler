@@ -228,6 +228,59 @@ job.MarkAsUpdated(updatedBy: "scheduler-service");
 
 `JobResponse` is a serializable model that represents job information for API responses. It provides a clean, read-only view of job data with computed metrics like success rate, making it ideal for returning job information to clients without exposing internal implementation details.
 
+## ExecutionResponse
+
+`ExecutionResponse` is a response model that represents the result of a job execution, containing status information, timing metrics, and error details. It's typically returned by API endpoints that query execution history and is useful for monitoring job performance and debugging execution issues.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Domain.Models;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Domain.Enums;
+
+// Create an ExecutionResponse from a completed job execution
+var execution = new JobExecution
+{
+    Id = Guid.NewGuid(),
+    JobId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+    Status = nameof(ExecutionStatus.Success),
+    StartedAt = DateTime.UtcNow.AddMinutes(-5),
+    CompletedAt = DateTime.UtcNow,
+    DurationMilliseconds = 300000,
+    AttemptNumber = 1,
+    ExecutionTimeMs = 295000,
+    RetryAttempt = 0,
+    ErrorMessage = null,
+    ExecutorName = "data-processor-01",
+    IsRetryable = false,
+    CreatedAt = DateTime.UtcNow.AddDays(-1)
+};
+
+// Convert to ExecutionResponse
+var response = ExecutionResponse.FromExecution(execution);
+
+// Display execution information
+Console.WriteLine($"Execution {response.Id} for job {response.JobId}:");
+Console.WriteLine($"Status: {response.GetStatusText()}");
+Console.WriteLine($"Duration: {response.DurationMilliseconds}ms");
+Console.WriteLine($"Started at: {response.StartedAt:u}");
+if (response.CompletedAt.HasValue)
+{
+    Console.WriteLine($"Completed at: {response.CompletedAt.Value:u}");
+}
+Console.WriteLine($"Attempt: #{response.AttemptNumber}");
+Console.WriteLine($"Retry attempt: {response.RetryAttempt}");
+Console.WriteLine($"Executor: {response.ExecutorName}");
+Console.WriteLine($"Retryable: {response.IsRetryable}");
+
+// Handle errors if present
+if (!string.IsNullOrEmpty(response.ErrorMessage))
+{
+    Console.WriteLine($"Error: {response.ErrorMessage}");
+}
+```
+
 Example usage:
 ```csharp
 using JobScheduler.Core.Domain.Models;
