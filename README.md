@@ -567,6 +567,103 @@ Console.WriteLine($"Cleared {clearedCount} old audit log entries");
 - **Method**: Gets the HTTP method for API call events
 - **Path**: Gets the HTTP path for API call events
 
+## Repository
+
+The `Repository<T>` class is a generic base repository implementation that provides standard CRUD operations for all entity types in the job scheduler. It serves as the foundation for data access, offering common query and modification methods that work with any entity type inheriting from the base class. The repository pattern abstracts Entity Framework Core operations, making it easier to maintain consistent data access patterns across the application.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Models;
+using Microsoft.EntityFrameworkCore;
+
+// Setup (typically via dependency injection)
+var options = new DbContextOptionsBuilder<JobSchedulerContext>()
+    .UseSqlite("Data Source=jobscheduler.db")
+    .Options;
+var dbContext = new JobSchedulerContext(options);
+
+// Create a generic repository for a specific entity type
+var jobRepository = new Repository<Job>(dbContext);
+
+// Get a single entity by ID
+var jobId = Guid.Parse("a1b2c3d4-5678-90ef-ghij-klmnopqrstuv");
+var job = await jobRepository.GetByIdAsync(jobId);
+Console.WriteLine(job?.Name);
+
+// Get all entities of a specific type
+var allJobs = await jobRepository.GetAllAsync();
+Console.WriteLine($"Total jobs: {allJobs.Count()}");
+
+// Find entities matching a predicate
+var activeJobs = await jobRepository.FindAsync(j => j.Status == "Active");
+Console.WriteLine($"Active jobs: {activeJobs.Count()}");
+
+// Get the first entity matching a predicate
+var firstActiveJob = await jobRepository.FirstOrDefaultAsync(j => j.Status == "Active");
+Console.WriteLine(firstActiveJob?.Name);
+
+// Count entities matching a predicate
+var activeJobCount = await jobRepository.CountAsync(j => j.Status == "Active");
+Console.WriteLine($"Active job count: {activeJobCount}");
+
+// Add a new entity
+var newJob = new Job
+{
+    Id = Guid.NewGuid(),
+    Name = "DataProcessor",
+    CronExpression = "0 * * * *",
+    Status = "Active",
+    Priority = 1,
+    MaxConcurrentExecutions = 3,
+    TimeoutSeconds = 300,
+    CreatedAt = DateTime.UtcNow
+};
+await jobRepository.AddAsync(newJob);
+
+// Add multiple entities at once
+var additionalJobs = new List<Job>
+{
+    new Job { Id = Guid.NewGuid(), Name = "ReportGenerator", Status = "Active", Priority = 2 },
+    new Job { Id = Guid.NewGuid(), Name = "CleanupService", Status = "Active", Priority = 3 }
+};
+await jobRepository.AddRangeAsync(additionalJobs);
+
+// Update an existing entity
+if (job != null)
+{
+    job.Status = "Paused";
+    job.UpdatedAt = DateTime.UtcNow;
+    jobRepository.Update(job);
+}
+
+// Update multiple entities
+var jobsToUpdate = await jobRepository.FindAsync(j => j.Status == "Active");
+foreach (var j in jobsToUpdate)
+{
+    j.Priority += 1;
+}
+jobRepository.UpdateRange(jobsToUpdate);
+
+// Remove an entity
+if (job != null)
+{
+    jobRepository.Remove(job);
+}
+
+// Remove multiple entities
+var jobsToRemove = await jobRepository.FindAsync(j => j.Status == "Inactive");
+jobRepository.RemoveRange(jobsToRemove);
+
+// Check if any entities match a predicate
+var hasActiveJobs = await jobRepository.AnyAsync(j => j.Status == "Active");
+Console.WriteLine($"Has active jobs: {hasActiveJobs}");
+
+// Save all pending changes to the database
+await jobRepository.SaveChangesAsync();
+```
+
 ## JobSchedulerContext
 
 The `JobSchedulerContext` is the Entity Framework Core database context for the job scheduler. It serves as the primary data access layer, providing `DbSet<T>` collections for all scheduler entities and managing database connections, migrations, and transactions. The context is designed to work with dependency injection and supports both SQLite and SQL Server backends through EF Core's provider model.
