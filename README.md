@@ -604,6 +604,87 @@ int failureRate = (int)(100 - stats.SuccessRate);
 Console.WriteLine($"Failure rate: {failureRate}%");
 ```
 
+## ExternalApiClient
+
+The `ExternalApiClient` is a generic HTTP client for making API calls to external services. It provides methods for GET, POST, PUT, and DELETE requests with built-in timeout management, authentication support, and automatic retry logic for transient failures. The client returns strongly-typed responses through the `ApiResponse<T>` wrapper, which includes success status, error messages, and the deserialized response data.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Setup DI services (typically done in Program.cs)
+var services = new ServiceCollection();
+services.AddHttpClient();
+services.AddLogging(configure => configure.AddConsole());
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Create ExternalApiClient (typically injected via DI)
+var apiClient = serviceProvider.GetRequiredService<ExternalApiClient>();
+
+// Example: GET request to fetch user data
+var userResponse = await apiClient.GetAsync<User>(
+    url: "https://api.example.com/users/123",
+    authToken: "your-access-token"
+);
+
+if (userResponse.Success)
+{
+    Console.WriteLine($"User: {userResponse.Data?.Name}");
+    Console.WriteLine($"Email: {userResponse.Data?.Email}");
+}
+else
+{
+    Console.WriteLine($"Error: {userResponse.Error}");
+}
+
+// Example: POST request to create a resource
+var newUser = new { Name = "John Doe", Email = "john@example.com" };
+var createResponse = await apiClient.PostAsync<object, UserResponse>(
+    url: "https://api.example.com/users",
+    data: newUser,
+    authToken: "your-access-token"
+);
+
+if (createResponse.Success)
+{
+    Console.WriteLine($"Created user with ID: {createResponse.Data?.Id}");
+}
+
+// Example: PUT request to update a resource
+var updateData = new { Name = "John Updated", Email = "john.updated@example.com" };
+var updateResponse = await apiClient.PutAsync<object, UserResponse>(
+    url: "https://api.example.com/users/123",
+    data: updateData,
+    authToken: "your-access-token"
+);
+
+// Example: DELETE request
+var deleteResponse = await apiClient.DeleteAsync(
+    url: "https://api.example.com/users/123",
+    authToken: "your-access-token"
+);
+
+if (deleteResponse.Success)
+{
+    Console.WriteLine("Resource deleted successfully");
+}
+
+// Example: GET with automatic retry
+var retryResponse = await apiClient.GetWithRetryAsync<User>(
+    url: "https://api.example.com/users/123",
+    maxRetries: 3,
+    authToken: "your-access-token"
+);
+
+// Example: Check API availability
+bool isAvailable = await apiClient.IsApiAvailableAsync("https://api.example.com/health");
+Console.WriteLine($"API is available: {isAvailable}");
+```
+
 ## RetryService
 
 The `RetryService` handles job retry logic, backoff strategies, and retry scheduling. It manages exponential, linear, and fixed backoff delays, determines when retries are appropriate, and provides statistics about retry behavior.
