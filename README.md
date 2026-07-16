@@ -482,6 +482,35 @@ int failureRate = (int)(100 - stats.SuccessRate);
 Console.WriteLine($"Failure rate: {failureRate}%");
 ```
 
+## JobHistoryQuery
+
+`JobHistoryQuery` is a model for filtering and paginating job execution history records. It provides optional filters for execution status, time ranges, and pagination controls to retrieve specific subsets of historical job executions.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Domain.Models;
+using JobScheduler.Core.Domain.Enums;
+
+// Create a query to filter job history by status and date range
+var query = new JobHistoryQuery
+{
+    Status = ExecutionStatus.Success,
+    From = DateTime.UtcNow.AddDays(-7),
+    To = DateTime.UtcNow,
+    PageNumber = 1,
+    PageSize = 50
+};
+
+// Normalize the query (clamps PageSize to 1-200, ensures PageNumber >= 1)
+var normalizedQuery = query.Normalize();
+
+Console.WriteLine($"Querying history for status: {normalizedQuery.Status}");
+Console.WriteLine($"From: {normalizedQuery.From?.ToString("u")}");
+Console.WriteLine($"To: {normalizedQuery.To?.ToString("u")}");
+Console.WriteLine($"Page: {normalizedQuery.PageNumber} (size: {normalizedQuery.PageSize})");
+```
+
 ## JobPipeline
 
 `JobPipeline` represents an ordered collection of jobs that are executed sequentially. Each pipeline contains a list of `JobPipelineStep` objects that define which job runs at each position and whether the pipeline should stop if a step fails. Pipelines are useful for modeling linear workflows where later jobs depend on the successful completion of earlier ones.
