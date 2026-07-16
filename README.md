@@ -49,6 +49,78 @@ Console.WriteLine($"Anomalies detected: {anomalies.Count}");
 
 Full breakdown - components, data flow, design decisions with trade-offs, extension points and known limitations - in [docs/architecture.md](docs/architecture.md).
 
+## ExecutionRepository
+
+The `ExecutionRepository` provides data access methods for job executions, enabling efficient querying and analysis of execution history, status tracking, and performance monitoring. It serves as the primary repository for all job execution data, supporting filtering by job, status, date ranges, and execution statistics.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Models;
+using Microsoft.EntityFrameworkCore;
+
+// Setup (typically via dependency injection)
+var options = new DbContextOptionsBuilder<JobSchedulerContext>()
+    .UseSqlite("Data Source=jobscheduler.db")
+    .Options;
+var dbContext = new JobSchedulerContext(options);
+var executionRepository = new ExecutionRepository(dbContext);
+
+// Get the latest execution for a specific job
+var latestExecution = await executionRepository.GetLatestExecutionAsync(Guid.Parse("job-id-123"));
+Console.WriteLine($"Latest execution status: {latestExecution?.Status}");
+
+// Get all executions for a specific job
+var jobExecutions = await executionRepository.GetExecutionsByJobAsync(Guid.Parse("job-id-123"));
+Console.WriteLine($"Total executions: {jobExecutions.Count()}");
+
+// Get executions by status (e.g., failed executions that need retry)
+var failedExecutions = await executionRepository.GetExecutionsByStatusAsync("Failed");
+Console.WriteLine($"Failed executions requiring attention: {failedExecutions.Count()}");
+
+// Get executions by both job and status
+var failedJobExecutions = await executionRepository.GetExecutionsByJobAndStatusAsync(
+    Guid.Parse("job-id-123"),
+    "Failed"
+);
+Console.WriteLine($"Failed executions for job: {failedJobExecutions.Count()}");
+
+// Get currently running execution count (for concurrency monitoring)
+var runningCount = await executionRepository.GetCurrentlyRunningCountAsync();
+Console.WriteLine($"Currently running executions: {runningCount}");
+
+// Get concurrent running count for a specific job
+var concurrentCount = await executionRepository.GetConcurrentRunningCountAsync(Guid.Parse("job-id-123"));
+Console.WriteLine($"Concurrent executions for job: {concurrentCount}");
+
+// Get all currently running executions
+var runningExecutions = await executionRepository.GetRunningExecutionsAsync();
+foreach (var execution in runningExecutions)
+{
+    Console.WriteLine($"Running: {execution.JobId} - {execution.StartedAt}");
+}
+
+// Get failed executions that require retry (based on retry policy)
+var retryCandidates = await executionRepository.GetFailedExecutionsRequiringRetryAsync();
+Console.WriteLine($"Executions ready for retry: {retryCandidates.Count()}");
+
+// Get executions within a specific date range
+var dateRangeExecutions = await executionRepository.GetExecutionsByDateRangeAsync(
+    DateTime.UtcNow.AddDays(-7),
+    DateTime.UtcNow
+);
+Console.WriteLine($"Executions in last 7 days: {dateRangeExecutions.Count()}");
+
+// Get average execution time for performance monitoring
+var avgExecutionTime = await executionRepository.GetAverageExecutionTimeAsync();
+Console.WriteLine($"Average execution time: {avgExecutionTime:F2} seconds");
+
+// Get all executions for a job by job ID (alternative method)
+var executionsByJobId = await executionRepository.GetByJobIdAsync(Guid.Parse("job-id-123"));
+Console.WriteLine($"All executions via GetByJobIdAsync: {executionsByJobId.Count}");
+```
+
 ## CacheService
 
 The `CacheService` provides in-memory caching for frequently accessed scheduler data, reducing database queries and improving response times for hot data. It's essential for performance when dealing with large job sets and supports pattern-based invalidation for related cache entries.
