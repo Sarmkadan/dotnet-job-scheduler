@@ -852,6 +852,69 @@ bool isAvailable = await apiClient.IsApiAvailableAsync("https://api.example.com/
 Console.WriteLine($"API is available: {isAvailable}");
 ```
 
+## SlackNotificationService
+
+`SlackNotificationService` sends real-time notifications to Slack webhook endpoints when critical job events occur, including job failures, successful completions, and scheduler alerts. It formats messages with color-coded attachments, structured fields, and timestamps for easy parsing in Slack channels.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Domain.Entities;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Setup DI services (typically done in Program.cs)
+var services = new ServiceCollection();
+services.AddHttpClient();
+services.AddLogging(configure => configure.AddConsole());
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Create SlackNotificationService (typically injected via DI)
+var slackService = serviceProvider.GetRequiredService<SlackNotificationService>();
+
+// Example job and execution
+var job = new Job
+{
+    Id = Guid.NewGuid(),
+    Name = "Data Export Job",
+    Description = "Exports customer data to external system",
+    MaxRetries = 3,
+    IsActive = true
+};
+
+var execution = new JobExecution
+{
+    Id = Guid.NewGuid(),
+    JobId = job.Id,
+    Status = nameof(ExecutionStatus.Success),
+    StartedAt = DateTime.UtcNow.AddMinutes(-5),
+    CompletedAt = DateTime.UtcNow,
+    DurationMilliseconds = 120000,
+    ExecutionTimeMs = 118500,
+    AttemptNumber = 1,
+    RetryAttempt = 0,
+    IsRetryable = false,
+    ErrorMessage = null
+};
+
+// Send success notification
+await slackService.SendJobSuccessNotificationAsync(job, execution, "https://hooks.slack.com/services/YOUR/WEBHOOK/URL");
+
+// Send failure notification (example with error)
+execution.MarkAsFailed("Connection timeout", "System.TimeoutException: Operation timed out after 30 seconds", retryable: true);
+await slackService.SendJobFailureNotificationAsync(job, execution, "https://hooks.slack.com/services/YOUR/WEBHOOK/URL");
+
+// Send scheduler alert
+await slackService.SendSchedulerAlertAsync(
+    "High Memory Usage Detected",
+    "The scheduler is approaching memory limits. Consider scaling up or optimizing job handlers.",
+    "Warning",
+    "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+);
+```
+
 ## PerformanceMonitor
 
 `PerformanceMonitor` collects and analyzes performance metrics for job executions, including execution times, success rates, throughput, CPU utilization, and memory usage. It provides methods to record metrics and retrieve aggregated statistics for monitoring, diagnostics, and dashboard visualization.
