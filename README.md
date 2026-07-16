@@ -171,6 +171,69 @@ var imminentJobs = await scheduleService.GetJobsExecutingInNextMinutesAsync(5);
 Console.WriteLine($"Jobs executing in next 5 minutes: {imminentJobs.Count}");
 ```
 
+## JobPipelineService
+
+The `JobPipelineService` manages job pipelines — ordered chains of jobs where each step is triggered only after the previous step succeeds. It handles pipeline creation, retrieval, status monitoring, and cleanup, automatically establishing sequential dependency edges between pipeline steps to enforce execution order.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Data;
+using JobScheduler.Core.Domain.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+// Setup dependencies (typically via DI)
+var dbContext = new JobSchedulerContext(options);
+var dependencyService = new JobDependencyService(dbContext, logger);
+var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+var logger = loggerFactory.CreateLogger<JobPipelineService>();
+var pipelineService = new JobPipelineService(dbContext, dependencyService, logger);
+
+// Create a new pipeline with 3 jobs
+var pipeline = await pipelineService.CreatePipelineAsync(new CreatePipelineRequest
+{
+    Name = "DataProcessingPipeline",
+    Description = "ETL pipeline for customer data processing",
+    Steps = new List<PipelineStepRequest>
+    {
+        new() { JobId = Guid.Parse("a1b2c3d4-5678-90ef-ghij-klmnopqrstuv"), StopOnFailure = true },
+        new() { JobId = Guid.Parse("b2c3d4e5-6789-01fg-hijk-lmnopqrstuvw"), StopOnFailure = false },
+        new() { JobId = Guid.Parse("c3d4e5f6-7890-12gh-ijk-lmnopqrstuvwx"), StopOnFailure = true }
+    }
+}, "system");
+
+Console.WriteLine($"Pipeline created: {pipeline.Name} with {pipeline.Steps.Count} steps");
+
+// Get a specific pipeline
+var retrievedPipeline = await pipelineService.GetPipelineAsync(pipeline.Id);
+Console.WriteLine($"Retrieved pipeline: {retrievedPipeline?.Name}");
+
+// Get all pipelines
+var allPipelines = await pipelineService.GetAllPipelinesAsync();
+Console.WriteLine($"Total pipelines: {allPipelines.Count}");
+
+// Get pipeline status
+var status = await pipelineService.GetPipelineStatusAsync(pipeline.Id);
+if (status != null)
+{
+    Console.WriteLine($"Pipeline status for {status.PipelineName}:");
+    foreach (var step in status.StepStatuses)
+    {
+        Console.WriteLine($"  Step {step.StepOrder}: {step.JobName} - {step.Status} (Ready: {step.IsReady})");
+    }
+}
+
+// Map pipeline to response model
+var response = JobPipelineService.MapToResponse(pipeline);
+Console.WriteLine($"Pipeline response: {response.Name} with {response.Steps.Count} steps");
+
+// Delete pipeline when no longer needed
+var deleted = await pipelineService.DeletePipelineAsync(pipeline.Id);
+Console.WriteLine($"Pipeline deleted: {deleted}");
+```
+
 ## DistributedJobLock
 
 The `DistributedJobLock` class represents a database-backed distributed lock entry for a single job. It ensures that only one scheduler node runs a given job at a time in multi-instance deployments, preventing duplicate job executions across multiple nodes.
