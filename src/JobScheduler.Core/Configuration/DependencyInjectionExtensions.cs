@@ -56,9 +56,17 @@ public static class DependencyInjectionExtensions
 
         // Phase 1: Core services
         services.AddSingleton<CronExpressionService>();
-        services.AddSingleton(sp => new ConcurrencyManager(
+
+        // Scoped, not singleton: ConcurrencyManager depends on IExecutionRepository
+        // (which owns a scoped DbContext). A singleton would capture the repository
+        // from the root provider - a captive dependency that blows up under scope
+        // validation and keeps one DbContext alive forever. The authoritative
+        // concurrency counts come from the database anyway, so per-scope instances
+        // still enforce the same limits.
+        services.AddScoped(sp => new ConcurrencyManager(
             sp.GetRequiredService<IExecutionRepository>(),
-            options.MaxConcurrentJobs));
+            options.MaxConcurrentJobs,
+            sp.GetService<ILogger<ConcurrencyManager>>()));
 
         services.AddScoped<RetryService>();
         services.AddScoped<JobExecutorService>();
@@ -164,25 +172,31 @@ public static class DependencyInjectionExtensions
 
         try
         {
+            // Resolve scoped services from a scope, not the root provider -
+            // resolving them from the root throws when scope validation is on
+            // (the default in Development) and silently leaks otherwise.
+            using var scope = serviceProvider.CreateScope();
+            var sp = scope.ServiceProvider;
+
             // Phase 1 core services
-            _ = serviceProvider.GetRequiredService<JobSchedulerContext>();
-            _ = serviceProvider.GetRequiredService<IJobRepository>();
-            _ = serviceProvider.GetRequiredService<IExecutionRepository>();
-            _ = serviceProvider.GetRequiredService<CronExpressionService>();
-            _ = serviceProvider.GetRequiredService<ConcurrencyManager>();
-            _ = serviceProvider.GetRequiredService<RetryService>();
-            _ = serviceProvider.GetRequiredService<JobExecutorService>();
-            _ = serviceProvider.GetRequiredService<JobSchedulerService>();
+            _ = sp.GetRequiredService<JobSchedulerContext>();
+            _ = sp.GetRequiredService<IJobRepository>();
+            _ = sp.GetRequiredService<IExecutionRepository>();
+            _ = sp.GetRequiredService<CronExpressionService>();
+            _ = sp.GetRequiredService<ConcurrencyManager>();
+            _ = sp.GetRequiredService<RetryService>();
+            _ = sp.GetRequiredService<JobExecutorService>();
+            _ = sp.GetRequiredService<JobSchedulerService>();
 
             // Phase 2 services
-            _ = serviceProvider.GetRequiredService<CacheService>();
-            _ = serviceProvider.GetRequiredService<PerformanceMonitor>();
-            _ = serviceProvider.GetRequiredService<ExecutionStatisticsService>();
-            _ = serviceProvider.GetRequiredService<IEventPublisher>();
-            _ = serviceProvider.GetRequiredService<WebhookNotificationService>();
-            _ = serviceProvider.GetRequiredService<SlackNotificationService>();
-            _ = serviceProvider.GetRequiredService<ScheduleService>();
-            _ = serviceProvider.GetRequiredService<AuditLogger>();
+            _ = sp.GetRequiredService<CacheService>();
+            _ = sp.GetRequiredService<PerformanceMonitor>();
+            _ = sp.GetRequiredService<ExecutionStatisticsService>();
+            _ = sp.GetRequiredService<IEventPublisher>();
+            _ = sp.GetRequiredService<WebhookNotificationService>();
+            _ = sp.GetRequiredService<SlackNotificationService>();
+            _ = sp.GetRequiredService<ScheduleService>();
+            _ = sp.GetRequiredService<AuditLogger>();
         }
         catch (Exception ex)
         {
