@@ -182,6 +182,55 @@ job.MarkAsUpdated(updatedBy: "scheduler-service");
 
 `RetryPolicy` defines how a job should be retried after a failure, including the maximum number of attempts, back‑off strategy, and which exception types are considered retryable. It provides helper methods to calculate delay intervals, validate the configuration, and generate human‑readable descriptions of the strategy.
 
+## JobScheduleHistory
+
+The `JobScheduleHistory` entity tracks historical changes to job schedules and configurations, providing a complete audit trail for schedule modifications, status changes, and other property updates. It captures who made the change, when it occurred, the reason for the change, and both old and new values for comparison.
+
+Example usage:
+```csharp
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Domain.Enums;
+
+// Track a property change on a job
+var propertyChange = JobScheduleHistory.CreateChange(
+    jobId: Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+    propertyName: "MaxConcurrentExecutions",
+    oldValue: "1",
+    newValue: "3",
+    changeReason: "Increased concurrency to handle load",
+    changedBy: "admin@example.com"
+);
+
+Console.WriteLine(propertyChange.GetChangeDescription());
+Console.WriteLine($"Changed at: {propertyChange.ChangedAt:u}");
+Console.WriteLine($"Change reason: {propertyChange.ChangeReason}");
+
+// Track a status change
+var statusChange = JobScheduleHistory.CreateStatusChange(
+    jobId: Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+    oldStatus: "Inactive",
+    newStatus: "Active",
+    reason: "Job enabled for production use",
+    changedBy: "scheduler-service"
+);
+
+Console.WriteLine(statusChange.GetChangeDescription());
+
+// Track a cron expression change
+var cronChange = JobScheduleHistory.CreateCronChange(
+    jobId: Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+    oldCron: "0 0 * * *",
+    newCron: "0 */2 * * *",
+    changedBy: "admin@example.com"
+);
+
+Console.WriteLine(cronChange.GetChangeDescription());
+
+// Validate history entry
+bool isValid = propertyChange.IsValid();
+Console.WriteLine($"Is valid: {isValid}");
+```
+
 Example usage:
 ```csharp
 using System;
