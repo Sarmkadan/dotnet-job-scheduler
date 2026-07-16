@@ -174,3 +174,53 @@ DateTime lastFailure = DateTime.UtcNow;
 DateTime nextRetry = policy.GetNextRetryTime(lastFailure, attemptNumber: 2);
 Console.WriteLine($"Next retry scheduled at: {nextRetry:u}");
 ```
+
+## JobPipeline
+
+`JobPipeline` represents an ordered collection of jobs that are executed sequentially. Each pipeline contains a list of `JobPipelineStep` objects that define which job runs at each position and whether the pipeline should stop if a step fails. Pipelines are useful for modeling linear workflows where later jobs depend on the successful completion of earlier ones.
+
+Example usage:
+```csharp
+using System;
+using System.Collections.Generic;
+using JobScheduler.Core.Domain.Entities;
+
+// Create a new pipeline
+var pipeline = new JobPipeline
+{
+    Name = "Data Processing Pipeline",
+    Description = "Imports data, then transforms it.",
+    CreatedBy = "admin@example.com"
+};
+
+// Define steps
+var step1 = new JobPipelineStep
+{
+    PipelineId = pipeline.Id,
+    JobId = Guid.NewGuid(), // replace with an existing Job Id
+    StepOrder = 0,
+    StopOnFailure = true
+};
+
+var step2 = new JobPipelineStep
+{
+    PipelineId = pipeline.Id,
+    JobId = Guid.NewGuid(), // replace with an existing Job Id
+    StepOrder = 1,
+    StopOnFailure = false
+};
+
+// Add steps to the pipeline
+pipeline.Steps.Add(step1);
+pipeline.Steps.Add(step2);
+
+// Set timestamps
+pipeline.CreatedAt = DateTime.UtcNow;
+
+// Example output
+Console.WriteLine($"Pipeline '{pipeline.Name}' (Id: {pipeline.Id}) has {pipeline.Steps.Count} steps:");
+foreach (var step in pipeline.Steps)
+{
+    Console.WriteLine($"  Step {step.StepOrder}: Job {step.JobId}, StopOnFailure = {step.StopOnFailure}");
+}
+```
