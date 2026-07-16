@@ -1,5 +1,52 @@
 // ... (rest of README.md content)
 
+## JobExecution
+
+The `JobExecution` entity represents a single execution attempt of a job, tracking its lifecycle, timing, resource usage, and outcome. It captures when the job started and completed, execution duration, attempt number, output, error details, and resource consumption metrics. The entity provides methods to mark executions as completed or failed and determine if retries are appropriate.
+
+Example usage:
+```csharp
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Domain.Enums;
+
+// Create a new job execution
+var execution = new JobExecution
+{
+    JobId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+    ExecutorName = "JobProcessor",
+    ExecutorInstance = "processor-01",
+    AttemptNumber = 1,
+    IsRetryable = true,
+    MemoryUsageMb = 42,
+    CpuUsagePercent = 15.5
+};
+
+// Simulate job execution
+Console.WriteLine($"Starting execution {execution.Id} for job {execution.JobId}");
+
+// ... execute job logic ...
+
+// Mark as completed successfully
+execution.MarkAsCompleted(ExecutionStatus.Success);
+Console.WriteLine($"Execution completed in {execution.DurationMilliseconds}ms");
+Console.WriteLine($"Total duration: {execution.GetExecutionDuration().TotalMilliseconds}ms");
+
+// Or mark as failed
+execution.MarkAsFailed(
+    "Connection timeout",
+    "System.TimeoutException: Operation timed out...",
+    retryable: true
+);
+
+// Check if should retry
+bool shouldRetry = execution.ShouldRetry(maxRetries: 3);
+Console.WriteLine($"Should retry: {shouldRetry}");
+
+// Validate execution data
+bool isValid = execution.IsValid();
+Console.WriteLine($"Is valid: {isValid}");
+```
+
 ## ExecutionMetrics
 
 The `ExecutionMetrics` class provides aggregated metrics and statistics for job executions, offering insights into job performance and reliability. It tracks various execution outcomes, such as successes, failures, timeouts, and cancellations, and calculates key performance indicators like average duration and success rate.
