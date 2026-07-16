@@ -482,6 +482,44 @@ int failureRate = (int)(100 - stats.SuccessRate);
 Console.WriteLine($"Failure rate: {failureRate}%");
 ```
 
+## RateLimitMiddleware
+
+The `RateLimitMiddleware` is an ASP.NET Core middleware component that implements rate limiting to prevent abuse and ensure fair resource allocation. It uses a sliding window algorithm to track requests per client (IP or authenticated user) and enforces configurable limits on the number of requests allowed within a time window. When the limit is exceeded, the middleware returns HTTP 429 (Too Many Requests) with a `Retry-After` header indicating when requests can be attempted again.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Middleware;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure logging
+builder.Logging.AddConsole();
+
+// Add services to the container
+builder.Services.AddControllers();
+
+var app = builder.Build();
+
+// Configure rate limiting with custom settings (100 requests per 30 seconds)
+app.UseMiddleware<RateLimitMiddleware>(new RateLimitSettings
+{
+    RequestsPerWindow = 100,
+    WindowSizeSeconds = 30
+});
+
+// Configure other middleware
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
+```
+
 ## GlobalExceptionMiddleware
 
 The `GlobalExceptionMiddleware` is an ASP.NET Core middleware component that catches all unhandled exceptions during HTTP request processing. It ensures consistent error responses, prevents sensitive error information leakage in production, and logs all errors for audit and debugging purposes. The middleware maps specific exception types to appropriate HTTP status codes and provides detailed error information in development environments.
