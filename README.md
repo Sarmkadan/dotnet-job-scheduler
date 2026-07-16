@@ -93,6 +93,40 @@ bool hasFailureTrend = metrics.HasFailureTrend();
 Console.WriteLine($"Has failure trend: {hasFailureTrend}");
 ```
 
+## JobDependency
+
+The `JobDependency` entity defines a dependency relationship between two jobs, ensuring that one job (`Job`) only executes after another job (`DependsOnJob`) has completed successfully. It tracks the dependency through foreign keys and provides navigation properties for easy access to both jobs. This is useful for creating workflows where certain operations must run in a specific order.
+
+Example usage:
+```csharp
+using JobScheduler.Core.Domain.Entities;
+
+// Create a dependency between two jobs
+var dependency = new JobDependency
+{
+    JobId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),  // The job that depends on another
+    DependsOnJobId = Guid.Parse("5fb3e564-5717-4562-b3fc-2c963f66afa7"),  // The job that must complete first
+    CreatedBy = "scheduler-service"
+};
+
+Console.WriteLine($"Created dependency: Job {dependency.JobId} depends on Job {dependency.DependsOnJobId}");
+
+// Access the related jobs through navigation properties
+if (dependency.Job != null)
+{
+    Console.WriteLine($"Dependent job: {dependency.Job.Name}");
+}
+
+if (dependency.DependsOnJob != null)
+{
+    Console.WriteLine($"Required job: {dependency.DependsOnJob.Name}");
+}
+
+// Check when the dependency was created
+dependency.CreatedAt = DateTime.UtcNow;
+Console.WriteLine($"Dependency created at: {dependency.CreatedAt:u}");
+```
+
 ## RetryPolicy
 
 `RetryPolicy` defines how a job should be retried after a failure, including the maximum number of attempts, back‑off strategy, and which exception types are considered retryable. It provides helper methods to calculate delay intervals, validate the configuration, and generate human‑readable descriptions of the strategy.
