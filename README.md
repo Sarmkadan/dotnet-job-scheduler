@@ -568,6 +568,79 @@ string message = retryService.FormatRetryMessage(2, delay, "processor-01");
 Console.WriteLine(message);
 ```
 
+## WebhookNotificationService
+
+The `WebhookNotificationService` sends real-time notifications to external webhook endpoints when jobs complete or fail. It supports delivery retry with exponential backoff, HMAC signature verification for security, and webhook configuration management including registration, retrieval, and testing.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Domain.Entities;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Setup DI services (typically done in Program.cs)
+var services = new ServiceCollection();
+services.AddHttpClient();
+services.AddLogging(configure => configure.AddConsole());
+services.AddSingleton<CacheService>();
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Create webhook notification service
+var webhookService = serviceProvider.GetRequiredService<WebhookNotificationService>();
+
+// Example job and execution
+var job = new Job
+{
+    Id = Guid.NewGuid(),
+    Name = "Data Export Job",
+    Description = "Exports customer data to external system"
+};
+
+var execution = new JobExecution
+{
+    Id = Guid.NewGuid(),
+    JobId = job.Id,
+    Status = ExecutionStatus.Success,
+    StartedAt = DateTime.UtcNow.AddMinutes(-5),
+    CompletedAt = DateTime.UtcNow,
+    DurationMilliseconds = 120000,
+    ExecutionTimeMs = 118500,
+    AttemptNumber = 1,
+    RetryAttempt = 0,
+    IsRetryable = false
+};
+
+// Register a webhook endpoint
+await webhookService.RegisterWebhookAsync(
+    jobId: job.Id,
+    webhookUrl: "https://api.example.com/webhooks/job-events",
+    secret: "your-webhook-secret-key"
+);
+
+// Get webhook configuration
+var config = await webhookService.GetWebhookConfigAsync(job.Id);
+Console.WriteLine($"Webhook registered: {config?.WebhookUrl}");
+
+// Test webhook connectivity
+var testResult = await webhookService.TestWebhookAsync(
+    webhookUrl: "https://api.example.com/webhooks/job-events",
+    secret: "your-webhook-secret-key"
+);
+Console.WriteLine($"Test result: {(testResult.Success ? "Success" : "Failed")} - {testResult.Message}");
+
+// Send execution notification
+if (config != null)
+{
+    await webhookService.SendExecutionNotificationAsync(job, execution, config);
+}
+
+// Unregister webhook when no longer needed
+await webhookService.UnregisterWebhookAsync(job.Id);
+```
+
 ## RateLimitMiddleware
 
 The `RateLimitMiddleware` is an ASP.NET Core middleware component that implements rate limiting to prevent abuse and ensure fair resource allocation. It uses a sliding window algorithm to track requests per client (IP or authenticated user) and enforces configurable limits on the number of requests allowed within a time window. When the limit is exceeded, the middleware returns HTTP 429 (Too Many Requests) with a `Retry-After` header indicating when requests can be attempted again.
