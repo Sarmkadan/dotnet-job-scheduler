@@ -327,5 +327,115 @@ Console.WriteLine($"Expires At: {jobLock.ExpiresAt}");
 - **ExpiresAt**: Gets or sets the UTC timestamp after which the lock expires automatically
 - **IsExpired(DateTime? utcNow)**: Returns true when the lock has passed its expiry time
 
+## AuditLogger
+
+The `AuditLogger` service provides comprehensive auditing capabilities for job scheduler operations, tracking API calls, job lifecycle events, security incidents, and execution activities. It maintains a complete audit trail with timestamps, user information, severity levels, and detailed event descriptions, enabling compliance tracking, debugging, and security monitoring.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Domain.Models;
+using Microsoft.Extensions.Logging;
+
+// Setup dependencies (typically via dependency injection)
+var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+var logger = loggerFactory.CreateLogger<AuditLogger>();
+var auditLogger = new AuditLogger(logger);
+
+// Log an API call
+await auditLogger.LogApiCallAsync(
+    eventType: "GET /api/jobs",
+    userId: "admin@company.com",
+    entityId: Guid.Parse("job-id-123"),
+    entityType: "Job",
+    details: "Retrieved job details for job ID job-id-123",
+    severity: AuditSeverity.Information,
+    method: "GET",
+    path: "/api/jobs"
+);
+
+// Log job creation
+await auditLogger.LogJobCreationAsync(
+    userId: "admin@company.com",
+    jobId: Guid.Parse("new-job-id-456"),
+    jobName: "DataProcessor",
+    details: "Created new job 'DataProcessor' with daily schedule",
+    severity: AuditSeverity.Information
+);
+
+// Log job modification
+await auditLogger.LogJobModificationAsync(
+    userId: "admin@company.com",
+    jobId: Guid.Parse("job-id-123"),
+    jobName: "DataProcessor",
+    oldStatus: "Active",
+    newStatus: "Paused",
+    details: "Job status changed from Active to Paused",
+    severity: AuditSeverity.Warning
+);
+
+// Log job deletion
+await auditLogger.LogJobDeletionAsync(
+    userId: "admin@company.com",
+    jobId: Guid.Parse("job-id-123"),
+    jobName: "DataProcessor",
+    details: "Deleted job 'DataProcessor' and all associated executions",
+    severity: AuditSeverity.High
+);
+
+// Log security event
+await auditLogger.LogSecurityEventAsync(
+    userId: "hacker@external.com",
+    eventType: "FailedAuthentication",
+    details: "Multiple failed login attempts from IP 192.168.1.100",
+    severity: AuditSeverity.Critical
+);
+
+// Log job execution event
+await auditLogger.LogExecutionEventAsync(
+    jobId: Guid.Parse("job-id-123"),
+    jobName: "DataProcessor",
+    executionId: Guid.Parse("exec-id-789"),
+    status: "Completed",
+    details: "Job executed successfully in 1.2 seconds",
+    severity: AuditSeverity.Information
+);
+
+// Retrieve audit logs
+var auditLogs = await auditLogger.GetAuditLogs(
+    startDate: DateTime.UtcNow.AddDays(-7),
+    endDate: DateTime.UtcNow,
+    severity: AuditSeverity.High
+);
+Console.WriteLine($"Found {auditLogs.Count} high severity events in last 7 days");
+
+// Get audit statistics
+var statistics = auditLogger.GetStatistics(
+    startDate: DateTime.UtcNow.AddDays(-30),
+    endDate: DateTime.UtcNow
+);
+Console.WriteLine($"Total events: {statistics.TotalEvents}");
+Console.WriteLine($"Critical events: {statistics.CriticalEvents}");
+Console.WriteLine($"Average severity: {statistics.AverageSeverity}");
+
+// Clear old logs (older than 90 days)
+int clearedCount = await auditLogger.ClearOldLogsAsync(TimeSpan.FromDays(90));
+Console.WriteLine($"Cleared {clearedCount} old audit log entries");
+```
+
+### Properties
+
+- **EventId**: Gets the unique identifier for the audit event
+- **EventType**: Gets the type/category of the audit event
+- **Timestamp**: Gets the UTC timestamp when the event occurred
+- **UserId**: Gets the user identifier associated with the event
+- **EntityId**: Gets the ID of the entity involved in the event
+- **EntityType**: Gets the type of entity involved in the event
+- **Details**: Gets the detailed description of the event
+- **Severity**: Gets the severity level of the event
+- **Method**: Gets the HTTP method for API call events
+- **Path**: Gets the HTTP path for API call events
+
 ## JobExecution
 ... rest of file content ...
