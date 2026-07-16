@@ -560,3 +560,51 @@ foreach (var step in pipeline.Steps)
     Console.WriteLine($"  Step {step.StepOrder}: Job {step.JobId}, StopOnFailure = {step.StopOnFailure}");
 }
 ```
+
+## CreatePipelineRequest
+
+`CreatePipelineRequest` is a request model used to create a new job pipeline. It defines the pipeline's name, optional description, and an ordered list of steps (jobs) that will execute sequentially. Each step can be configured to stop the pipeline on failure, enabling you to model linear workflows where jobs depend on the successful completion of previous jobs.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Domain.Models;
+using System;
+using System.Collections.Generic;
+
+// Create a pipeline request to import and transform data
+var request = new CreatePipelineRequest
+{
+    Name = "Data Import Pipeline",
+    Description = "Imports customer data from CSV and transforms it for analytics",
+    Steps = new List<PipelineStepRequest>
+    {
+        new PipelineStepRequest
+        {
+            JobId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"), // Data import job
+            StopOnFailure = true // Stop pipeline if import fails
+        },
+        new PipelineStepRequest
+        {
+            JobId = Guid.Parse("5fb3e564-5717-4562-b3fc-2c963f66afa7"), // Data transformation job
+            StopOnFailure = false // Continue even if transformation fails
+        },
+        new PipelineStepRequest
+        {
+            JobId = Guid.Parse("7fc8e564-5717-4562-b3fc-2c963f66afa8"), // Data validation job
+            StopOnFailure = true // Stop pipeline if validation fails
+        }
+    }
+};
+
+// Validate the request before sending to API
+bool isValid = !string.IsNullOrWhiteSpace(request.Name) && request.Steps.Count > 0;
+Console.WriteLine($"Pipeline request is valid: {isValid}");
+Console.WriteLine($"Pipeline '{request.Name}' has {request.Steps.Count} steps");
+
+// Access step configuration
+foreach (var step in request.Steps)
+{
+    Console.WriteLine($"Step for Job {step.JobId}: StopOnFailure={step.StopOnFailure}");
+}
+```
