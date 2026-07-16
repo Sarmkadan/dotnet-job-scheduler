@@ -178,6 +178,43 @@ Console.WriteLine($"Can execute now: {canExecute}");
 job.MarkAsUpdated(updatedBy: "scheduler-service");
 ```
 
+## JobResponse
+
+`JobResponse` is a serializable model that represents job information for API responses. It provides a clean, read-only view of job data with computed metrics like success rate, making it ideal for returning job information to clients without exposing internal implementation details.
+
+Example usage:
+```csharp
+using JobScheduler.Core.Domain.Models;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Domain.Enums;
+
+// Create a job response from a job entity
+var job = new Job
+{
+    Id = Guid.NewGuid(),
+    Name = "Data Export Job",
+    Description = "Exports customer data to CSV format every day at midnight",
+    CronExpression = "0 0 * * *",
+    TimeZoneId = "America/New_York",
+    HandlerType = "JobScheduler.Jobs.DataExportJob, JobScheduler.Jobs",
+    Priority = JobPriority.High,
+    MaxConcurrentExecutions = 2,
+    MaxRetries = 3,
+    ExecutionTimeoutSeconds = 3600,
+    IsActive = true,
+    CreatedAt = DateTime.UtcNow
+};
+
+// Convert to JobResponse
+var response = JobResponse.FromJob(job);
+
+Console.WriteLine($"Job: {response.Name} (Id: {response.Id})");
+Console.WriteLine($"Status: {response.Status}");
+Console.WriteLine($"Next execution: {response.NextExecutionAt}");
+Console.WriteLine($"Success rate: {response.SuccessRate}%");
+Console.WriteLine($"Concurrency limit: {response.MaxConcurrentExecutions}");
+```
+
 ## RetryPolicy
 
 `RetryPolicy` defines how a job should be retried after a failure, including the maximum number of attempts, back‑off strategy, and which exception types are considered retryable. It provides helper methods to calculate delay intervals, validate the configuration, and generate human‑readable descriptions of the strategy.
