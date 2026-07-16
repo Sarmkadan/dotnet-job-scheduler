@@ -1079,9 +1079,63 @@ The context establishes these key relationships:
 - Enable sensitive data logging only in development environments
 ```
 
-## TimeUtility
+## ParseUtility
 
-The `TimeUtility` class provides a comprehensive set of static methods for time and date operations, ensuring consistent timezone handling and time conversions across the job scheduler. It serves as a centralized utility for common temporal calculations, conversions, and formatting operations.
+The `ParseUtility` class provides safe parsing and type conversion operations for strings and other data types. It centralizes parsing logic to prevent data type mismatch issues and inconsistent conversions across the scheduler, with consistent error handling and default value support for all parsing operations.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Utilities;
+
+// Parse integers with default fallback
+int maxRetries = ParseUtility.ParseInt("5", 3); // Returns 5
+int defaultValue = ParseUtility.ParseInt(null, 3); // Returns 3 (default)
+
+// Parse long values
+long fileSize = ParseUtility.ParseLong("1024", 0); // Returns 1024
+
+// Parse double values (supports both decimal points and commas via invariant culture)
+double percentage = ParseUtility.ParseDouble("95.5", 0.0); // Returns 95.5
+
+// Parse boolean with multiple recognized formats
+bool shouldRetry = ParseUtility.ParseBool("yes", false); // Returns true
+bool isActive = ParseUtility.ParseBool("1", false); // Returns true
+bool useDefault = ParseUtility.ParseBool("invalid", true); // Returns true (default)
+
+// Parse DateTime with invariant culture
+DateTime nextRun = ParseUtility.ParseDateTime("2024-12-25T14:30:00Z", DateTime.MinValue);
+
+// Parse Guid
+a Guid jobId = ParseUtility.ParseGuid("a1b2c3d4-5678-90ef-ghij-klmnopqrstuv");
+
+// Parse enums (case-insensitive, supports numeric values)
+var priority = ParseUtility.ParseEnum<JobPriority>("High", JobPriority.Normal); // Returns JobPriority.High
+
+// Parse JSON strings
+var config = ParseUtility.ParseJson<Dictionary<string, string>>("{\"key\":\"value\"}");
+
+// Parse TimeSpan (supports HH:MM:SS, MM:SS, and total seconds)
+TimeSpan timeout = ParseUtility.ParseTimeSpan("01:30:00", TimeSpan.Zero); // 1 hour 30 minutes
+
+// Parse priority strings to numeric levels (1-4)
+int priorityLevel = ParseUtility.ParsePriority("High"); // Returns 3
+
+// Format file sizes as human-readable strings
+string fileSizeStr = ParseUtility.FormatFileSize(1024 * 1024 * 1024); // "10.24 GB"
+
+// Format duration as human-readable string
+string durationStr = ParseUtility.FormatDuration(125000); // "2m 5s"
+
+// Format percentage values
+string percentageStr = ParseUtility.FormatPercentage(95.5, 1); // "95.5%"
+
+// Parse CSV lines (handles quoted fields with commas)
+var csvValues = ParseUtility.ParseCsvLine("field1,\"field with comma\",field3"); // ["field1", "field with comma", "field3"]
+
+// Escape CSV fields for safe writing
+string escapedField = ParseUtility.EscapeCsvField("value, with comma"); // "\"value, with comma\""
+```
 
 ### Usage
 
