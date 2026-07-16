@@ -734,6 +734,140 @@ using Microsoft.Extensions.Logging;
 
 // Setup DI services (typically done in Program.cs)
 var services = new ServiceCollection();
+services.AddDbContext<JobSchedulerContext>(options => 
+options.UseSqlServer("Server=localhost;Database=JobScheduler;Trusted_Connection=True;"));
+services.AddLogging(configure => configure.AddConsole());
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Create DatabaseLeaderElectionService (typically injected via DI)
+var electionService = serviceProvider.GetRequiredService<DatabaseLeaderElectionService>();
+
+// Acquire leadership
+bool acquired = await electionService.TryAcquireLeadershipAsync();
+Console.WriteLine($"Leader election successful: {acquired}");
+Console.WriteLine($"Is current instance leader: {electionService.IsLeader}");
+
+// Check leadership status periodically
+if (electionService.IsLeader)
+{
+Console.WriteLine("This instance is the leader - performing leader tasks...");
+
+// Release leadership when shutting down
+await electionService.ReleaseLeadershipAsync();
+}
+
+// Get leader information from the database
+using var scope = serviceProvider.CreateScope();
+var context = scope.ServiceProvider.GetRequiredService<JobSchedulerContext>();
+var leaderLock = await context.SchedulerLeaderLocks 
+.FirstOrDefaultAsync(l => l.LockName == "scheduler-leader");
+
+if (leaderLock != null)
+{
+Console.WriteLine($"Current leader: {leaderLock.LeaderInstanceId}");
+Console.WriteLine($"Lease expires at: {leaderLock.LeaseExpiresAt:u}");
+Console.WriteLine($"Acquired at: {leaderLock.AcquiredAt:u}");
+}
+```
+
+## DistributedJobLockService
+
+`DistributedJobLockService` provides database-backed distributed locking for job execution coordination across multiple scheduler instances. It ensures that only one instance can execute a specific job at any given time, preventing duplicate job executions in distributed environments.
+
+The service uses optimistic concurrency with unique indexes to handle race conditions and provides methods for acquiring, releasing, checking, and renewing locks with configurable durations.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Setup DI services (typically done in Program.cs)
+var services = new ServiceCollection();
+services.AddDbContext<JobSchedulerContext>(options => 
+options.UseSqlServer("Server=localhost;Database=JobScheduler;Trusted_Connection=True;"));
+services.AddLogging(configure => configure.AddConsole());
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Create DistributedJobLockService (typically injected via DI)
+var lockService = serviceProvider.GetRequiredService<DistributedJobLockService>();
+
+// Example job ID
+guid jobId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+string instanceId = "scheduler-instance-01";
+
+// Try to acquire a lock for a job (5 minutes duration)
+bool lockAcquired = await lockService.TryAcquireLockAsync(
+    jobId,
+    instanceId,
+    TimeSpan.FromMinutes(5)
+);
+
+if (lockAcquired)
+{
+    Console.WriteLine("Successfully acquired distributed lock for job execution");
+    
+    try
+    {
+        // Execute the job logic here
+        Console.WriteLine("Executing job...");
+        
+        // Renew the lock if execution takes longer than expected
+        bool lockRenewed = await lockService.RenewLockAsync(
+            jobId,
+            instanceId,
+            TimeSpan.FromMinutes(5)
+        );
+        
+        if (lockRenewed)
+        {
+            Console.WriteLine("Lock renewed successfully");
+        }
+        
+        // Check if lock is currently held
+        bool isLocked = await lockService.IsLockedAsync(jobId);
+        Console.WriteLine($"Lock status: {isLocked}");
+    }
+    finally
+    {
+        // Release the lock when done
+        await lockService.ReleaseLockAsync(jobId, instanceId);
+        Console.WriteLine("Lock released");
+    }
+}
+else
+{
+    Console.WriteLine("Could not acquire lock - another instance is executing this job");
+}
+
+// Get all currently active locks across the system
+var activeLocks = await lockService.GetActiveLocksAsync();
+Console.WriteLine($"Active locks: {activeLocks.Count}");
+
+foreach (var activeLock in activeLocks)
+{
+    Console.WriteLine($"Job {activeLock.JobId} locked by {activeLock.HolderInstanceId} until {activeLock.ExpiresAt:u}");
+}
+
+// Clean up expired locks (typically run periodically)
+int cleanedCount = await lockService.CleanExpiredLocksAsync();
+Console.WriteLine($"Cleaned {cleanedCount} expired locks");
+```
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Setup DI services (typically done in Program.cs)
+var services = new ServiceCollection();
 services.AddDbContext<JobSchedulerContext>(options =>
     options.UseSqlServer("Server=localhost;Database=JobScheduler;Trusted_Connection=True;"));
 services.AddLogging(configure => configure.AddConsole());
