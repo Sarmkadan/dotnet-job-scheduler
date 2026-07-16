@@ -31,17 +31,13 @@ public sealed class Program
             await host.Services.InitializeDatabaseAsync();
             host.Services.ValidateSchedulerConfiguration();
 
-            // Start the scheduler
-            var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
             var logger = host.Services.GetRequiredService<ILogger<Program>>();
-
             logger.LogInformation("Job Scheduler starting...");
 
-            // Run scheduled job processor
-            var processingTask = RunSchedulerLoopAsync(host.Services, lifetime.ApplicationStopping);
-
+            // SchedulerHostedService (registered in CreateHostBuilder) owns the
+            // scheduling loop - no second manual loop here, or every due job
+            // would be picked up by two competing pollers.
             await host.RunAsync();
-            await processingTask;
         }
         catch (Exception ex)
         {
@@ -73,53 +69,6 @@ public sealed class Program
                 services.AddHostedService<SchedulerHostedService>();
             });
 
-    /// <summary>
-    /// Main scheduler loop that processes due jobs and retries.
-    /// </summary>
-    private static async Task RunSchedulerLoopAsync(IServiceProvider services, CancellationToken cancellationToken)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-
-        logger.LogInformation("Scheduler loop started");
-
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            try
-            {
-                using var scope = services.CreateScope();
-                var schedulerService = scope.ServiceProvider.GetRequiredService<JobSchedulerService>();
-
-                // Execute due jobs
-                var executions = await schedulerService.ExecuteDueJobsAsync(cancellationToken);
-                if (executions.Any())
-                {
-                    logger.LogInformation("Executed {Count} jobs", executions.Count());
-                }
-
-                // Process retries
-                var retries = await schedulerService.ProcessRetriesAsync();
-                if (retries.Any())
-                {
-                    logger.LogInformation("Queued {Count} retries", retries.Count());
-                }
-
-                // Sleep before next iteration
-                await Task.Delay(5000, cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                logger.LogInformation("Scheduler loop cancellation requested");
-                break;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error in scheduler loop");
-                await Task.Delay(10000, cancellationToken);
-            }
-        }
-
-        logger.LogInformation("Scheduler loop stopped");
-    }
 }
 
 /// <summary>
