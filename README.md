@@ -82,7 +82,7 @@ Console.WriteLine(summary);
 
 // Check reliability
 bool isReliable = metrics.IsReliable();
-Console.WriteLine($"Is Reliable: {isReliable}");
+Console.WriteLine($"Is reliable: {isReliable}");
 
 // Get actual failure count
 int actualFailureCount = metrics.GetActualFailureCount();
@@ -90,5 +90,53 @@ Console.WriteLine($"Actual Failure Count: {actualFailureCount}");
 
 // Check for failure trend
 bool hasFailureTrend = metrics.HasFailureTrend();
-Console.WriteLine($"Has Failure Trend: {hasFailureTrend}");
+Console.WriteLine($"Has failure trend: {hasFailureTrend}");
+```
+
+## RetryPolicy
+
+`RetryPolicy` defines how a job should be retried after a failure, including the maximum number of attempts, back‑off strategy, and which exception types are considered retryable. It provides helper methods to calculate delay intervals, validate the configuration, and generate human‑readable descriptions of the strategy.
+
+Example usage:
+```csharp
+using System;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Constants;
+
+// Create a retry policy for a specific job
+var policy = new RetryPolicy
+{
+    JobId = Guid.NewGuid(),
+    MaxRetries = 5,
+    InitialBackoffSeconds = 10,
+    MaxBackoffSeconds = 300,
+    Strategy = BackoffStrategy.Exponential,
+    BackoffMultiplier = 2.0,
+    RetryOnTimeout = true,
+    RetryOnCancellation = false,
+    RetryableExceptions = "TimeoutException,TransientException"
+};
+
+// Validate the policy configuration
+if (!policy.IsValid())
+{
+    Console.WriteLine("Invalid retry policy configuration.");
+    return;
+}
+
+// Show a description of the chosen back‑off strategy
+Console.WriteLine(policy.GetStrategyDescription());
+
+// Calculate the back‑off delay for the third retry attempt
+int delaySeconds = policy.CalculateBackoffDelay(attemptNumber: 3);
+Console.WriteLine($"Back‑off delay for attempt 3: {delaySeconds}s");
+
+// Determine whether the policy allows a retry for a given exception type
+bool shouldRetry = policy.ShouldRetryOnException("System.TimeoutException");
+Console.WriteLine($"Should retry on TimeoutException: {shouldRetry}");
+
+// Compute the next scheduled retry time after a failure
+DateTime lastFailure = DateTime.UtcNow;
+DateTime nextRetry = policy.GetNextRetryTime(lastFailure, attemptNumber: 2);
+Console.WriteLine($"Next retry scheduled at: {nextRetry:u}");
 ```
