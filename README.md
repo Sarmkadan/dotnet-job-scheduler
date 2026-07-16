@@ -884,6 +884,140 @@ Console.WriteLine($"To: {normalizedQuery.To?.ToString("u")}");
 Console.WriteLine($"Page: {normalizedQuery.PageNumber} (size: {normalizedQuery.PageSize})");
 ```
 
+## IJobHandler
+
+`IJobHandler` is the core interface that your job implementations must implement to define the actual work performed by scheduled jobs. The job scheduler invokes your handler through `JobExecutorService.ExecuteJobAsync()` to execute jobs, validate them for execution, and retrieve execution statistics. Handlers are responsible for implementing the core business logic while the scheduler manages timing, retries, concurrency, and persistence.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.Logging;
+
+// Implement IJobHandler for your specific job type
+public class DataExportJob : IJobHandler
+{
+    private readonly ILogger<DataExportJob> _logger;
+    private readonly IJobExecutionRepository _executionRepository;
+
+    public DataExportJob(ILogger<DataExportJob> logger, IJobExecutionRepository executionRepository)
+    {
+        _logger = logger;
+        _executionRepository = executionRepository;
+    }
+
+    public Guid JobId { get; } = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+
+    public int TotalExecutions => _executionRepository.GetTotalExecutions(JobId);
+    public int SuccessfulExecutions => _executionRepository.GetSuccessfulExecutions(JobId);
+    public int FailedExecutions => _executionRepository.GetFailedExecutions(JobId);
+    public int TimedOutExecutions => _executionRepository.GetTimedOutExecutions(JobId);
+    public int SkippedExecutions => _executionRepository.GetSkippedExecutions(JobId);
+    public long AverageDurationMs => _executionRepository.GetAverageDurationMs(JobId);
+    public double SuccessRate => _executionRepository.GetSuccessRate(JobId);
+
+    public async Task<JobExecution> ExecuteJobAsync(JobExecution execution, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Starting job execution {ExecutionId} for job {JobId}", execution.Id, JobId);
+
+        try
+        {
+            // Your job logic here
+            await ExportDataAsync(execution, cancellationToken);
+
+            // Mark execution as completed successfully
+            execution.MarkAsCompleted(ExecutionStatus.Success);
+            _logger.LogInformation("Job execution {ExecutionId} completed successfully in {Duration}ms", 
+                execution.Id, execution.DurationMilliseconds);
+        }
+        catch (OperationCanceledException)
+        {
+            execution.MarkAsFailed("Job was cancelled", "Operation was cancelled by user", retryable: false);
+            _logger.LogWarning("Job execution {ExecutionId} was cancelled", execution.Id);
+        }
+        catch (Exception ex)
+        {
+            execution.MarkAsFailed("Export failed", ex.ToString(), retryable: true);
+            _logger.LogError(ex, "Job execution {ExecutionId} failed", execution.Id);
+        }
+
+        return execution;
+    }
+
+    public async Task<(bool CanExecute, string? Reason)> ValidateJobForExecutionAsync(Job job, CancellationToken cancellationToken = default)
+    {
+        // Check if job is active
+        if (!job.IsActive)
+        {
+            return (false, "Job is not active");
+        }
+
+        // Check concurrency limits
+        var currentConcurrent = await _executionRepository.GetCurrentConcurrentExecutionsAsync(JobId);
+        if (currentConcurrent >= job.MaxConcurrentExecutions)
+        {
+            return (false, $"Concurrency limit reached ({currentConcurrent}/{job.MaxConcurrentExecutions})");
+        }
+
+        // Check execution timeout
+        if (job.ExecutionTimeoutSeconds > 0 && job.ExecutionTimeoutSeconds < 30)
+        {
+            return (false, "Execution timeout is too short (minimum 30 seconds)");
+        }
+
+        return (true, null);
+    }
+
+    public async Task<ExecutionStatistics> GetExecutionStatisticsAsync(CancellationToken cancellationToken = default)
+    {
+        return new ExecutionStatistics
+        {
+            TotalExecutions = TotalExecutions,
+            SuccessfulExecutions = SuccessfulExecutions,
+            FailedExecutions = FailedExecutions,
+            TimedOutExecutions = TimedOutExecutions,
+            SkippedExecutions = SkippedExecutions,
+            AverageDurationMs = AverageDurationMs,
+            SuccessRate = SuccessRate
+        };
+    }
+
+    private async Task ExportDataAsync(JobExecution execution, CancellationToken cancellationToken)
+    {
+        // Your actual job implementation
+        await Task.Delay(1000, cancellationToken); // Simulate work
+    }
+}
+
+// Usage with JobExecutorService (typically via dependency injection)
+public class JobProcessor
+{
+    private readonly JobExecutorService _executor;
+    private readonly ILogger<JobProcessor> _logger;
+
+    public JobProcessor(JobExecutorService executor, ILogger<JobProcessor> logger)
+    {
+        _executor = executor;
+        _logger = logger;
+    }
+
+    public async Task ExecuteJob(Guid jobId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var execution = await _executor.ExecuteJobAsync(jobId, cancellationToken);
+            _logger.LogInformation("Job {JobId} executed in {Duration}ms", 
+                jobId, execution.DurationMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to execute job {JobId}", jobId);
+        }
+    }
+}
+```
+
 ## JobPipeline
 
 `JobPipeline` represents an ordered collection of jobs that are executed sequentially. Each pipeline contains a list of `JobPipelineStep` objects that define which job runs at each position and whether the pipeline should stop if a step fails. Pipelines are useful for modeling linear workflows where later jobs depend on the successful completion of earlier ones.
