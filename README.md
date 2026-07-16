@@ -852,6 +852,77 @@ bool isAvailable = await apiClient.IsApiAvailableAsync("https://api.example.com/
 Console.WriteLine($"API is available: {isAvailable}");
 ```
 
+## PerformanceMonitor
+
+`PerformanceMonitor` collects and analyzes performance metrics for job executions, including execution times, success rates, throughput, CPU utilization, and memory usage. It provides methods to record metrics and retrieve aggregated statistics for monitoring, diagnostics, and dashboard visualization.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Setup DI services (typically done in Program.cs)
+var services = new ServiceCollection();
+services.AddLogging(configure => configure.AddConsole());
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Create PerformanceMonitor (typically injected via DI)
+var performanceMonitor = serviceProvider.GetRequiredService<PerformanceMonitor>();
+
+// Record execution metrics after a job completes
+var jobId = Guid.NewGuid();
+performanceMonitor.RecordExecutionTime(jobId, "Data Export Job", 1500, success: true);
+performanceMonitor.RecordExecutionTime(jobId, "Data Export Job", 2500, success: true);
+performanceMonitor.RecordExecutionTime(jobId, "Data Export Job", 800, success: true);
+performanceMonitor.RecordExecutionTime(jobId, "Data Export Job", 3200, success: false);
+performanceMonitor.RecordExecutionTime(Guid.NewGuid(), "Import Job", 1200, success: true);
+
+// Get aggregated metrics for a specific job
+var avgTime = performanceMonitor.GetAverageExecutionTime(jobId);
+Console.WriteLine($"Average execution time: {avgTime}ms");
+
+var successRate = performanceMonitor.GetSuccessRate(jobId);
+Console.WriteLine($"Success rate: {successRate}%");
+
+var p95Time = performanceMonitor.GetPercentileExecutionTime(jobId, 95);
+Console.WriteLine($"P95 execution time: {p95Time}ms");
+
+// Get system-wide metrics
+var systemAvgTime = performanceMonitor.GetAverageExecutionTimeMs();
+Console.WriteLine($"System average execution time: {systemAvgTime}ms");
+
+var throughput = performanceMonitor.GetThroughputPerMinute();
+Console.WriteLine($"Throughput: {throughput} executions/minute");
+
+var cpuUsage = performanceMonitor.GetCpuUtilization();
+Console.WriteLine($"CPU utilization: {cpuUsage}%");
+
+var memoryUsage = performanceMonitor.GetMemoryUsageMb();
+Console.WriteLine($"Memory usage: {memoryUsage}MB");
+
+// Get timeline data for dashboard
+var timeline = await performanceMonitor.GetPerformanceTimelineAsync(DateTime.UtcNow.AddHours(-24));
+Console.WriteLine($"Timeline points: {timeline.Count}");
+
+foreach (var point in timeline)
+{
+    Console.WriteLine($"  {point.Timestamp:u}: {point.ExecutionCount} executions ({point.SuccessCount} success, {point.FailureCount} failure), avg {point.AverageExecutionTimeMs}ms");
+}
+
+// Get summary statistics
+var summary = performanceMonitor.GetSummary();
+Console.WriteLine($"Total executions: {summary.TotalExecutions}");
+Console.WriteLine($"Success rate: {summary.SuccessRate}%");
+Console.WriteLine($"Average time: {summary.AverageExecutionTimeMs}ms");
+Console.WriteLine($"Memory usage: {summary.MemoryUsageMb}MB");
+
+// Clear metrics when needed
+performanceMonitor.ClearMetrics();
+```
+
 ## RetryService
 
 The `RetryService` handles job retry logic, backoff strategies, and retry scheduling. It manages exponential, linear, and fixed backoff delays, determines when retries are appropriate, and provides statistics about retry behavior.
