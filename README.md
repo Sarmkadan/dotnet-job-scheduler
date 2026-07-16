@@ -327,6 +327,64 @@ Console.WriteLine($"Expires At: {jobLock.ExpiresAt}");
 - **ExpiresAt**: Gets or sets the UTC timestamp after which the lock expires automatically
 - **IsExpired(DateTime? utcNow)**: Returns true when the lock has passed its expiry time
 
+## ConcurrencyManager
+
+The `ConcurrencyManager` service manages concurrent job execution limits and ensures concurrency constraints are respected across the scheduler. It prevents system overload by enforcing both global and job-specific concurrency limits, tracking running executions in memory while synchronizing with database state for multi-node deployments.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using Microsoft.Extensions.Logging;
+
+// Setup dependencies (typically via dependency injection)
+var executionRepository = new ExecutionRepository(dbContext);
+var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+var logger = loggerFactory.CreateLogger<ConcurrencyManager>();
+
+// Create ConcurrencyManager with default global limit (100 concurrent jobs)
+var concurrencyManager = new ConcurrencyManager(executionRepository, logger: logger);
+
+// OR create with custom global limit (e.g., 50 concurrent jobs)
+var customConcurrencyManager = new ConcurrencyManager(executionRepository, maxGlobalConcurrency: 50, logger: logger);
+
+// Check if a job can execute (returns true/false)
+var job = new Job { Id = Guid.NewGuid(), MaxConcurrentExecutions = 3 };
+bool canExecute = await concurrencyManager.CanExecuteAsync(job);
+Console.WriteLine($"Can job execute: {canExecute}");
+
+// Ensure a job can execute (throws ConcurrencyException if limits exceeded)
+try
+{
+    await concurrencyManager.EnsureCanExecuteAsync(job);
+    Console.WriteLine("Job can execute - concurrency check passed");
+}
+catch (ConcurrencyException ex)
+{
+    Console.WriteLine($"Concurrency limit exceeded: {ex.Message}");
+}
+
+// When a job execution starts, increment concurrency count
+concurrencyManager.IncrementConcurrencyCount(job.Id);
+Console.WriteLine($"Job concurrency count: {concurrencyManager.GetJobConcurrencyCount(job.Id)}");
+Console.WriteLine($"Global concurrency count: {concurrencyManager.GetGlobalConcurrencyCount()}");
+
+// When a job execution completes, decrement concurrency count
+concurrencyManager.DecrementConcurrencyCount(job.Id);
+
+// Synchronize with database state (call on startup or periodically)
+await concurrencyManager.SynchronizeWithDatabaseAsync();
+
+// Get detailed concurrency statistics
+await concurrencyManager.SynchronizeWithDatabaseAsync();
+var stats = concurrencyManager.GetConcurrencyStats();
+Console.WriteLine($"Global running: {stats["GlobalRunning"]}/{stats["GlobalLimit"]}");
+Console.WriteLine($"Jobs with executions: {stats["JobsWithExecutions"]}");
+Console.WriteLine($"Total cached jobs: {stats["TotalCachedJobs"]}");
+```
+
 ## AuditLogger
 
 The `AuditLogger` service provides comprehensive auditing capabilities for job scheduler operations, tracking API calls, job lifecycle events, security incidents, and execution activities. It maintains a complete audit trail with timestamps, user information, severity levels, and detailed event descriptions, enabling compliance tracking, debugging, and security monitoring.
