@@ -94,4 +94,62 @@ foreach (var job in failingJobs.Take(5))
 }
 ```
 
+## ExecutionsController
+
+The `ExecutionsController` class provides RESTful API endpoints for accessing job execution history, logs, and detailed execution metrics. It enables tracking of individual execution attempts and failure reasons.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Controllers;
+using JobScheduler.Core.Domain.Models;
+
+// Get paginated execution history for a specific job
+var controller = new ExecutionsController(
+    _schedulerService,
+    _statisticsService,
+    _logger
+);
+
+var executions = await controller.GetJobExecutionsAsync(jobId, pageNumber: 1, pageSize: 20);
+
+// Get a single execution by ID with complete details
+var execution = await controller.GetExecutionAsync(executionId);
+
+// Get execution statistics for a specific job including success rates and performance metrics
+var stats = await controller.GetJobStatisticsAsync(jobId);
+
+// Get recent failed executions across all jobs for quick failure tracking
+var failures = await controller.GetRecentFailuresAsync(days: 7, limit: 50);
+
+// Get execution performance analysis including slowest and fastest runs
+var analysis = await controller.GetJobPerformanceAsync(jobId);
+
+// Clear old execution records based on retention policy
+await controller.CleanupOldExecutionsAsync(olderThanDays: 90);
+```
+
+### Response Types
+
+- `GetJobExecutionsAsync`: Returns `PaginatedResponse<ExecutionResponse>` with execution history
+- `GetExecutionAsync`: Returns `ExecutionDetailsResponse` with complete execution details
+- `GetJobStatisticsAsync`: Returns `ExecutionStatsResponse` with aggregated statistics
+- `GetRecentFailuresAsync`: Returns `List<ExecutionResponse>` with recent failures
+- `GetJobPerformanceAsync`: Returns `PerformanceAnalysisResponse` with performance metrics
+- `CleanupOldExecutionsAsync`: Returns `CleanupResponse` with cleanup results
+
+### Properties
+
+- `Id`: Unique identifier for the execution
+- `JobId`: Identifier of the job this execution belongs to
+- `JobName`: Name of the job this execution belongs to
+- `Status`: Status of the execution (e.g., "Success", "Failed")
+- `StartedAt`: Timestamp when the execution started
+- `CompletedAt`: Timestamp when the execution completed
+- `ExecutionTimeMs`: Duration of the execution in milliseconds
+- `ErrorMessage`: Error message if the execution failed
+- `RetryAttempt`: Number of retry attempts made for this execution
+- `MaxRetries`: Maximum number of retries configured for the job
+- `Output`: Output or result of the execution
+
 <!-- ... rest of README content -->
