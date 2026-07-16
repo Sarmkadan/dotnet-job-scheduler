@@ -482,6 +482,92 @@ int failureRate = (int)(100 - stats.SuccessRate);
 Console.WriteLine($"Failure rate: {failureRate}%");
 ```
 
+## RetryService
+
+The `RetryService` handles job retry logic, backoff strategies, and retry scheduling. It manages exponential, linear, and fixed backoff delays, determines when retries are appropriate, and provides statistics about retry behavior.
+
+Example usage:
+
+```csharp
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Constants;
+using Microsoft.Extensions.Logging;
+
+// Create repositories (typically injected via DI)
+var jobRepository = new JobRepository(dbContext);
+var executionRepository = new ExecutionRepository(dbContext);
+var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+
+// Create retry service
+var retryService = new RetryService(jobRepository, executionRepository, loggerFactory.CreateLogger<RetryService>());
+
+// Example job and execution
+var job = new Job
+{
+    Id = Guid.NewGuid(),
+    Name = "Data Processing Job",
+    MaxRetries = 3,
+    RetryBackoffSeconds = 10,
+    ExecutionTimeoutSeconds = 300,
+    IsActive = true
+};
+
+var failedExecution = new JobExecution
+{
+    Id = Guid.NewGuid(),
+    JobId = job.Id,
+    Status = ExecutionStatus.Failed,
+    AttemptNumber = 1,
+    CompletedAt = DateTime.UtcNow,
+    IsRetryable = true
+};
+
+// Check if should retry
+bool shouldRetry = await retryService.ShouldRetryAsync(job, failedExecution);
+Console.WriteLine($"Should retry: {shouldRetry}");
+
+// Calculate backoff delay for next retry
+int delaySeconds = retryService.CalculateBackoffDelay(job, failedExecution.AttemptNumber);
+Console.WriteLine($"Next retry delay: {delaySeconds} seconds");
+
+// Calculate next retry time
+DateTime nextRetryTime = retryService.CalculateNextRetryTime(job, failedExecution);
+Console.WriteLine($"Next retry scheduled at: {nextRetryTime:u}");
+
+// Create retry execution
+var retryExecution = retryService.CreateRetryExecution(job, failedExecution);
+Console.WriteLine($"Created retry execution {retryExecution.Id} (attempt {retryExecution.AttemptNumber})");
+
+// Check retry budget
+bool budgetExceeded = await retryService.IsRetryBudgetExceededAsync(job.Id);
+Console.WriteLine($"Retry budget exceeded: {budgetExceeded}");
+
+// Get retry statistics
+var stats = await retryService.GetRetryStatisticsAsync(job.Id);
+Console.WriteLine($"Total executions: {stats.TotalExecutions}");
+Console.WriteLine($"Total failures: {stats.TotalFailures}");
+Console.WriteLine($"Total retries: {stats.TotalRetries}");
+Console.WriteLine($"Average retries per failure: {stats.AverageRetriesPerFailure:F2}");
+Console.WriteLine($"Recent failure rate: {stats.RecentFailureRate:F1}%");
+
+// Calculate standalone retry delay
+var delay = retryService.CalculateRetryDelay(2, JobRetryBackoffStrategy.Exponential, 5);
+Console.WriteLine($"Standalone retry delay for attempt 2: {delay.TotalSeconds}s");
+
+// Check simple retry condition
+bool simpleShouldRetry = retryService.ShouldRetry(currentAttempts: 2, maxRetries: 5);
+Console.WriteLine($"Simple retry check: {simpleShouldRetry}");
+
+// Calculate total retry time
+var totalDelay = retryService.CalculateTotalRetryTime(3, JobRetryBackoffStrategy.Exponential, 5);
+Console.WriteLine($"Total delay for 3 retries: {totalDelay.TotalSeconds}s");
+
+// Format retry message
+string message = retryService.FormatRetryMessage(2, delay, "processor-01");
+Console.WriteLine(message);
+```
+
 ## RateLimitMiddleware
 
 The `RateLimitMiddleware` is an ASP.NET Core middleware component that implements rate limiting to prevent abuse and ensure fair resource allocation. It uses a sliding window algorithm to track requests per client (IP or authenticated user) and enforces configurable limits on the number of requests allowed within a time window. When the limit is exceeded, the middleware returns HTTP 429 (Too Many Requests) with a `Retry-After` header indicating when requests can be attempted again.
