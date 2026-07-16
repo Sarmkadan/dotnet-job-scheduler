@@ -111,5 +111,44 @@ Use `CacheKeyGenerator` static methods to ensure consistent key naming throughou
 - `SchedulerConfigKey()` - Cache scheduler configuration
 - `ExecutionKey(Guid executionId)` - Cache a specific execution
 
+## DistributedJobLock
+
+The `DistributedJobLock` class represents a database-backed distributed lock entry for a single job. It ensures that only one scheduler node runs a given job at a time in multi-instance deployments, preventing duplicate job executions across multiple nodes.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.Logging;
+
+// Create a new distributed job lock
+var jobLock = new DistributedJobLock
+{
+    JobId = Guid.Parse("your-job-id"),
+    HolderInstanceId = "scheduler-node-01",
+    ExpiresAt = DateTime.UtcNow.AddMinutes(5)
+};
+
+// Check if lock is expired
+bool isExpired = jobLock.IsExpired();
+Console.WriteLine($"Lock expired: {isExpired}");
+
+// Get lock details
+Console.WriteLine($"Lock ID: {jobLock.Id}");
+Console.WriteLine($"Job ID: {jobLock.JobId}");
+Console.WriteLine($"Holder Instance: {jobLock.HolderInstanceId}");
+Console.WriteLine($"Acquired At: {jobLock.AcquiredAt}");
+Console.WriteLine($"Expires At: {jobLock.ExpiresAt}");
+```
+
+### Properties
+
+- **Id**: Gets or sets the primary key (auto-generated Guid)
+- **JobId**: Gets or sets the ID of the locked job
+- **HolderInstanceId**: Gets or sets the identifier of the node that acquired the lock
+- **AcquiredAt**: Gets or sets the UTC timestamp when the lock was acquired
+- **ExpiresAt**: Gets or sets the UTC timestamp after which the lock expires automatically
+- **IsExpired(DateTime? utcNow)**: Returns true when the lock has passed its expiry time
+
 ## JobExecution
 ... rest of file content ...
