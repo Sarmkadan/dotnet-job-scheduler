@@ -170,7 +170,7 @@ await jobExecutorServiceTests.ExecuteJobAsync_WithShortTimeout_HandlesTimeoutSce
 
 // Test saving execution to repository
 await jobExecutorServiceTests.ExecuteJobAsync_SavesExecutionToRepository();
-
+```
 
 ## CacheServiceTests
 
@@ -231,3 +231,45 @@ await jobHistoryServiceTests.GetJobHistoryAsync_WithStatusFilter_ReturnsFiltered
 // Test getting job summary with executions
 await jobHistoryServiceTests.GetJobSummaryAsync_WithExecutions_ReturnsAccurateStatistics();
 ```
+
+## JobSchedulerIntegrationTests
+
+`JobSchedulerIntegrationTests` is an integration test suite that validates the full job‑scheduler workflow using real services and an in‑memory database. It exercises job creation, scheduling, state transitions, concurrency limits, caching, retry handling, and other core features to ensure the system works end‑to‑end.
+
+Below is a realistic usage example that demonstrates how the public members of the test class can be invoked in an async context:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using DotnetJobScheduler.Tests;
+
+public static class IntegrationTestRunner
+{
+    public static async Task Main()
+    {
+        var integrationTests = new JobSchedulerIntegrationTests();
+
+        // Set up the in‑memory test environment
+        await integrationTests.InitializeAsync();
+
+        // Run the individual integration scenarios
+        await integrationTests.CreateJob_WithValidInput_SchedulesJobSuccessfully();
+        await integrationTests.CreateMultipleJobs_WithDifferentSchedules_AllPersistCorrectly();
+        await integrationTests.SuspendAndResumeJob_TransitionsStateCorrectly();
+        await integrationTests.UpdateJobSchedule_ChangesExecutionTiming();
+        await integrationTests.DeleteJob_RemovesJobFromSystem();
+        await integrationTests.ConcurrencyControl_EnforcesJobConcurrencyLimits();
+        await integrationTests.CacheService_OptimizesDataRetrieval();
+        await integrationTests.ScheduleService_CalculatesUpcomingExecutions();
+        await integrationTests.RetryService_HandlesFailedExecutions();
+        await integrationTests.JobExecutor_ExecutesJobWithTimeout();
+        await integrationTests.WorkflowComplete_CreateExecuteAndTrack();
+        await integrationTests.MultipleJobTypes_WithVariedConfigurations();
+
+        // Clean up the test environment
+        await integrationTests.DisposeAsync();
+    }
+}
+```
+
+This example shows how to programmatically drive the integration tests, which can be useful for custom test harnesses or debugging complex scheduling scenarios.
