@@ -39,12 +39,18 @@ public static class JobSchedulerServiceTestsExtensions
     /// <param name="status">The execution status (default: Success).</param>
     /// <param name="attemptNumber">The attempt number (default: 1).</param>
     /// <returns>A test job execution instance.</returns>
+    /// <exception cref="ArgumentException">Thrown when jobId is empty.</exception>
     public static JobExecution CreateTestExecution(
         this JobSchedulerServiceTests _,
         Guid jobId,
         ExecutionStatus status = ExecutionStatus.Success,
         int attemptNumber = 1)
     {
+        if (jobId == Guid.Empty)
+        {
+            throw new ArgumentException("Job ID cannot be empty", nameof(jobId));
+        }
+
         return new JobExecution
         {
             Id = Guid.NewGuid(),
@@ -63,6 +69,8 @@ public static class JobSchedulerServiceTestsExtensions
     /// <param name="expectedName">The expected job name.</param>
     /// <param name="expectedStatus">The expected job status (default: Scheduled).</param>
     /// <param name="expectedCron">The expected cron expression.</param>
+    /// <exception cref="ArgumentNullException">Thrown when job is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when expectedName is null or whitespace.</exception>
     public static void ShouldHaveBasicJobProperties(
         this JobSchedulerServiceTests _,
         Job job,
@@ -70,6 +78,9 @@ public static class JobSchedulerServiceTestsExtensions
         JobStatus expectedStatus = JobStatus.Scheduled,
         string? expectedCron = null)
     {
+        ArgumentNullException.ThrowIfNull(job);
+        ArgumentException.ThrowIfNullOrEmpty(expectedName);
+
         job.Should().NotBeNull();
         job.Name.Should().Be(expectedName);
         job.Status.Should().Be(expectedStatus);
@@ -96,6 +107,7 @@ public static class JobSchedulerServiceTestsExtensions
         string baseName = "test-job")
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
+        ArgumentException.ThrowIfNullOrEmpty(baseName);
 
         var jobs = new List<Job>(count);
         for (var i = 0; i < count; i++)
