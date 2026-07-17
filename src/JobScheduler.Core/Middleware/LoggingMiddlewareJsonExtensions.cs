@@ -68,7 +68,7 @@ public static class LoggingMiddlewareJsonExtensions
     /// Attempts to deserialize a JSON string to a <see cref="LoggingMiddleware"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <param name="value">Receives the deserialized instance if successful.</param>
+    /// <param name="value">Receives the deserialized instance if successful; otherwise, null.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     public static bool TryFromJson(string json, out LoggingMiddleware? value)
