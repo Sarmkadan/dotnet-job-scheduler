@@ -2,7 +2,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using System;
 using System.Threading;
@@ -16,7 +16,7 @@ namespace JobScheduler.Core.Services;
 /// <summary>
 /// Database-backed leader election service.
 /// Uses an optimistic-lock row in <c>SchedulerLeaderLock</c> to ensure only one
-/// scheduler node is active at a time.  This implementation requires no external
+/// scheduler node is active at a time. This implementation requires no external
 /// dependencies beyond the existing database.
 /// </summary>
 public sealed class DatabaseLeaderElectionService : ILeaderElectionService
@@ -32,11 +32,11 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
     /// </summary>
     /// <param name="context">EF Core context used to access the leader-lock table.</param>
     /// <param name="instanceId">
-    ///   Unique identifier for this scheduler node.  Defaults to the machine name.
+    /// Unique identifier for this scheduler node. Defaults to the machine name.
     /// </param>
     /// <param name="leaseDurationSeconds">
-    ///   Seconds before an un-renewed lease expires and another node may take over.
-    ///   Defaults to 30 s.
+    /// Seconds before an un-renewed lease expires and another node may take over.
+    /// Defaults to 30 s.
     /// </param>
     /// <param name="logger">Optional logger.</param>
     public DatabaseLeaderElectionService(
@@ -106,7 +106,8 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
             _isLeader = true;
             _logger?.LogInformation(
                 "Leader election: instance '{InstanceId}' took over expired lease from '{PrevLeader}'",
-                _instanceId, lockRow.LeaderInstanceId);
+                _instanceId,
+                lockRow.LeaderInstanceId);
             return true;
         }
         catch (Exception ex)
@@ -145,6 +146,13 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
             _logger?.LogWarning(ex, "Leader election: error releasing lease for instance '{InstanceId}'", _instanceId);
         }
     }
+
+    /// <summary>
+    /// Gets the database context for testing purposes.
+    /// This method is intended for test assemblies only.
+    /// </summary>
+    /// <returns>The JobSchedulerContext instance.</returns>
+    public JobSchedulerContext GetContextForTesting() => _context;
 }
 
 /// <summary>
