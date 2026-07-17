@@ -286,6 +286,60 @@ var result = await handler.ExecuteAsync(new Job(), CancellationToken.None);
 Console.WriteLine(result);
 ```
 
+## HelloWorldJobHandler
+
+The `HelloWorldJobHandler` class implements the `IJobHandler` interface and provides a simple demonstration job handler that logs a message and returns a completion status. It's ideal for testing basic job scheduling functionality without complex dependencies.
+
+
+Here's a realistic usage example:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+
+// Register the handler in your DI container
+var services = new ServiceCollection();
+services.AddLogging(builder => builder.AddConsole());
+services.AddScoped<HelloWorldJobHandler>();
+
+var provider = services.BuildServiceProvider();
+
+// Create a job that uses HelloWorldJobHandler
+var helloWorldJob = new Job
+{
+    Name = "HelloWorldDemo",
+    Description = "Simple hello world demonstration job",
+    CronExpression = "*/5 * * * *",
+    HandlerType = typeof(HelloWorldJobHandler).FullName!,
+    Priority = JobPriority.Normal,
+    IsActive = true,
+    MaxRetries = 2,
+    ExecutionTimeoutSeconds = 30
+};
+
+// Execute the job
+using var scope = provider.CreateScope();
+var handler = scope.ServiceProvider.GetRequiredService<HelloWorldJobHandler>();
+var result = await handler.ExecuteAsync(helloWorldJob, CancellationToken.None);
+
+// result will contain: "Hello World job completed at {timestamp}"
+```
+
+To run a complete example with job scheduling:
+
+```csharp
+using var scope = provider.CreateScope();
+var schedulerService = scope.ServiceProvider.GetRequiredService<JobSchedulerService>();
+
+// Create and schedule the job
+var createdJob = await schedulerService.CreateJobAsync(helloWorldJob, "demo");
+
+// Execute due jobs
+var executions = await schedulerService.ExecuteDueJobsAsync();
+```
+
 ## ReportGenerationJobHandler
 
 The `ReportGenerationJobHandler` class implements the `IJobHandler` interface and is responsible for generating scheduled reports by processing job data and producing formatted output. It executes asynchronously and returns a summary of the generated report content.
