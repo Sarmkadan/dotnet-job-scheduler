@@ -75,6 +75,51 @@ The example demonstrates how to:
 These extension methods keep controller actions concise while providing rich, typed results for downstream processing or logging.
 
 
+## DashboardControllerExtensions
+
+The `DashboardControllerExtensions` class provides extension methods for analyzing job scheduler health, performance, and failure data. It includes methods to calculate health scores, retrieve formatted statistics, and analyze failing jobs.
+
+### Usage Example
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using JobScheduler.Core.Controllers;
+using JobScheduler.Core.Domain.Models;
+
+// Example: Retrieve health status for a specific job
+var jobId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+var healthStatus = await DashboardControllerExtensions.GetHealthStatusAsync(jobId);
+Console.WriteLine($"Job health status: {healthStatus.Status}, Color: {healthStatus.Color}");
+
+// Example: Calculate health score for a job
+var healthScore = await DashboardControllerExtensions.CalculateHealthScoreAsync(jobId);
+Console.WriteLine($"Health score: {healthScore}");
+
+// Example: Get formatted statistics for the dashboard
+var statistics = await DashboardControllerExtensions.GetFormattedStatisticsAsync();
+foreach (var stat in statistics)
+{
+    Console.WriteLine($"{stat.Key}: {stat.Value}");
+}
+
+// Example: Get top failing jobs with analysis
+var failingJobs = await DashboardControllerExtensions.GetTopFailingJobsWithAnalysisAsync(5);
+foreach (var job in failingJobs)
+{
+    Console.WriteLine($"Job: {job.JobName}, Failure Rate: {job.FailureRate:P}, " +
+                     $"Failed Count: {job.FailedCount}, Impact: {job.FailureImpactScore}");
+}
+```
+
+The extension methods provide:
+
+* **CalculateHealthScoreAsync** – computes a numeric health score for a job
+* **GetHealthStatusAsync** – returns a tuple with the job status and a color code for UI display
+* **GetFormattedStatisticsAsync** – returns key-value pairs of formatted statistics for dashboard display
+* **GetTopFailingJobsWithAnalysisAsync** – retrieves the most problematic jobs with detailed failure analysis
+
 ## HealthControllerValidation
 
 The `HealthControllerValidation` class provides validation extension methods for the `HealthController` and related health-check response types. It ensures that health check endpoints return valid, meaningful data by validating controller instances and response objects such as `HealthStatusResponse`, `DatabaseStatus`, `JobsStatus`, `ExecutionsStatus`, and `MemoryStatus`.
