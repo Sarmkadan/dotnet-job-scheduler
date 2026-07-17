@@ -203,3 +203,32 @@ await tests.CacheKeyGenerator_GeneratesConsistentKeys();
 await tests.MultipleOperations_MaintainsConsistency();
 ```
 
+## JobHistoryServiceTests
+
+The `JobHistoryServiceTests` class provides unit tests for the `JobHistoryService` class, ensuring correct job history retrieval and summary functionality. These tests cover various scenarios, including job history retrieval, filtering, and pagination. 
+
+The following example demonstrates how to use some of the public members of `JobHistoryServiceTests`:
+
+```csharp
+using DotnetJobScheduler.Tests;
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Domain.Models;
+using JobScheduler.Core.Exceptions;
+using JobScheduler.Core.Services;
+using Moq;
+using Xunit;
+
+// Create a test instance
+var jobHistoryServiceTests = new JobHistoryServiceTests();
+
+// Test getting job history with valid job and executions
+await jobHistoryServiceTests.GetJobHistoryAsync_WithValidJobAndExecutions_ReturnsPaginatedHistory();
+
+// Test getting job history with status filter
+await jobHistoryServiceTests.GetJobHistoryAsync_WithStatusFilter_ReturnsFilteredRecords();
+
+// Test getting job summary with executions
+await jobHistoryServiceTests.GetJobSummaryAsync_WithExecutions_ReturnsAccurateStatistics();
+```
+```
