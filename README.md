@@ -112,3 +112,65 @@ The example demonstrates how the extension methods can be combined to:
 * create jobs with specific statuses (suspended, concurrent limits) for behavioral testing,
 * generate invalid configurations for negative testing scenarios,
 * and retrieve detailed validation error messages for job configuration validation.
+
+## DelayingJobHandler
+
+The `DelayingJobHandler` is a simple test implementation of `IJobHandler` that demonstrates job execution with cancellable asynchronous operations. It performs a short, configurable delay using `Task.Delay` to allow testing of timeout and cancellation scenarios in the job execution pipeline.
+
+This handler is particularly useful for testing the job executor's ability to handle:
+* CancellationToken propagation
+* Execution timeouts
+* Concurrent execution limits
+* Status tracking and completion recording
+
+**Usage example**
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+
+public class DelayingJobHandlerDemo
+{
+public async Task RunAsync()
+{
+// Create a job that uses DelayingJobHandler
+var job = new Job
+{
+Id = Guid.NewGuid(),
+Name = "delayed-job",
+CronExpression = "0 9 * * *",
+HandlerType = typeof(DelayingJobHandler).AssemblyQualifiedName!,
+MaxRetries = 3,
+ExecutionTimeoutSeconds = 10,
+MaxConcurrentExecutions = 2,
+Status = JobStatus.Scheduled
+};
+
+// Create the job executor service with required dependencies
+var jobRepo = new InMemoryJobRepository(); // or your actual repository
+var executionRepo = new InMemoryExecutionRepository(); // or your actual repository
+var concurrencyManager = new ConcurrencyManager(executionRepo);
+
+var executor = new JobExecutorService(jobRepo, executionRepo, concurrencyManager);
+
+// Execute the job with a cancellation token
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+var execution = await executor.ExecuteJobAsync(job, cts.Token);
+
+// The execution result will be: "Job delayed-job executed successfully"
+Console.WriteLine(execution.Result);
+
+// Verify execution was recorded
+Console.WriteLine($"Execution completed with status: {execution.Status}");
+}
+}
+```
+
+The `DelayingJobHandler` demonstrates:
+* Proper implementation of `IJobHandler` interface
+* Asynchronous operation with cancellation support via `CancellationToken`
+* Simple, predictable behavior for testing job execution flows
+* Integration with the job executor's concurrency and timeout mechanisms
