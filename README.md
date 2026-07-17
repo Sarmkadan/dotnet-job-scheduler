@@ -454,6 +454,48 @@ var validationErrorResponse = new ApiValidationErrorResponse
 - `SetCacheControl(int maxAgeSeconds)`: Sets response cache headers
 - `SetNoCache()`: Prevents response caching
 
+## HealthController
+
+The `HealthController` class provides RESTful API endpoints for monitoring the JobScheduler service health and readiness. It enables load balancers, monitoring systems, and external integrations to verify service availability and system status through standardized health check endpoints.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Controllers;
+using Microsoft.Extensions.Logging;
+
+// Create required services
+var schedulerService = new JobSchedulerService();
+var logger = new Logger<HealthController>(new LoggerFactory());
+
+// Create controller instance
+var controller = new HealthController(schedulerService, logger);
+
+// Liveness probe - quick check for load balancers
+var liveness = controller.GetLiveness();
+Console.WriteLine($"Service is alive: {liveness.GetType().Name}");
+
+// Readiness probe - verify service can handle requests
+var readiness = await controller.GetReadiness();
+Console.WriteLine($"Service is ready: {readiness.GetType().Name}");
+
+// Get comprehensive health status
+var healthStatus = await controller.GetStatus();
+Console.WriteLine($"System Status: {healthStatus.Value.Status}");
+Console.WriteLine($"Version: {healthStatus.Value.Version}");
+Console.WriteLine($"Total Jobs: {healthStatus.Value.Jobs.TotalCount}");
+Console.WriteLine($"Active Jobs: {healthStatus.Value.Jobs.ActiveCount}");
+Console.WriteLine($"Success Rate: {healthStatus.Value.Executions.SuccessRate:P}");
+Console.WriteLine($"Memory Usage: {healthStatus.Value.Memory.UsageMb} MB");
+
+// Get detailed diagnostics for troubleshooting
+var diagnostics = await controller.GetDiagnostics();
+Console.WriteLine($"Machine: {diagnostics.Value.MachineName}");
+Console.WriteLine($"Processor Count: {diagnostics.Value.ProcessorCount}");
+Console.WriteLine($"Total Memory: {diagnostics.Value.Memory.TotalMemoryMb} MB");
+Console.WriteLine($"Recent Errors: {diagnostics.Value.RecentErrors.Count}");
+```
+
 ## HistoryController
 
 The `HistoryController` class provides RESTful API endpoints for querying job execution history and aggregated statistics. It exposes endpoints for retrieving both per-job and system-wide execution history with flexible filtering and pagination capabilities.
