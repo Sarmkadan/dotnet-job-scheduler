@@ -78,13 +78,23 @@ public static class JobManagementBenchmarksValidation
         if (problems.Count > 0)
         {
             throw new ArgumentException(
-                $"JobManagementBenchmarks validation failed:{Environment.NewLine}  - " +
-                string.Join(Environment.NewLine + "  - ", problems));
+                $"JobManagementBenchmarks validation failed:{Environment.NewLine} - " +
+                string.Join(Environment.NewLine + " - ", problems));
         }
     }
 
+    /// <summary>
+    /// Validates that a string value meets basic quality criteria for benchmark outputs.
+    /// </summary>
+    /// <param name="problems">List to accumulate validation problems.</param>
+    /// <param name="memberName">Name of the benchmark method being validated.</param>
+    /// <param name="value">The string value to validate.</param>
+    /// <exception cref="ArgumentNullException">Thrown if problems is null.</exception>
     private static void ValidateString(List<string> problems, string memberName, string value)
     {
+        ArgumentNullException.ThrowIfNull(problems);
+        ArgumentNullException.ThrowIfNull(memberName);
+
         if (string.IsNullOrEmpty(value))
         {
             problems.Add($"{memberName} returned null or empty string");
@@ -95,8 +105,18 @@ public static class JobManagementBenchmarksValidation
         }
     }
 
+    /// <summary>
+    /// Validates that a parsed JobPriority value is within the valid enum range.
+    /// </summary>
+    /// <param name="problems">List to accumulate validation problems.</param>
+    /// <param name="memberName">Name of the benchmark method being validated.</param>
+    /// <param name="value">The JobPriority value to validate.</param>
+    /// <exception cref="ArgumentNullException">Thrown if problems is null.</exception>
     private static void ValidateJobPriority(List<string> problems, string memberName, JobPriority value)
     {
+        ArgumentNullException.ThrowIfNull(problems);
+        ArgumentNullException.ThrowIfNull(memberName);
+
         // JobPriority enum values are 0-3 (Low=0, Normal=1, High=2, Critical=3)
         // Validate that the parsed value is within expected range
         if (value < JobPriority.Low || value > JobPriority.Critical)
