@@ -28,7 +28,7 @@ public static class CreateJobRequestJsonExtensions
     /// <param name="value">The request to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
     /// <returns>A JSON string representation of the request.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
     public static string ToJson(this CreateJobRequest value, bool indented = false)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -44,16 +44,13 @@ public static class CreateJobRequestJsonExtensions
     /// Deserializes a JSON string to a <see cref="CreateJobRequest"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized <see cref="CreateJobRequest"/> instance, or null if the JSON is empty or whitespace.</returns>
+    /// <returns>The deserialized <see cref="CreateJobRequest"/> instance, or <see langword="null"/> if the JSON is empty or whitespace.</returns>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
     public static CreateJobRequest? FromJson(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return null;
-        }
-
-        return JsonSerializer.Deserialize<CreateJobRequest>(json, _jsonOptions);
+        return string.IsNullOrWhiteSpace(json)
+            ? null
+            : JsonSerializer.Deserialize<CreateJobRequest>(json, _jsonOptions);
     }
 
     /// <summary>
@@ -61,7 +58,7 @@ public static class CreateJobRequestJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized instance if successful.</param>
-    /// <returns>True if deserialization succeeded; otherwise, false.</returns>
+    /// <returns><see langword="true"/> if deserialization succeeded; otherwise, <see langword="false"/>.</returns>
     public static bool TryFromJson(string json, out CreateJobRequest? value)
     {
         value = null;
