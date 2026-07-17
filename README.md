@@ -375,4 +375,121 @@ catch (ArgumentException ex)
 }
 ```
 
+## ExecutionRepositoryValidation
+
+The `ExecutionRepositoryValidation` class provides validation helpers for the `ExecutionRepository` class and its method parameters. It ensures repository instances and method arguments are valid before database operations to prevent runtime errors and maintain data integrity.
+
+### Usage Example
+
+```csharp
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using System;
+
+// Validate an ExecutionRepository instance
+var repository = new ExecutionRepository(); // Assuming you have access to the repository
+var repositoryProblems = ExecutionRepositoryValidation.Validate(repository);
+if (repositoryProblems.Any())
+{
+    Console.WriteLine("ExecutionRepository has validation issues:");
+    foreach (var problem in repositoryProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+else
+{
+    Console.WriteLine("ExecutionRepository is valid!");
+}
+
+// Validate a job ID for various repository methods
+var jobId = Guid.NewGuid();
+var jobIdProblems = jobId.Validate();
+if (!jobIdProblems.Any())
+{
+    Console.WriteLine("Job ID is valid!");
+}
+else
+{
+    Console.WriteLine("Invalid job ID:");
+    foreach (var problem in jobIdProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// Use IsValid to quickly check validity
+bool isValid = jobId.IsValid();
+Console.WriteLine($"Is job ID valid? {isValid}");
+
+// Use EnsureValid to throw exceptions on invalid input
+try
+{
+    Guid.Empty.EnsureValid(); // Throws ArgumentException
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Validation failed: {ex.Message}");
+}
+
+// Validate execution status (all enum values are valid)
+var status = ExecutionStatus.Completed;
+var statusProblems = status.Validate();
+if (!statusProblems.Any())
+{
+    Console.WriteLine("ExecutionStatus is valid!");
+}
+
+// Validate job ID and status together
+var jobIdAndStatusProblems = jobId.Validate(status);
+if (!jobIdAndStatusProblems.Any())
+{
+    Console.WriteLine("Job ID and status combination is valid!");
+}
+
+// Validate parameters for GetCurrentlyRunningCountAsync
+var runningCountProblems = jobId.ValidateForCurrentlyRunningCount();
+if (!runningCountProblems.Any())
+{
+    Console.WriteLine("Parameters for GetCurrentlyRunningCountAsync are valid!");
+}
+
+// Use IsValidForCurrentlyRunningCount to check validity
+bool isValidForRunningCount = jobId.IsValidForCurrentlyRunningCount();
+Console.WriteLine($"Is valid for currently running count? {isValidForRunningCount}");
+
+// Use EnsureValidForCurrentlyRunningCount to throw exceptions
+try
+{
+    Guid.Empty.EnsureValidForCurrentlyRunningCount(); // Throws ArgumentException
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Validation failed: {ex.Message}");
+}
+
+// Validate date range for GetExecutionsByDateRangeAsync
+var startDate = DateTime.UtcNow.AddDays(-7);
+var endDate = DateTime.UtcNow;
+var dateRangeProblems = startDate.Validate(endDate);
+if (!dateRangeProblems.Any())
+{
+    Console.WriteLine("Date range is valid!");
+}
+
+// Use IsValid to check date range
+bool isDateRangeValid = startDate.IsValid(endDate);
+Console.WriteLine($"Is date range valid? {isDateRangeValid}");
+
+// Use EnsureValid to throw exceptions on invalid date range
+try
+{
+    DateTime.MinValue.EnsureValid(DateTime.UtcNow); // Throws ArgumentException
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Validation failed: {ex.Message}");
+}
+```
+
 // ... existing content ...
