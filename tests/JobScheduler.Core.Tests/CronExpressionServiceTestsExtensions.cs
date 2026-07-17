@@ -16,8 +16,16 @@ namespace JobScheduler.Core.Tests;
 /// Extension methods for <see cref="CronExpressionServiceTests"/> that provide additional utility functionality
 /// for testing cron expressions in various scenarios.
 /// </summary>
+/// <remarks>
+/// All methods create new instances of <see cref="CronExpressionService"/> and are thread-safe for concurrent calls.
+/// </remarks>
 public static class CronExpressionServiceTestsExtensions
 {
+    /// <summary>
+    /// Seals the class to prevent inheritance outside this assembly.
+    /// </summary>
+    static CronExpressionServiceTestsExtensions() { }
+
     /// <summary>
     /// Validates a collection of cron expressions and returns detailed validation results.
     /// </summary>
@@ -31,7 +39,7 @@ public static class CronExpressionServiceTestsExtensions
     {
         ArgumentNullException.ThrowIfNull(expressions);
 
-        var results = new Dictionary<string, bool>();
+        var results = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         var service = new CronExpressionService();
 
         foreach (var expression in expressions)
@@ -110,6 +118,7 @@ public static class CronExpressionServiceTestsExtensions
     /// <returns>A formatted string representing the time until next execution.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="cronExpression"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="cronExpression"/> is invalid.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="currentTime"/> is not a valid date/time.</exception>
     public static string GetTimeUntilNextExecution(
         this CronExpressionServiceTests tests,
         string cronExpression,
@@ -135,6 +144,7 @@ public static class CronExpressionServiceTestsExtensions
     /// <returns>A list of next execution times in UTC.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="cronExpression"/> or <paramref name="timezoneId"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="cronExpression"/> is invalid or timezone is unknown.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count"/> is zero or negative.</exception>
     public static IReadOnlyList<DateTime> GetNextExecutionTimesInZone(
         this CronExpressionServiceTests tests,
         string cronExpression,
@@ -144,8 +154,9 @@ public static class CronExpressionServiceTestsExtensions
     {
         ArgumentNullException.ThrowIfNull(cronExpression);
         ArgumentNullException.ThrowIfNull(timezoneId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
 
-        var results = new List<DateTime>();
+        var results = new List<DateTime>(capacity: count);
         var service = new CronExpressionService();
 
         for (var i = 0; i < count; i++)
@@ -171,42 +182,37 @@ public static class CronExpressionServiceTestsExtensions
     {
         ArgumentNullException.ThrowIfNull(expression);
 
-        try
-        {
-            var service = new CronExpressionService();
-            return service.IsValidCronExpression(expression)
-                   && service.ParseCronExpression(expression) is not null;
-        }
-        catch
-        {
-            return false;
-        }
+        var service = new CronExpressionService();
+        return service.IsValidCronExpression(expression)
+            && service.ParseCronExpression(expression) is not null;
     }
 
     private static string FormatTimeSpan(TimeSpan timeSpan)
     {
         var parts = new List<string>();
 
-        if (timeSpan.TotalDays >= 1)
+        var remaining = timeSpan;
+
+        if (remaining.TotalDays >= 1)
         {
-            var days = (int)timeSpan.TotalDays;
-            parts.Add($"{days} day{(days == 1 ? "" : "s")}");
-            timeSpan = timeSpan.Subtract(TimeSpan.FromDays(days));
+            var days = (int)remaining.TotalDays;
+            parts.Add($"{days} day{(days == 1 ? string.Empty : "s")}");
+            remaining = remaining.Subtract(TimeSpan.FromDays(days));
         }
 
-        if (timeSpan.Hours > 0)
+        if (remaining.Hours > 0)
         {
-            parts.Add($"{timeSpan.Hours} hour{(timeSpan.Hours == 1 ? "" : "s")}");
+            parts.Add($"{remaining.Hours} hour{(remaining.Hours == 1 ? string.Empty : "s")}");
         }
 
-        if (timeSpan.Minutes > 0)
+        if (remaining.Minutes > 0)
         {
-            parts.Add($"{timeSpan.Minutes} minute{(timeSpan.Minutes == 1 ? "" : "s")}");
+            parts.Add($"{remaining.Minutes} minute{(remaining.Minutes == 1 ? string.Empty : "s")}");
         }
 
-        if (timeSpan.Seconds > 0 || parts.Count == 0)
+        if (remaining.Seconds > 0 || parts.Count == 0)
         {
-            parts.Add($"{timeSpan.Seconds} second{(timeSpan.Seconds == 1 ? "" : "s")}");
+            parts.Add($"{remaining.Seconds} second{(remaining.Seconds == 1 ? string.Empty : "s")}");
         }
 
         return string.Join(", ", parts);
