@@ -11,6 +11,7 @@ public static class JobPipelineExtensions
     /// <param name="pipeline">The job pipeline to check.</param>
     /// <returns><c>true</c> if the pipeline is active and has at least one step; otherwise, <c>false</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="pipeline"/> is <c>null</c>.</exception>
+    /// <exception cref="NullReferenceException">Thrown when <paramref name="pipeline"/>.Steps is <c>null</c>.</exception>
     public static bool IsValidForExecution(this JobPipeline pipeline)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
@@ -24,6 +25,7 @@ public static class JobPipelineExtensions
     /// <param name="pipeline">The job pipeline.</param>
     /// <returns>A read-only list of steps in the pipeline.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="pipeline"/> is <c>null</c>.</exception>
+    /// <exception cref="NullReferenceException">Thrown when <paramref name="pipeline"/>.Steps is <c>null</c>.</exception>
     public static IReadOnlyList<JobPipelineStep> GetSteps(this JobPipeline pipeline)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
@@ -37,6 +39,7 @@ public static class JobPipelineExtensions
     /// <param name="pipeline">The job pipeline to check.</param>
     /// <returns><c>true</c> if the pipeline has at least one step with <see cref="JobPipelineStep.StopOnFailure"/> set to <c>true</c>; otherwise, <c>false</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="pipeline"/> is <c>null</c>.</exception>
+    /// <exception cref="NullReferenceException">Thrown when <paramref name="pipeline"/>.Steps is <c>null</c>.</exception>
     public static bool HasStopOnFailureStep(this JobPipeline pipeline)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
