@@ -42,3 +42,39 @@ await tests.DeleteJobAsync_RemovesJobFromRepository();
 // Process retries
 await tests.ProcessRetriesAsync_RetriesFailedExecutions();
 ```
+
+## RetryServiceTests
+
+The `RetryServiceTests` class provides comprehensive unit tests for the `RetryService` class, ensuring correct retry policy application, backoff calculations, and budget enforcement. These tests cover various scenarios for job retry decisions.
+
+The following example demonstrates how to use some of the public members of `RetryServiceTests`:
+
+```csharp
+using tests;
+using JobScheduler.Core.Services;
+using JobScheduler.Core.Domain.Entities;
+
+// Create a test instance
+var retryTests = new RetryServiceTests();
+
+// Build test job and execution
+var job = RetryServiceTests.BuildJob(maxRetries: 3);
+var execution = RetryServiceTests.BuildFailedExecution(attempt: 2);
+
+// Test retry decisions
+var shouldRetry = await retryTests.ShouldRetryAsync(job, execution);
+Assert.False(shouldRetry);
+
+// Calculate backoff delay
+var delay = retryTests.CalculateBackoffDelay(job, attemptNumber: 2);
+Assert.Equal(10, delay);
+
+// Create a new retry execution
+var retryExecution = retryTests.CreateRetryExecution(job, execution);
+Assert.Equal(3, retryExecution.AttemptNumber);
+Assert.Equal(ExecutionStatus.Running, retryExecution.Status);
+
+// Check retry budget
+var exceeded = await retryTests.IsRetryBudgetExceededAsync(job.Id, retryBudgetCount: 5, timeWindowMinutes: 5);
+Assert.False(exceeded);
+```
