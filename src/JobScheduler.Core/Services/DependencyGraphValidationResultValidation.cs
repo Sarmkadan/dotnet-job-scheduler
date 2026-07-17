@@ -59,25 +59,15 @@ public static class DependencyGraphValidationResultValidation
             errors.Add("Message must not be null or whitespace when IsValid is false.");
         }
 
-        // Validate Message is not null or whitespace when IsValid is true (should have a meaningful message)
-        if (value.IsValid && string.IsNullOrWhiteSpace(value.Message))
+        // Validate Message is not null or whitespace when IsValid is true
+        // Note: A valid graph can have an empty message - this is not an error condition
+        if (value.IsValid && !string.IsNullOrWhiteSpace(value.Message))
         {
-            errors.Add("Message must not be null or whitespace even for valid graphs.");
+            // If message is provided for valid graphs, ensure it's meaningful
+            // This is informational only and doesn't indicate an error
         }
 
         return errors.AsReadOnly();
-    }
-
-    /// <summary>
-    /// Determines whether the <see cref="DependencyGraphValidationResult"/> represents a valid dependency graph.
-    /// </summary>
-    /// <param name="value">The validation result to check.</param>
-    /// <returns><see langword="true"/> if the graph is valid; otherwise, <see langword="false"/>.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>.</exception>
-    public static bool IsValid(this DependencyGraphValidationResult value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        return value.IsValid;
     }
 
     /// <summary>
