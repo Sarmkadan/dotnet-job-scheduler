@@ -171,6 +171,35 @@ await jobExecutorServiceTests.ExecuteJobAsync_WithShortTimeout_HandlesTimeoutSce
 // Test saving execution to repository
 await jobExecutorServiceTests.ExecuteJobAsync_SavesExecutionToRepository();
 
-// Test recording error on exception
-await jobExecutorServiceTests.ExecuteJobAsync_WithExceptionDuringExecution_RecordsError();
+
+## CacheServiceTests
+
+The `CacheServiceTests` class provides unit tests for the `CacheService` class, ensuring correct caching behavior, TTL expiration, pattern invalidation, and statistics reporting. These tests cover various scenarios, including basic key-value operations, cache invalidation, and factory-based value retrieval.
+
+The following example demonstrates how to use some of the public members of `CacheServiceTests`:
+
+```csharp
+using DotnetJobScheduler.Tests;
+using Xunit;
+
+// Create a test instance
+var tests = new CacheServiceTests();
+
+// Test basic Get and Set operations
+await tests.SetAsync_WithDefaultExpiration_CachesValue();
+await tests.GetAsync_WithExistingKey_ReturnsValue();
+
+// Test removing items
+await tests.RemoveAsync_DeletesKey();
+
+// Test GetOrSet logic
+await tests.GetOrSetAsync_WithCachedValue_ReturnsCached();
+
+// Test statistics
+await tests.GetStatistics_ReturnsAccurateCount();
+
+// Test key generation and operation consistency
+await tests.CacheKeyGenerator_GeneratesConsistentKeys();
+await tests.MultipleOperations_MaintainsConsistency();
 ```
+
