@@ -94,6 +94,155 @@ foreach (var job in failingJobs.Take(5))
 }
 ```
 
+## JobsController
+
+The `JobsController` class provides RESTful API endpoints for managing job CRUD operations, lifecycle management, and status updates. It handles job scheduling, configuration, and execution control with comprehensive validation and error handling.
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Controllers;
+using JobScheduler.Core.Domain.Models;
+using Microsoft.Extensions.Logging;
+
+// Create required services
+var schedulerService = new JobSchedulerService();
+var logger = new Logger<JobsController>(new LoggerFactory());
+
+// Create controller instance
+var controller = new JobsController(schedulerService, logger);
+
+// Create a new job with cron schedule
+var newJob = new CreateJobRequest
+{
+    Name = "Data Backup Job",
+    Description = "Daily database backup at midnight",
+    CronExpression = "0 0 * * *",
+    HandlerType = "DatabaseBackupHandler",
+    HandlerParameters = "{\"backupPath\": \"/backups\"}",
+    Priority = 1,
+    MaxRetries = 3,
+    RetryBackoffSeconds = 60,
+    ExecutionTimeoutSeconds = 3600,
+    MaxConcurrentExecutions = 1
+};
+
+var createdJob = await controller.CreateJob(newJob);
+Console.WriteLine($"Created job: {createdJob.Value.Name} with ID: {createdJob.Value.Id}");
+
+// Get a specific job by ID
+var jobResponse = await controller.GetJob(createdJob.Value.Id);
+Console.WriteLine($"Job status: {jobResponse.Value.Status}, Next execution: {jobResponse.Value.NextExecutionAt}");
+
+// List all jobs with pagination
+var allJobs = await controller.ListJobs(pageNumber: 1, pageSize: 10);
+Console.WriteLine($"Total jobs: {allJobs.Value.TotalCount}");
+
+// Update a job's configuration
+var updateRequest = new CreateJobRequest
+{
+    Name = "Data Backup Job - Updated",
+    Description = "Daily database backup at midnight with encryption",
+    CronExpression = "0 0 * * *",
+    HandlerType = "DatabaseBackupHandler",
+    HandlerParameters = "{\"backupPath\": \"/encrypted-backups\", \"enableEncryption\": true}",
+    Priority = 2,
+    MaxRetries = 5,
+    ExecutionTimeoutSeconds = 7200
+};
+
+var updatedJob = await controller.UpdateJob(createdJob.Value.Id, updateRequest);
+Console.WriteLine($"Updated job priority to: {updatedJob.Value.Priority}");
+
+// Suspend a job temporarily
+var suspendRequest = new SuspendJobRequest { Reason = "Maintenance window" };
+var suspendedJob = await controller.SuspendJob(createdJob.Value.Id, suspendRequest);
+Console.WriteLine($"Job suspended: {suspendedJob.Value.Status}");
+
+// Resume the job after maintenance
+var resumedJob = await controller.ResumeJob(createdJob.Value.Id);
+Console.WriteLine($"Job resumed: {resumedJob.Value.Status}");
+
+// Trigger immediate execution (bypasses cron schedule)
+var execution = await controller.TriggerJobExecution(createdJob.Value.Id);
+Console.WriteLine($"Execution started: {execution.Value.Status} at {execution.Value.StartedAt}");
+
+// Get execution history for the job
+var history = await controller.GetJobExecutionHistory(createdJob.Value.Id, limit: 5);
+foreach (var exec in history.Value)
+{
+    Console.WriteLine($"Execution {exec.Id}: {exec.Status} in {exec.ExecutionTimeMs}ms");
+}
+
+// Delete a job (and its execution history)
+await controller.DeleteJob(createdJob.Value.Id);
+Console.WriteLine("Job deleted successfully");
+```
+
+### Response Types
+
+- `CreateJob`: Returns `ActionResult<JobResponse>` with 201 Created on success
+- `GetJob`: Returns `ActionResult<JobResponse>` with job details
+- `ListJobs`: Returns `ActionResult<PaginatedResponse<JobResponse>>` with paginated results
+- `UpdateJob`: Returns `ActionResult<JobResponse>` with updated job details
+- `DeleteJob`: Returns `IActionResult` with 204 No Content on success
+- `SuspendJob`: Returns `ActionResult<JobResponse>` with suspended job details
+- `ResumeJob`: Returns `ActionResult<JobResponse>` with resumed job details
+- `TriggerJobExecution`: Returns `ActionResult<ExecutionResponse>` with execution details
+- `GetJobExecutionHistory`: Returns `ActionResult<IEnumerable<ExecutionResponse>>` with execution history
+
+### Request/Response Models
+
+#### CreateJobRequest / UpdateJobRequest
+- `Name` (string): Job name (required)
+- `Description` (string?): Optional job description
+- `CronExpression` (string): Cron schedule expression (required)
+- `HandlerType` (string): Type of handler to execute the job (required)
+- `HandlerParameters` (string?): JSON parameters for the handler
+- `Priority` (int): Job priority (1-10, where 1 is highest)
+- `MaxRetries` (int): Maximum retry attempts on failure
+- `RetryBackoffSeconds` (int): Delay between retries in seconds
+- `ExecutionTimeoutSeconds` (int): Maximum execution time in seconds
+- `MaxConcurrentExecutions` (int): Maximum concurrent executions allowed
+
+#### JobResponse
+- `Id` (Guid): Unique job identifier
+- `Name` (string): Job name
+- `Description` (string?): Job description
+- `CronExpression` (string): Cron schedule expression
+- `Priority` (string): Job priority as string
+- `Status` (string): Current job status (Active, Suspended, Completed, etc.)
+- `IsActive` (bool): Whether the job is active
+- `HandlerType` (string): Handler type
+- `MaxRetries` (int): Maximum retry attempts
+- `ExecutionTimeoutSeconds` (int): Execution timeout in seconds
+- `LastExecutedAt` (DateTimeOffset?): When the job was last executed
+- `NextExecutionAt` (DateTimeOffset?): When the job will next execute
+- `TotalExecutions` (int): Total number of executions
+- `SuccessfulExecutions` (int): Number of successful executions
+- `SuccessRate` (decimal): Success rate (0.0 to 1.0)
+- `CreatedAt` (DateTimeOffset): When the job was created
+- `UpdatedAt` (DateTimeOffset): When the job was last updated
+
+#### ExecutionResponse
+- `Id` (Guid): Unique execution identifier
+- `JobId` (Guid): Parent job identifier
+- `Status` (string): Execution status (Pending, Running, Success, Failed, etc.)
+- `StartedAt` (DateTimeOffset): When execution started
+- `CompletedAt` (DateTimeOffset?): When execution completed
+- `ExecutionTimeMs` (int): Duration in milliseconds
+- `ErrorMessage` (string?): Error message if execution failed
+- `RetryAttempt` (int): Which retry attempt this was
+
+#### SuspendJobRequest
+- `Reason` (string?): Optional reason for suspension
+
+#### PaginatedResponse<T>
+- `Data` (List<T>): List of items
+- `TotalCount` (int): Total number of items available
+- `PageNumber` (int): Current page number
+- `PageSize` (int): Items per page
+
 ## ExecutionsController
 
 The `ExecutionsController` class provides RESTful API endpoints for accessing job execution history, logs, and detailed execution metrics. It enables tracking of individual execution attempts and failure reasons.
