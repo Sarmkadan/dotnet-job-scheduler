@@ -120,6 +120,7 @@ The extension methods provide:
 * **GetFormattedStatisticsAsync** – returns key-value pairs of formatted statistics for dashboard display
 * **GetTopFailingJobsWithAnalysisAsync** – retrieves the most problematic jobs with detailed failure analysis
 
+
 ## HealthControllerValidation
 
 The `HealthControllerValidation` class provides validation extension methods for the `HealthController` and related health-check response types. It ensures that health check endpoints return valid, meaningful data by validating controller instances and response objects such as `HealthStatusResponse`, `DatabaseStatus`, `JobsStatus`, `ExecutionsStatus`, and `MemoryStatus`.
@@ -224,6 +225,7 @@ The `HealthControllerValidation` class provides three validation patterns:
 * **EnsureValid()** – Throws an exception if invalid, useful for fail-fast scenarios
 
 These methods help maintain consistent health check data quality across the application.
+
 
 ## DistributedJobLockServiceTestsExtensions
 
@@ -400,3 +402,69 @@ The `HealthControllerValidation` class provides three validation patterns:
 * **EnsureValid()** – Throws an exception if invalid, useful for fail-fast scenarios
 
 These methods help maintain consistent health check data quality across the application.
+
+
+## CronExpressionServiceTestsExtensions
+
+`CronExpressionServiceTestsExtensions` offers a set of helper extension methods for the `CronExpressionServiceTests` test class. They simplify common cron‑expression testing scenarios such as bulk validation, retrieving next execution times from multiple base dates, checking execution matches, and formatting time‑until‑next‑execution results.
+
+### Usage Example
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using JobScheduler.Core.Tests; // Namespace containing CronExpressionServiceTests and the extensions
+
+public class CronExpressionDemo
+{
+    public async Task RunDemoAsync()
+    {
+        // The test class instance (normally provided by the test framework)
+        var testInstance = new CronExpressionServiceTests();
+
+        // 1. Validate a collection of cron expressions
+        var expressions = new[] { "0 * * * *", "*/5 * * * *", "invalid expression" };
+        IReadOnlyDictionary<string, bool> validation = testInstance.ValidateCronExpressions(expressions);
+        foreach (var kvp in validation)
+        {
+            Console.WriteLine($"Expression \"{kvp.Key}\" is {(kvp.Value ? "valid" : "invalid")}");
+        }
+
+        // 2. Get next execution times from multiple base dates
+        var baseTimes = new[] { DateTime.UtcNow, DateTime.UtcNow.AddHours(1) };
+        IReadOnlyDictionary<DateTime, IReadOnlyList<DateTime>> nextTimes =
+            testInstance.GetNextExecutionTimesFromMultipleBases("*/15 * * * *", baseTimes, count: 3);
+        foreach (var entry in nextTimes)
+        {
+            Console.WriteLine($"Base time: {entry.Key:u}");
+            foreach (var t in entry.Value)
+                Console.WriteLine($"  → Next execution: {t:u}");
+        }
+
+        // 3. Check if a cron expression would fire at specific moments
+        var moments = new[] { DateTime.UtcNow, DateTime.UtcNow.AddMinutes(10) };
+        IReadOnlyDictionary<DateTime, bool> shouldExecute = testInstance.ShouldExecuteAtAny("0 12 * * *", moments);
+        foreach (var kvp in shouldExecute)
+        {
+            Console.WriteLine($"{kvp.Key:u} => {(kvp.Value ? "executes" : "does not execute")}");
+        }
+
+        // 4. Get a human‑readable time span until the next execution
+        string timeUntil = testInstance.GetTimeUntilNextExecution("0 0 * * 0", DateTime.UtcNow);
+        Console.WriteLine($"Time until next weekly execution: {timeUntil}");
+
+        // 5. Retrieve next execution times in a specific timezone
+        IReadOnlyList<DateTime> zoneTimes = testInstance.GetNextExecutionTimesInZone(
+            "0 9 * * *", "Eastern Standard Time", DateTime.UtcNow, count: 2);
+        foreach (var t in zoneTimes)
+            Console.WriteLine($"Next execution in EST: {t:u}");
+
+        // 6. Verify an expression is both syntactically valid and parsable
+        bool parsable = testInstance.IsValidAndParsable("*/10 * * * *");
+        Console.WriteLine($"Expression parsable: {parsable}");
+    }
+}
+```
+
+The example demonstrates how each extension method can be called on a `CronExpressionServiceTests` instance to perform common validation and time‑calculation tasks without writing repetitive boilerplate code.
