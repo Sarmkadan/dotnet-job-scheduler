@@ -58,3 +58,57 @@ The example demonstrates how the extension methods can be combined to:
 * acquire and release leadership,
 * inspect the underlying `SchedulerLeaderLock` rows,
 * and verify the expected behavior with FluentAssertions.
+
+## JobEntityTestsExtensions
+
+The `JobEntityTestsExtensions` class provides extension methods for creating test job entities with various configurations and validating job configurations. It simplifies test setup by providing factory methods for common job scenarios and validation helpers.
+
+**Usage example**
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using JobScheduler.Core.Domain.Entities;
+using DotnetJobScheduler.Tests; // contains JobEntityTestsExtensions
+
+public class JobEntityTestsDemo
+{
+    public void RunDemo()
+    {
+        var tests = new JobEntityTests(); // Instance needed for extension methods
+        
+        // Create a minimally valid job for testing
+        var validJob = tests.CreateMinimalValidJob("test-job", "MyHandler, MyAssembly");
+        
+        // Create a job with execution metrics for testing success rate calculations
+        var jobWithMetrics = tests.CreateJobWithMetrics(8, 2, "metrics-job");
+        
+        // Get formatted metrics summary
+        var metricsSummary = tests.GetExecutionMetricsSummary(jobWithMetrics);
+        Console.WriteLine(metricsSummary); // Output: Executions: 10, Success: 8, Failure: 2, Success Rate: 80.0%
+        
+        // Create a suspended job to test execution blocking
+        var suspendedJob = tests.CreateSuspendedJob("suspended-job");
+        
+        // Create a job configured for concurrency testing
+        var concurrentJob = tests.CreateConcurrentJob(5, 2, "concurrent-job");
+        
+        // Create an invalid job for negative testing
+        var invalidJob = tests.CreateInvalidHandlerJob("invalid-job");
+        
+        // Validate job configuration and get detailed error messages
+        var validationErrors = tests.GetValidationErrors(invalidJob).ToList();
+        Console.WriteLine($"Validation errors: {string.Join(", ", validationErrors)}");
+        // Output: Validation errors: HandlerType is required
+    }
+}
+```
+
+The example demonstrates how the extension methods can be combined to:
+
+* create jobs with various configurations for different test scenarios,
+* generate jobs with pre-populated execution metrics for testing calculations,
+* create jobs with specific statuses (suspended, concurrent limits) for behavioral testing,
+* generate invalid configurations for negative testing scenarios,
+* and retrieve detailed validation error messages for job configuration validation.
