@@ -122,4 +122,55 @@ Assert.Equal(100, successRate);
 var canExecuteNow = job.CanExecuteNow(currentConcurrentCount: 0);
 Assert.True(canExecuteNow);
 ```
+
+## JobExecutorServiceTests
+
+The `JobExecutorServiceTests` class provides unit tests for the `JobExecutorService` class, ensuring correct job execution, concurrency management, and execution status tracking. These tests cover various scenarios, including job execution, concurrency, and cancellation.
+
+The following example demonstrates how to use some of the public members of `JobExecutorServiceTests`:
+
+```csharp
+using DotnetJobScheduler.Tests;
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+using Moq;
+using Xunit;
+
+// Create a test instance
+var jobExecutorServiceTests = new JobExecutorServiceTests();
+
+// Arrange test dependencies
+var jobRepoMock = jobExecutorServiceTests._jobRepoMock;
+var job = jobExecutorServiceTests.CreateValidJob();
+
+// Test executing a job
+await jobExecutorServiceTests.ExecuteJobAsync_WithValidJob_CreatesExecution();
+
+// Test executing a null job
+await jobExecutorServiceTests.ExecuteJobAsync_WithNullJob_ThrowsArgumentNullException();
+
+// Test concurrency exceeded
+await jobExecutorServiceTests.ExecuteJobAsync_WhenConcurrencyExceeded_ThrowsConcurrencyException();
+
+// Test decrementing counter on completion
+await jobExecutorServiceTests.ExecuteJobAsync_DecrementsCounterOnCompletion();
+
+// Test setting running status on cancellation
+await jobExecutorServiceTests.ExecuteJobAsync_WithCancellation_SetsRunningStatus();
+
+// Test recording started and completed times
+await jobExecutorServiceTests.ExecuteJobAsync_RecordsStartedAndCompletedTimes();
+
+// Test handling concurrency
+await jobExecutorServiceTests.ExecuteJobAsync_MultipleConcurrentExecutions_HandlesConcurrency();
+
+// Test handling short timeout
+await jobExecutorServiceTests.ExecuteJobAsync_WithShortTimeout_HandlesTimeoutScenario();
+
+// Test saving execution to repository
+await jobExecutorServiceTests.ExecuteJobAsync_SavesExecutionToRepository();
+
+// Test recording error on exception
+await jobExecutorServiceTests.ExecuteJobAsync_WithExceptionDuringExecution_RecordsError();
 ```
