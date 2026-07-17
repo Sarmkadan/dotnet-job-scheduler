@@ -272,4 +272,35 @@ public static class IntegrationTestRunner
 }
 ```
 
-This example shows how to programmatically drive the integration tests, which can be useful for custom test harnesses or debugging complex scheduling scenarios.
+## ConcurrencyManagerTests
+
+The `ConcurrencyManagerTests` class provides unit tests for the `ConcurrencyManager` class, ensuring correct concurrency control and capacity management. These tests cover various scenarios, including job execution, concurrency limits, and cache synchronization. The following example demonstrates how to use some of the public members of `ConcurrencyManagerTests`:
+
+```csharp
+using DotnetJobScheduler.Tests;
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+using Moq;
+using Xunit;
+
+// Create a test instance
+var tests = new ConcurrencyManagerTests();
+
+// Test CanExecuteAsync with available capacity
+await tests.CanExecuteAsync_WithAvailableCapacity_ReturnsTrue();
+
+// Test CanExecuteAsync with exceeded global concurrency
+await tests.CanExecuteAsync_WithExceededGlobalConcurrency_ReturnsFalse();
+
+// Test EnsureCanExecuteAsync with available capacity
+await tests.EnsureCanExecuteAsync_WithAvailableCapacity_CompletesSuccessfully();
+
+// Test IncrementConcurrencyCount
+tests.IncrementConcurrencyCount_IncrementsJobCounter();
+
+// Test DecrementConcurrencyCount
+tests.DecrementConcurrencyCount_DecrementsCounter();
+```
+
+This example shows how to programmatically drive the concurrency tests, which can be useful for custom test harnesses or debugging complex scheduling scenarios.
