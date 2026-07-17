@@ -3,7 +3,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +25,7 @@ public static class JobsControllerExtensions
     /// <param name="requests">Collection of job creation requests.</param>
     /// <param name="cultureInfo">Culture info for consistent formatting (defaults to InvariantCulture).</param>
     /// <returns>Paginated response with all created jobs.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when controller or requests is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="controller"/> or <paramref name="requests"/> is null.</exception>
     public static async Task<ActionResult<PaginatedResponse<JobResponse>>> BulkCreateJobs(
         this JobsController controller,
         IEnumerable<CreateJobRequest> requests,
@@ -78,7 +78,7 @@ public static class JobsControllerExtensions
     /// <param name="controller">The controller instance.</param>
     /// <param name="id">The job ID to check.</param>
     /// <returns>Action result with boolean indicating existence.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when controller is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="controller"/> is null.</exception>
     public static async Task<ActionResult<bool>> JobExists(
         this JobsController controller,
         Guid id)
@@ -106,7 +106,7 @@ public static class JobsControllerExtensions
     /// <param name="id">The job ID to get status for.</param>
     /// <param name="limit">Maximum number of recent executions to include.</param>
     /// <returns>Action result with execution status summary.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when controller is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="controller"/> is null.</exception>
     public static async Task<ActionResult<JobExecutionStatusSummary>> GetJobExecutionStatus(
         this JobsController controller,
         Guid id,
@@ -132,7 +132,9 @@ public static class JobsControllerExtensions
         var totalExecutions = jobResponse.TotalExecutions;
         var successfulExecutions = jobResponse.SuccessfulExecutions;
         var failedExecutions = totalExecutions - successfulExecutions;
-        var successRate = totalExecutions > 0 ? (double)successfulExecutions / totalExecutions * 100 : 0;
+        var successRate = totalExecutions > 0
+            ? Math.Round((double)successfulExecutions / totalExecutions * 100, 2)
+            : 0;
 
         var summary = new JobExecutionStatusSummary
         {
@@ -162,7 +164,8 @@ public static class JobsControllerExtensions
     /// <param name="jobIds">Collection of job IDs to suspend.</param>
     /// <param name="reason">Optional reason for suspension.</param>
     /// <returns>Collection of suspension results.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when controller or jobIds is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="controller"/> or <paramref name="jobIds"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="jobIds"/> is empty.</exception>
     public static async Task<ActionResult<IReadOnlyList<BulkOperationResult>>> BulkSuspendJobs(
         this JobsController controller,
         IEnumerable<Guid> jobIds,
@@ -171,22 +174,29 @@ public static class JobsControllerExtensions
         ArgumentNullException.ThrowIfNull(controller);
         ArgumentNullException.ThrowIfNull(jobIds);
 
+        if (!jobIds.Any())
+        {
+            throw new ArgumentException("Collection cannot be empty.", nameof(jobIds));
+        }
+
         var results = new List<BulkOperationResult>();
         var idList = jobIds.ToList();
+
+        if (idList.Count == 0)
+        {
+            return controller.Ok(results.AsReadOnly());
+        }
 
         foreach (var jobId in idList)
         {
             var result = await controller.SuspendJob(jobId, new SuspendJobRequest { Reason = reason });
             var success = result.Result is OkObjectResult okResult2 && okResult2.StatusCode == 200;
-            string? errorMessage = null;
-            if (result.Result is NotFoundObjectResult)
+            var errorMessage = result.Result switch
             {
-                errorMessage = "Job not found";
-            }
-            else if (result.Result is StatusCodeResult statusResult && statusResult.StatusCode == 500)
-            {
-                errorMessage = "Internal server error";
-            }
+                NotFoundObjectResult => "Job not found",
+                StatusCodeResult statusResult when statusResult.StatusCode == 500 => "Internal server error",
+                _ => null
+            };
 
             results.Add(new BulkOperationResult
             {
@@ -205,14 +215,14 @@ public static class JobsControllerExtensions
 /// </summary>
 public sealed class BulkOperationResult
 {
-    /// <summary>Gets or sets the job ID.</summary>
-    public Guid JobId { get; set; }
+    /// <summary>Gets the job ID.</summary>
+    public Guid JobId { get; init; }
 
-    /// <summary>Gets or sets whether the operation succeeded.</summary>
-    public bool Success { get; set; }
+    /// <summary>Gets whether the operation succeeded.</summary>
+    public bool Success { get; init; }
 
-    /// <summary>Gets or sets the error message if the operation failed.</summary>
-    public string? ErrorMessage { get; set; }
+    /// <summary>Gets the error message if the operation failed.</summary>
+    public string? ErrorMessage { get; init; }
 }
 
 /// <summary>
@@ -220,36 +230,36 @@ public sealed class BulkOperationResult
 /// </summary>
 public sealed class JobExecutionStatusSummary
 {
-    /// <summary>Gets or sets the job ID.</summary>
-    public Guid JobId { get; set; }
+    /// <summary>Gets the job ID.</summary>
+    public Guid JobId { get; init; }
 
-    /// <summary>Gets or sets the job name.</summary>
-    public string? JobName { get; set; }
+    /// <summary>Gets the job name.</summary>
+    public string? JobName { get; init; }
 
-    /// <summary>Gets or sets the job status.</summary>
-    public string? Status { get; set; }
+    /// <summary>Gets the job status.</summary>
+    public string? Status { get; init; }
 
-    /// <summary>Gets or sets the total number of executions.</summary>
-    public int TotalExecutions { get; set; }
+    /// <summary>Gets the total number of executions.</summary>
+    public int TotalExecutions { get; init; }
 
-    /// <summary>Gets or sets the number of successful executions.</summary>
-    public int SuccessfulExecutions { get; set; }
+    /// <summary>Gets the number of successful executions.</summary>
+    public int SuccessfulExecutions { get; init; }
 
-    /// <summary>Gets or sets the number of failed executions.</summary>
-    public int FailedExecutions { get; set; }
+    /// <summary>Gets the number of failed executions.</summary>
+    public int FailedExecutions { get; init; }
 
-    /// <summary>Gets or sets the success rate percentage.</summary>
-    public double SuccessRatePercentage { get; set; }
+    /// <summary>Gets the success rate percentage.</summary>
+    public double SuccessRatePercentage { get; init; }
 
-    /// <summary>Gets or sets the status of the last execution.</summary>
-    public string? LastExecutionStatus { get; set; }
+    /// <summary>Gets the status of the last execution.</summary>
+    public string? LastExecutionStatus { get; init; }
 
-    /// <summary>Gets or sets the recent executions.</summary>
-    public IReadOnlyList<ExecutionResponse> RecentExecutions { get; set; } = new List<ExecutionResponse>();
+    /// <summary>Gets the recent executions.</summary>
+    public IReadOnlyList<ExecutionResponse> RecentExecutions { get; init; } = new List<ExecutionResponse>();
 
-    /// <summary>Gets or sets the average execution time in milliseconds.</summary>
-    public double AverageExecutionTimeMs { get; set; } = 0;
+    /// <summary>Gets the average execution time in milliseconds.</summary>
+    public double AverageExecutionTimeMs { get; init; }
 
-    /// <summary>Gets or sets the time of the last execution.</summary>
-    public DateTimeOffset? LastExecutionTime { get; set; }
+    /// <summary>Gets the time of the last execution.</summary>
+    public DateTimeOffset? LastExecutionTime { get; init; }
 }
