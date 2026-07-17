@@ -14,11 +14,13 @@ namespace DotnetJobScheduler.Tests;
 /// </summary>
 public static class DistributedJobLockServiceTestsExtensions
 {
+
     /// <summary>
     /// Creates a service instance with a fresh in-memory database context.
     /// </summary>
     /// <param name="service">The test service instance.</param>
     /// <returns>A new <see cref="DistributedJobLockService"/> instance.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
     public static DistributedJobLockService CreateFreshService(this DistributedJobLockServiceTests service)
     {
         ArgumentNullException.ThrowIfNull(service);
@@ -45,6 +47,8 @@ public static class DistributedJobLockServiceTestsExtensions
     /// <param name="holderId">The holder instance ID.</param>
     /// <param name="duration">The lock duration.</param>
     /// <returns>The acquired lock entity.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="holderId"/> is <see langword="null"/> or empty.</exception>
     /// <exception cref="Xunit.Sdk.XunitException">Thrown when lock acquisition fails.</exception>
     public static async Task<DistributedJobLock> ShouldAcquireLockAsync(
         this DistributedJobLockServiceTests _,
@@ -73,6 +77,8 @@ public static class DistributedJobLockServiceTestsExtensions
     /// <param name="holderId">The holder instance ID.</param>
     /// <param name="duration">The lock duration.</param>
     /// <returns>The number of locks in the database.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="holderId"/> is <see langword="null"/> or empty.</exception>
     /// <exception cref="Xunit.Sdk.XunitException">Thrown when unexpected lock state occurs.</exception>
     public static async Task<int> ShouldNotAcquireLockAsync(
         this DistributedJobLockServiceTests _,
@@ -98,6 +104,7 @@ public static class DistributedJobLockServiceTestsExtensions
     /// <param name="service">The test service instance (for extension method syntax).</param>
     /// <param name="jobId">The job ID to check.</param>
     /// <returns>The lock entity if it exists.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
     /// <exception cref="Xunit.Sdk.XunitException">Thrown when lock is not held or multiple locks exist.</exception>
     public static async Task<DistributedJobLock> ShouldBeLockedAsync(
         this DistributedJobLockServiceTests _,
@@ -121,6 +128,7 @@ public static class DistributedJobLockServiceTestsExtensions
     /// <param name="service">The test service instance (for extension method syntax).</param>
     /// <param name="jobId">The job ID to check.</param>
     /// <returns>The number of active locks.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
     /// <exception cref="Xunit.Sdk.XunitException">Thrown when lock unexpectedly exists.</exception>
     public static async Task<int> ShouldNotBeLockedAsync(
         this DistributedJobLockServiceTests _,
@@ -143,7 +151,7 @@ public static class DistributedJobLockServiceTestsExtensions
     /// <param name="service">The test service.</param>
     /// <param name="locks">Collection of lock configurations to create.</param>
     /// <returns>List of created lock entities.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when service or locks is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="service"/> or <paramref name="locks"/> is <see langword="null"/>.</exception>
     public static async Task<IReadOnlyList<DistributedJobLock>> CreateLocksAsync(
         this DistributedJobLockServiceTests service,
         params (Guid JobId, string HolderId, DateTime ExpiresAt)[] locks)
@@ -176,6 +184,7 @@ public static class DistributedJobLockServiceTestsExtensions
     /// <param name="service">The test service.</param>
     /// <param name="jobId">The job ID to check.</param>
     /// <returns>The expiry time of the lock.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
     /// <exception cref="Xunit.Sdk.XunitException">Thrown when lock doesn't exist.</exception>
     public static async Task<DateTime> GetLockExpiryAsync(
         this DistributedJobLockServiceTests service,
