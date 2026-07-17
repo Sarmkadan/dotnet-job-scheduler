@@ -78,3 +78,37 @@ Assert.Equal(ExecutionStatus.Running, retryExecution.Status);
 var exceeded = await retryTests.IsRetryBudgetExceededAsync(job.Id, retryBudgetCount: 5, timeWindowMinutes: 5);
 Assert.False(exceeded);
 ```
+
+## JobEntityTests
+
+The `JobEntityTests` class provides unit tests for the `Job` entity, verifying validation logic, execution metrics updates, success rate calculations, and concurrency checks.
+
+The following example demonstrates how to use some of the public members of `JobEntityTests`:
+
+```csharp
+using DotnetJobScheduler.Tests;
+using JobScheduler.Core.Domain.Entities;
+
+// Create a test instance
+var jobTests = new JobEntityTests();
+
+// Create a valid job
+var job = JobEntityTests.CreateValidJob();
+
+// Test job validation
+var isValid = job.IsValidForScheduling();
+Assert.True(isValid);
+
+// Update execution metrics
+job.UpdateExecutionMetrics(success: true);
+Assert.Equal(1, job.TotalExecutions);
+Assert.Equal(1, job.SuccessfulExecutions);
+
+// Test success rate calculation
+var successRate = job.GetSuccessRate();
+Assert.Equal(100, successRate);
+
+// Test concurrency checks
+var canExecuteNow = job.CanExecuteNow(currentConcurrentCount: 0);
+Assert.True(canExecuteNow);
+```
