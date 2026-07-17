@@ -1,9 +1,8 @@
 #nullable enable
-
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using System.Text.Json;
 
@@ -30,29 +29,20 @@ public static class CyclicDependencyExceptionJsonExtensions
     public static string ToJson(this CyclicDependencyException value, bool indented = false)
     {
         ArgumentNullException.ThrowIfNull(value);
-
-        var options = indented
+        return JsonSerializer.Serialize(value, indented
             ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
-            : _jsonOptions;
-
-        return JsonSerializer.Serialize(value, options);
+            : _jsonOptions);
     }
 
     /// <summary>
     /// Deserializes a <see cref="CyclicDependencyException"/> from a JSON string.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized exception, or null if the JSON is null or empty.</returns>
-    /// <exception cref="JsonException">Thrown if the JSON is malformed or cannot be deserialized.</exception>
-    public static CyclicDependencyException? FromJson(string json)
-    {
-        if (string.IsNullOrEmpty(json))
-        {
-            return null;
-        }
-
-        return JsonSerializer.Deserialize<CyclicDependencyException>(json, _jsonOptions);
-    }
+    /// <returns>The deserialized exception if successful; otherwise, <see langword="null"/>.</returns>
+    /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
+    public static CyclicDependencyException? FromJson(string json) => string.IsNullOrEmpty(json)
+        ? null
+        : JsonSerializer.Deserialize<CyclicDependencyException>(json, _jsonOptions);
 
     /// <summary>
     /// Attempts to deserialize a <see cref="CyclicDependencyException"/> from a JSON string.
@@ -66,7 +56,7 @@ public static class CyclicDependencyExceptionJsonExtensions
 
         if (string.IsNullOrEmpty(json))
         {
-            return false;
+            return true;
         }
 
         try

@@ -5,6 +5,8 @@
 // =============================================================================
 
 namespace JobScheduler.Core.Exceptions;
+using System;
+using System.Text.Json.Serialization;
 
 /// <summary>
 /// Thrown when adding a job dependency would introduce a cycle in the dependency graph,
@@ -13,10 +15,12 @@ namespace JobScheduler.Core.Exceptions;
 public sealed class CyclicDependencyException : JobSchedulerException
 {
     /// <summary>Gets the ID of the job that was requested to be made dependent.</summary>
-    public Guid JobId { get; }
+[JsonInclude]
+    public Guid JobId { get; private set; }
 
     /// <summary>Gets the ID of the job that was requested as the prerequisite.</summary>
-    public Guid DependsOnJobId { get; }
+[JsonInclude]
+    public Guid DependsOnJobId { get; private set; }
 
     /// <summary>
     /// Initializes a new instance of <see cref="CyclicDependencyException"/>.
