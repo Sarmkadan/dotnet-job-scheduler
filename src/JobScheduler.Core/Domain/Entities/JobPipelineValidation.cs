@@ -5,7 +5,7 @@
 // CTO & Software Architect
 // =============================================================================
 
-using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace JobScheduler.Core.Domain.Entities;
 
@@ -38,7 +38,7 @@ public static class JobPipelineValidation
         }
 
         // Validate Description
-        if (value.Description.Length > 1024)
+        if (!string.IsNullOrEmpty(value.Description) && value.Description.Length > 1024)
         {
             errors.Add("Pipeline description cannot exceed 1024 characters.");
         }
@@ -73,13 +73,16 @@ public static class JobPipelineValidation
         }
 
         // Validate CreatedBy
-        if (value.CreatedBy is not null && string.IsNullOrWhiteSpace(value.CreatedBy))
+        if (value.CreatedBy is not null)
         {
-            errors.Add("Pipeline created by identifier cannot be empty or whitespace when set.");
-        }
-        else if (value.CreatedBy?.Length > 128)
-        {
-            errors.Add("Pipeline created by identifier cannot exceed 128 characters.");
+            if (string.IsNullOrWhiteSpace(value.CreatedBy))
+            {
+                errors.Add("Pipeline created by identifier cannot be empty or whitespace when set.");
+            }
+            else if (value.CreatedBy.Length > 128)
+            {
+                errors.Add("Pipeline created by identifier cannot exceed 128 characters.");
+            }
         }
 
         // Validate Steps collection
@@ -118,8 +121,6 @@ public static class JobPipelineValidation
                 {
                     errors.Add("Pipeline step StepOrder must be between 0 and 9999 inclusive.");
                 }
-
-                // Validate StopOnFailure (no specific constraints, has default value)
             }
         }
 
@@ -133,9 +134,7 @@ public static class JobPipelineValidation
     /// <returns>True if valid; otherwise false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     public static bool IsValid(this JobPipeline? value)
-    {
-        return value is not null && value.Validate().Count == 0;
-    }
+        => value is not null && value.Validate().Count == 0;
 
     /// <summary>
     /// Ensures that the specified <see cref="JobPipeline"/> instance is valid, throwing an <see cref="ArgumentException"/>
