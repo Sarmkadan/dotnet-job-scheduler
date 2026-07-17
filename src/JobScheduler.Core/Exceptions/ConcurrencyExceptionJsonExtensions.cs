@@ -33,29 +33,19 @@ public static class ConcurrencyExceptionJsonExtensions
     public static string ToJson(this ConcurrencyException value, bool indented = false)
     {
         ArgumentNullException.ThrowIfNull(value);
-
-        var options = indented
-            ? new JsonSerializerOptions(_options) { WriteIndented = true }
-            : _options;
-
-        return JsonSerializer.Serialize(value, options);
+        return JsonSerializer.Serialize(value, indented ? new JsonSerializerOptions(_options) { WriteIndented = true } : _options);
     }
 
     /// <summary>
     /// Deserializes a <see cref="ConcurrencyException"/> from a JSON string.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized exception, or null if the JSON is null or empty.</returns>
+    /// <returns>The deserialized exception if successful; otherwise, <see langword="null"/>.</returns>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
     public static ConcurrencyException? FromJson(string json)
-    {
-        if (string.IsNullOrEmpty(json))
-        {
-            return null;
-        }
-
-        return JsonSerializer.Deserialize<ConcurrencyException>(json, _options);
-    }
+        => string.IsNullOrEmpty(json)
+            ? null
+            : JsonSerializer.Deserialize<ConcurrencyException>(json, _options);
 
     /// <summary>
     /// Attempts to deserialize a <see cref="ConcurrencyException"/> from a JSON string.
