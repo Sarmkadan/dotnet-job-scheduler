@@ -152,6 +152,159 @@ await controller.CleanupOldExecutionsAsync(olderThanDays: 90);
 - `MaxRetries`: Maximum number of retries configured for the job
 - `Output`: Output or result of the execution
 
+## BaseController
+
+The `BaseController` class serves as the foundational abstract controller for all API controllers in the JobScheduler application. It provides standardized response patterns, audit logging, and security utilities to ensure consistent behavior across the API surface.
+
+### Purpose
+
+BaseController eliminates boilerplate code by offering:
+- Standardized success and error response envelopes
+- Built-in audit logging for security events
+- Helper methods for user identification and correlation tracking
+- Security and caching header management
+
+### Usage
+
+```csharp
+using JobScheduler.Core.Controllers;
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.Logging;
+
+// Create required services
+var logger = new Logger<BaseController>(new LoggerFactory());
+var auditLogger = new AuditLogger();
+var cacheService = new CacheService();
+
+// Create a concrete controller inheriting from BaseController
+public class JobsController : BaseController
+{
+    public JobsController(
+        ILogger logger,
+        AuditLogger auditLogger,
+        CacheService cacheService)
+        : base(logger, auditLogger, cacheService)
+    {
+    }
+
+    // Example action returning success response
+    public async Task<IActionResult> GetJob(Guid jobId)
+    {
+        var job = await _jobService.GetJobAsync(jobId);
+        
+        // Return standardized success response
+        return Success(job, "Job retrieved successfully");
+    }
+
+    // Example action returning error response
+    public IActionResult GetJob(Guid jobId)
+    {
+        if (jobId == Guid.Empty)
+        {
+            // Return standardized error response
+            return Error("Invalid job ID", 400);
+        }
+        
+        return Ok();
+    }
+
+    // Example action returning validation error response
+    public IActionResult CreateJob(CreateJobRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Name))
+        {
+            return ValidationError(new Dictionary<string, string[]>
+            {
+                { "name", new[] { "Name is required" } }
+            });
+        }
+        
+        return Ok();
+    }
+
+    // Example using helper methods
+    public IActionResult GetUserActivity()
+    {
+        // Get authenticated user ID
+        var userId = GetUserId();
+        
+        // Get client IP address
+        var clientIp = GetClientIp();
+        
+        // Get correlation ID for tracing
+        var correlationId = GetCorrelationId();
+        
+        // Log audit event
+        await LogAuditAsync("UserActivity.View", $"User {userId} viewed activity from {clientIp}");
+        
+        // Set security headers
+        SetSecurityHeaders();
+        
+        return Ok();
+    }
+}
+
+// Example response envelopes
+
+// Success response with data
+var successResponse = new ApiSuccessResponse<JobDto>
+{
+    Success = true,
+    Message = "Job retrieved successfully",
+    Data = new JobDto { Id = Guid.NewGuid(), Name = "Sample Job" },
+    Timestamp = DateTime.UtcNow
+};
+
+// Error response
+var errorResponse = new ApiErrorResponse
+{
+    Success = false,
+    Message = "Job not found",
+    Timestamp = DateTime.UtcNow,
+    CorrelationId = "corr-12345"
+};
+
+// Validation error response
+var validationErrorResponse = new ApiValidationErrorResponse
+{
+    Success = false,
+    Message = "Validation failed",
+    Errors = new Dictionary<string, string[]>
+    {
+        { "name", new[] { "Name is required" } },
+        { "schedule", new[] { "Schedule is invalid" } }
+    },
+    Timestamp = DateTime.UtcNow
+};
+```
+
+### Response Types
+
+- `ApiSuccessResponse<T>`: Standard success envelope with typed data
+  - `Success` (bool): Indicates success status
+  - `Message` (string): Human-readable message
+  - `Data` (T?): The actual response data
+  - `Timestamp` (DateTime): When the response was generated
+
+- `ApiErrorResponse`: Standard error envelope
+  - `Success` (bool): Indicates failure status
+  - `Message` (string): Error message
+  - `Timestamp` (DateTime): When the error occurred
+  - `CorrelationId` (string?): Request correlation ID for tracing
+
+- `ApiValidationErrorResponse`: Validation error envelope extending `ApiErrorResponse`
+  - `Errors` (Dictionary<string, string[]>): Field-level validation errors
+
+### Helper Methods
+
+- `GetUserId()`: Gets the currently authenticated user ID or "Anonymous" if not authenticated
+- `GetClientIp()`: Gets the client IP address (accounts for proxies)
+- `GetCorrelationId()`: Gets or creates a correlation ID for request tracing
+- `LogAuditAsync(string eventType, string message)`: Logs audit event for controller action
+- `SetSecurityHeaders()`: Sets response security headers
+- `SetCacheControl(int maxAgeSeconds)`: Sets response cache headers
+- `SetNoCache()`: Prevents response caching
+
 ## HistoryController
 
 The `HistoryController` class provides RESTful API endpoints for querying job execution history and aggregated statistics. It exposes endpoints for retrieving both per-job and system-wide execution history with flexible filtering and pagination capabilities.
