@@ -18,39 +18,48 @@ public static class DashboardControllerExtensions
     /// <param name="controller">The dashboard controller instance.</param>
     /// <returns>A health score between 0 and 100.</returns>
     /// <exception cref="ArgumentNullException">Thrown when controller is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when any of the controller methods return null.</exception>
     public static async Task<int> CalculateHealthScoreAsync(this DashboardController controller)
     {
         ArgumentNullException.ThrowIfNull(controller);
 
-        try
-        {
-            var overview = await controller.GetOverview();
-            if (overview.Result is not OkObjectResult okResult || okResult.Value is not DashboardOverview overviewData)
-                return 0;
+        var overview = await controller.GetOverview()
+            ?? throw new InvalidOperationException("GetOverview returned null");
 
-            var healthReport = await controller.GetHealthReport();
-            if (healthReport.Result is not OkObjectResult healthResult || healthResult.Value is not HealthReportResponse healthData)
-                return 0;
-
-            var queueStatus = await controller.GetQueueStatus();
-            if (queueStatus.Result is not OkObjectResult queueResult || queueResult.Value is not QueueStatusResponse queueData)
-                return 0;
-
-            // Calculate health score components
-            var successRateScore = (int)Math.Round(overviewData.AverageSuccessRate * 100);
-            var failedJobsPenalty = Math.Min(30, queueData.FailedJobs * 2);
-            var systemWarningsPenalty = healthData.Warnings.Count * 10;
-            var queueUtilizationPenalty = (int)Math.Min(20, queueData.QueueUtilization / 5);
-
-            var healthScore = successRateScore - failedJobsPenalty - systemWarningsPenalty - queueUtilizationPenalty;
-            healthScore = Math.Max(0, Math.Min(100, healthScore));
-
-            return healthScore;
-        }
-        catch
-        {
+        if (overview.Result is not OkObjectResult okResult)
             return 0;
-        }
+
+        if (okResult.Value is not DashboardOverview overviewData)
+            return 0;
+
+        var healthReport = await controller.GetHealthReport()
+            ?? throw new InvalidOperationException("GetHealthReport returned null");
+
+        if (healthReport.Result is not OkObjectResult healthResult)
+            return 0;
+
+        if (healthResult.Value is not HealthReportResponse healthData)
+            return 0;
+
+        var queueStatus = await controller.GetQueueStatus()
+            ?? throw new InvalidOperationException("GetQueueStatus returned null");
+
+        if (queueStatus.Result is not OkObjectResult queueResult)
+            return 0;
+
+        if (queueResult.Value is not QueueStatusResponse queueData)
+            return 0;
+
+        // Calculate health score components
+        var successRateScore = (int)Math.Round(overviewData.AverageSuccessRate * 100);
+        var failedJobsPenalty = Math.Min(30, queueData.FailedJobs * 2);
+        var systemWarningsPenalty = healthData.Warnings.Count * 10;
+        var queueUtilizationPenalty = (int)Math.Min(20, queueData.QueueUtilization / 5);
+
+        var healthScore = successRateScore - failedJobsPenalty - systemWarningsPenalty - queueUtilizationPenalty;
+        healthScore = Math.Max(0, Math.Min(100, healthScore));
+
+        return healthScore;
     }
 
     /// <summary>
@@ -59,17 +68,22 @@ public static class DashboardControllerExtensions
     /// <param name="controller">The dashboard controller instance.</param>
     /// <returns>A tuple containing (Status: "Good", "Warning", or "Critical", Color: "green", "yellow", or "red").</returns>
     /// <exception cref="ArgumentNullException">Thrown when controller is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when GetHealthReport returns null.</exception>
     public static async Task<(string Status, string Color)> GetHealthStatusAsync(this DashboardController controller)
     {
         ArgumentNullException.ThrowIfNull(controller);
 
         var healthScore = await controller.CalculateHealthScoreAsync();
-        var healthReport = await controller.GetHealthReport();
+        var healthReport = await controller.GetHealthReport()
+            ?? throw new InvalidOperationException("GetHealthReport returned null");
 
-        if (healthReport.Result is not OkObjectResult healthResult || healthResult.Value is not HealthReportResponse healthData)
+        if (healthReport.Result is not OkObjectResult healthResult)
             return ("Critical", "red");
 
-        if (healthScore >= 80 && healthData.IsHealthy)
+        if (healthResult.Value is not HealthReportResponse healthData)
+            return ("Critical", "red");
+
+        if (healthData.IsHealthy && healthScore >= 80)
             return ("Good", "green");
 
         if (healthScore >= 50)
@@ -84,13 +98,17 @@ public static class DashboardControllerExtensions
     /// <param name="controller">The dashboard controller instance.</param>
     /// <returns>A dictionary containing formatted display values for key metrics.</returns>
     /// <exception cref="ArgumentNullException">Thrown when controller is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when any of the controller methods return null.</exception>
     public static async Task<IReadOnlyDictionary<string, string>> GetFormattedStatisticsAsync(this DashboardController controller)
     {
         ArgumentNullException.ThrowIfNull(controller);
 
-        var overview = await controller.GetOverview();
-        var queueStatus = await controller.GetQueueStatus();
-        var healthReport = await controller.GetHealthReport();
+        var overview = await controller.GetOverview()
+            ?? throw new InvalidOperationException("GetOverview returned null");
+        var queueStatus = await controller.GetQueueStatus()
+            ?? throw new InvalidOperationException("GetQueueStatus returned null");
+        var healthReport = await controller.GetHealthReport()
+            ?? throw new InvalidOperationException("GetHealthReport returned null");
 
         var stats = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -137,6 +155,7 @@ public static class DashboardControllerExtensions
     /// <returns>A list of job failure analysis objects with additional metrics.</returns>
     /// <exception cref="ArgumentNullException">Thrown when controller is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when count is less than 1.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when GetMostFailingJobs or GetSlowestJobs return null.</exception>
     public static async Task<IReadOnlyList<JobFailureAnalysis>> GetTopFailingJobsWithAnalysisAsync(
         this DashboardController controller,
         int count = 5)
@@ -144,12 +163,17 @@ public static class DashboardControllerExtensions
         ArgumentNullException.ThrowIfNull(controller);
         ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
 
-        var failingJobs = await controller.GetMostFailingJobs();
+        var failingJobs = await controller.GetMostFailingJobs()
+            ?? throw new InvalidOperationException("GetMostFailingJobs returned null");
 
-        if (failingJobs.Result is not OkObjectResult okResult || okResult.Value is not List<FailingJobResponse> failingJobData)
+        if (failingJobs.Result is not OkObjectResult okResult)
             return Array.Empty<JobFailureAnalysis>();
 
-        var slowestJobs = await controller.GetSlowestJobs();
+        if (okResult.Value is not List<FailingJobResponse> failingJobData)
+            return Array.Empty<JobFailureAnalysis>();
+
+        var slowestJobs = await controller.GetSlowestJobs()
+            ?? throw new InvalidOperationException("GetSlowestJobs returned null");
         var slowestJobData = slowestJobs.Result is OkObjectResult slowestOkResult
             ? slowestOkResult.Value as List<SlowestJobResponse>
             : null;
