@@ -47,7 +47,8 @@ public static class JobExecutorServiceBenchmarksJsonExtensions
     /// Deserializes a JSON string to a <see cref="JobExecutorServiceBenchmarks"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized benchmark instance, or null if the JSON is empty or whitespace.</returns>
+    /// <returns>The deserialized benchmark instance if successful; otherwise, null.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is null or whitespace.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
     public static JobExecutorServiceBenchmarks? FromJson(string json)
     {
@@ -60,8 +61,9 @@ public static class JobExecutorServiceBenchmarksJsonExtensions
     /// Attempts to deserialize a JSON string to a <see cref="JobExecutorServiceBenchmarks"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <param name="value">Receives the deserialized benchmark instance if successful.</param>
+    /// <param name="value">Receives the deserialized benchmark instance if successful; otherwise, null.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is null or whitespace.</exception>
     public static bool TryFromJson(string json, out JobExecutorServiceBenchmarks? value)
     {
         ArgumentException.ThrowIfNullOrEmpty(json);
