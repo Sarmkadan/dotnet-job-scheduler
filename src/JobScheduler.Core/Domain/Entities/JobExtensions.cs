@@ -21,8 +21,8 @@ public static class JobExtensions
         ArgumentNullException.ThrowIfNull(job);
 
         return job.IsActive &&
-               job.NextExecutionAt.HasValue &&
-               job.NextExecutionAt.Value <= DateTime.UtcNow;
+            job.NextExecutionAt.HasValue &&
+            job.NextExecutionAt.Value <= DateTime.UtcNow;
     }
 
     /// <summary>
@@ -37,12 +37,9 @@ public static class JobExtensions
     {
         ArgumentNullException.ThrowIfNull(job);
 
-        if (job.TotalExecutions == 0)
-        {
-            return 0.0;
-        }
-
-        return (double)job.SuccessfulExecutions / job.TotalExecutions;
+        return job.TotalExecutions == 0
+            ? 0.0
+            : (double)job.SuccessfulExecutions / job.TotalExecutions;
     }
 
     /// <summary>
@@ -50,22 +47,16 @@ public static class JobExtensions
     /// </summary>
     /// <param name="job">The job whose time zone is retrieved.</param>
     /// <returns>
-    /// The <see cref="TimeZoneInfo"/> corresponding to <paramref name="job.TimeZoneId"/>; if <paramref name="job.TimeZoneId"/> is <c>null</c> or empty, <see cref="TimeZoneInfo.Utc"/> is returned.
+    /// The <see cref="TimeZoneInfo"/> corresponding to <paramref name="job.TimeZoneId"/>; if <paramref name="job.TimeZoneId"/> is <c>null</c>, empty, or whitespace, <see cref="TimeZoneInfo.Utc"/> is returned.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is <c>null</c>.</exception>
-    /// <exception cref="TimeZoneNotFoundException">Thrown when the specified time zone ID cannot be found.</exception>
-    public static TimeZoneInfo GetTimeZoneInfo(this Job job)
-    {
-        ArgumentNullException.ThrowIfNull(job);
-
-        var timeZoneId = job.TimeZoneId;
-        if (string.IsNullOrWhiteSpace(timeZoneId))
-        {
-            return TimeZoneInfo.Utc;
-        }
-
-        return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-    }
+    /// <exception cref="TimeZoneNotFoundException">
+    /// Thrown when <paramref name="job.TimeZoneId"/> is not <c>null</c> or whitespace but does not correspond to a valid system time zone ID.
+    /// </exception>
+    public static TimeZoneInfo GetTimeZoneInfo(this Job job) =>
+                string.IsNullOrWhiteSpace(job.TimeZoneId)
+                        ? TimeZoneInfo.Utc
+                        : TimeZoneInfo.FindSystemTimeZoneById(job.TimeZoneId);
 
     /// <summary>
     /// Generates a concise summary string for the job, including its name, status, priority, and execution statistics.
@@ -79,12 +70,13 @@ public static class JobExtensions
 
         return string.Format(
             CultureInfo.InvariantCulture,
-            "Job '{0}' [{1}] - Status: {2}, Priority: {3}, Executions: {4} (Success: {5})",
+            "Job '{0}' [{1}] - Status: {2}, Priority: {3}, Executions: {4} (Success: {5}) ({6:P0})",
             job.Name,
             job.Id,
             job.Status,
             job.Priority,
             job.TotalExecutions,
-            job.SuccessfulExecutions);
+            job.SuccessfulExecutions,
+            job.GetSuccessRate());
     }
 }
