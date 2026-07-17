@@ -11,13 +11,13 @@ using System.Text.Json.Serialization;
 namespace JobScheduler.Core.Extensions;
 
 /// <summary>
-/// Provides System.Text.Json serialization and deserialization extensions for StringExtensions.
-/// Enables round-trip serialization of StringExtensions type information for persistence scenarios.
+/// Provides System.Text.Json serialization and deserialization extensions for string values.
+/// Enables safe JSON serialization/deserialization of strings with proper escaping and validation.
 /// </summary>
 public static class StringExtensionsJsonExtensions
 {
     /// <summary>
-    /// JSON serializer options configured for camelCase property naming.
+    /// JSON serializer options configured for camelCase property naming and safe string handling.
     /// </summary>
     private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -27,62 +27,59 @@ public static class StringExtensionsJsonExtensions
     };
 
     /// <summary>
-    /// Converts the StringExtensions type marker to a JSON string representation.
-    /// Useful for persisting type information in configuration or metadata.
+    /// Serializes a string to JSON format.
+    /// Useful for embedding strings in JSON documents or configuration values.
     /// </summary>
-    /// <param name="value">The StringExtensions type marker (typically passed as typeof(StringExtensions)).</param>
+    /// <param name="value">The string value to serialize.</param>
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
-    /// <returns>A JSON string representing the type information.</returns>
+    /// <returns>A JSON string representation of the input string.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
-    public static string ToJson(this Type value, bool indented = false)
+    public static string ToJson(this string value, bool indented = false)
     {
         ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
-            ? new JsonSerializerOptions(_jsonOptions)
-            {
-                WriteIndented = true,
-            }
+            ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
             : _jsonOptions;
 
         return JsonSerializer.Serialize(value, options);
     }
 
     /// <summary>
-    /// Deserializes a JSON string back to the StringExtensions type marker.
+    /// Deserializes a JSON string back to a plain string value.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized Type object, or null if the JSON is null or empty.</returns>
+    /// <returns>The deserialized string, or null if the JSON is null or empty.</returns>
     /// <exception cref="JsonException">Thrown when the JSON is malformed or cannot be deserialized.</exception>
-    public static Type? FromJson(string json)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
+    public static string? FromJson(string? json)
     {
-        if (string.IsNullOrEmpty(json))
-        {
-            return null;
-        }
+        ArgumentNullException.ThrowIfNull(json);
 
-        return JsonSerializer.Deserialize<Type>(json, _jsonOptions);
+        return json.Length == 0
+            ? null
+            : JsonSerializer.Deserialize<string>(json, _jsonOptions);
     }
 
     /// <summary>
-    /// Attempts to deserialize a JSON string back to the StringExtensions type marker.
+    /// Attempts to deserialize a JSON string back to a plain string value.
     /// Safely handles malformed JSON without throwing exceptions.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <param name="value">Receives the deserialized Type object if successful; otherwise null.</param>
+    /// <param name="value">Receives the deserialized string if successful; otherwise null.</param>
     /// <returns>True if deserialization succeeded; false otherwise.</returns>
-    public static bool TryFromJson(string json, out Type? value)
+    public static bool TryFromJson(string? json, out string? value)
     {
         value = null;
 
-        if (string.IsNullOrEmpty(json))
+        if (json is null or "")
         {
             return true;
         }
 
         try
         {
-            value = JsonSerializer.Deserialize<Type>(json, _jsonOptions);
+            value = JsonSerializer.Deserialize<string>(json, _jsonOptions);
             return true;
         }
         catch (JsonException)
