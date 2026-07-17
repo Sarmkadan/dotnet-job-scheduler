@@ -1,26 +1,21 @@
-using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace JobScheduler.Benchmarks;
 
 public static class JobSchedulerServiceBenchmarksValidation
 {
     /// <summary>
-    /// Validates the JobSchedulerServiceBenchmarks instance for common issues.
+    /// Validates the <see cref="JobSchedulerServiceBenchmarks"/> instance for common issues.
     /// </summary>
-    /// <param name="value">The benchmark instance to validate</param>
-    /// <returns>List of validation errors; empty if valid</returns>
-    /// <exception cref="ArgumentNullException">Thrown if value is null</exception>
+    /// <param name="value">The benchmark instance to validate.</param>
+    /// <returns>List of validation errors; empty if valid.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
+    [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "value is validated by ArgumentNullException.ThrowIfNull")]
     public static IReadOnlyList<string> Validate(this JobSchedulerServiceBenchmarks value)
     {
         ArgumentNullException.ThrowIfNull(value);
 
         var errors = new List<string>();
-
-        // Validate Setup method
-        if (value.Setup == null)
-        {
-            errors.Add("Setup method is null");
-        }
 
         // Validate benchmark methods
         ValidateBenchmarkMethod(value.CreateJob_Valid, nameof(value.CreateJob_Valid), errors);
@@ -37,20 +32,21 @@ public static class JobSchedulerServiceBenchmarksValidation
     }
 
     /// <summary>
-    /// Checks if the JobSchedulerServiceBenchmarks instance is valid.
+    /// Checks if the <see cref="JobSchedulerServiceBenchmarks"/> instance is valid.
     /// </summary>
-    /// <param name="value">The benchmark instance to check</param>
-    /// <returns>True if valid; false otherwise</returns>
+    /// <param name="value">The benchmark instance to check.</param>
+    /// <returns>True if valid; false otherwise.</returns>
     public static bool IsValid(this JobSchedulerServiceBenchmarks value)
     {
         return value.Validate().Count == 0;
     }
 
     /// <summary>
-    /// Ensures the JobSchedulerServiceBenchmarks instance is valid, throwing an exception if not.
+    /// Ensures the <see cref="JobSchedulerServiceBenchmarks"/> instance is valid, throwing an exception if not.
     /// </summary>
-    /// <param name="value">The benchmark instance to validate</param>
-    /// <exception cref="ArgumentException">Thrown if value is invalid</exception>
+    /// <param name="value">The benchmark instance to validate.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="value"/> is invalid.</exception>
     public static void EnsureValid(this JobSchedulerServiceBenchmarks value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -65,12 +61,16 @@ public static class JobSchedulerServiceBenchmarksValidation
 
     private static void ValidateBenchmarkMethod(Delegate? method, string methodName, List<string> errors)
     {
-        if (method == null)
+        ArgumentNullException.ThrowIfNull(errors);
+        ArgumentException.ThrowIfNullOrEmpty(methodName);
+
+        if (method is null)
         {
             errors.Add($"Benchmark method {methodName} is null");
         }
-        else if (method.Method.ReturnType != typeof(void) &&
-                 !method.Method.ReturnType.IsGenericType)
+        else if (method.Method.ReturnType != typeof(void)
+            && !method.Method.ReturnType.IsGenericType
+            && !method.Method.ReturnType.IsAssignableTo(typeof(System.Threading.Tasks.Task)))
         {
             errors.Add($"Benchmark method {methodName} has unexpected return type: {method.Method.ReturnType.Name}");
         }
