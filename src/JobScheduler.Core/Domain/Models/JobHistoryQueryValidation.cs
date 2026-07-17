@@ -5,7 +5,7 @@
 // =============================================================================
 
 using JobScheduler.Core.Constants;
-using System.Globalization;
+using System;
 
 namespace JobScheduler.Core.Domain.Models;
 
@@ -14,10 +14,8 @@ namespace JobScheduler.Core.Domain.Models;
 /// </summary>
 public static class JobHistoryQueryValidation
 {
-    private const string DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";
     private const int MinPageNumber = 1;
     private const int MaxPageSize = 200;
-    private const int DefaultPageSize = 20;
 
     /// <summary>
     /// Validates the specified <see cref="JobHistoryQuery"/> instance.
@@ -41,33 +39,25 @@ public static class JobHistoryQueryValidation
             }
         }
 
-        // Validate From date
+        // Validate From date - ensure it's a valid date
         if (value.From.HasValue)
         {
-            if (value.From.Value.Kind != DateTimeKind.Utc)
-            {
-                errors.Add("From date must be in UTC timezone.");
-            }
-            else if (value.From.Value == default)
+            if (value.From.Value == default)
             {
                 errors.Add("From date cannot be the default DateTime value.");
             }
         }
 
-        // Validate To date
+        // Validate To date - ensure it's a valid date
         if (value.To.HasValue)
         {
-            if (value.To.Value.Kind != DateTimeKind.Utc)
-            {
-                errors.Add("To date must be in UTC timezone.");
-            }
-            else if (value.To.Value == default)
+            if (value.To.Value == default)
             {
                 errors.Add("To date cannot be the default DateTime value.");
             }
         }
 
-        // Validate date range
+        // Validate date range (both must be non-default to compare)
         if (value.From.HasValue && value.To.HasValue)
         {
             if (value.From.Value > value.To.Value)
@@ -102,9 +92,7 @@ public static class JobHistoryQueryValidation
     /// <returns><see langword="true"/> if the query is valid; otherwise, <see langword="false"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
     public static bool IsValid(this JobHistoryQuery? value)
-    {
-        return value is not null && Validate(value).Count == 0;
-    }
+        => value is not null && Validate(value).Count == 0;
 
     /// <summary>
     /// Ensures that the specified <see cref="JobHistoryQuery"/> instance is valid.
