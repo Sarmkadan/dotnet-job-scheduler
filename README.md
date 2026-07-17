@@ -1,4 +1,4 @@
-## JobSchedulerServiceTests
+# JobSchedulerServiceTests
 
 The `JobSchedulerServiceTests` class provides unit tests for the `JobSchedulerService` class, ensuring correct job scheduling, management, and execution logic. These tests cover various scenarios, including job creation, suspension, resumption, deletion, and retry processing.
 
@@ -43,40 +43,50 @@ await tests.DeleteJobAsync_RemovesJobFromRepository();
 await tests.ProcessRetriesAsync_RetriesFailedExecutions();
 ```
 
-## RetryServiceTests
+## RetryPolicyTests
 
-The `RetryServiceTests` class provides comprehensive unit tests for the `RetryService` class, ensuring correct retry policy application, backoff calculations, and budget enforcement. These tests cover various scenarios for job retry decisions.
+The `RetryPolicyTests` class provides unit tests for the `RetryPolicy` class, ensuring correct backoff calculations, retry decisions, and budget enforcement. These tests cover various scenarios for job retry decisions.
 
-The following example demonstrates how to use some of the public members of `RetryServiceTests`:
+The following example demonstrates how to use some of the public members of `RetryPolicyTests`:
 
 ```csharp
-using tests;
-using JobScheduler.Core.Services;
+using DotnetJobScheduler.Tests;
 using JobScheduler.Core.Domain.Entities;
 
 // Create a test instance
-var retryTests = new RetryServiceTests();
+var retryPolicyTests = new RetryPolicyTests();
 
-// Build test job and execution
-var job = RetryServiceTests.BuildJob(maxRetries: 3);
-var execution = RetryServiceTests.BuildFailedExecution(attempt: 2);
+// Arrange test data
+var policy = new RetryPolicy
+{
+    Strategy = BackoffStrategy.Fixed,
+    InitialBackoffSeconds = 10,
+    MaxBackoffSeconds = 300
+};
+
+// Test fixed strategy backoff delay
+retryPolicyTests.CalculateBackoffDelay_WithFixedStrategy_ReturnsConstantDelayAcrossAttempts(policy);
+
+// Test linear strategy backoff delay
+policy.Strategy = BackoffStrategy.Linear;
+retryPolicyTests.CalculateBackoffDelay_WithLinearStrategy_IncrementsProportionallyToAttempt(policy);
+
+// Test exponential strategy backoff delay
+policy.Strategy = BackoffStrategy.Exponential;
+retryPolicyTests.CalculateBackoffDelay_WithExponentialStrategy_DoublesOnEachAttempt(policy);
 
 // Test retry decisions
-var shouldRetry = await retryTests.ShouldRetryAsync(job, execution);
-Assert.False(shouldRetry);
+var shouldRetry = retryPolicyTests.ShouldRetryOnException_WhenRetryableExceptionsIsEmpty_AllowsAnyException();
+Assert.True(shouldRetry);
 
-// Calculate backoff delay
-var delay = retryTests.CalculateBackoffDelay(job, attemptNumber: 2);
-Assert.Equal(10, delay);
+// Test retry decisions with allowlist
+policy.RetryableExceptions = "TimeoutException, HttpRequestException";
+shouldRetry = retryPolicyTests.ShouldRetryOnException_WhenExceptionMatchesAllowlist_ReturnsTrue("TimeoutException");
+Assert.True(shouldRetry);
 
-// Create a new retry execution
-var retryExecution = retryTests.CreateRetryExecution(job, execution);
-Assert.Equal(3, retryExecution.AttemptNumber);
-Assert.Equal(ExecutionStatus.Running, retryExecution.Status);
-
-// Check retry budget
-var exceeded = await retryTests.IsRetryBudgetExceededAsync(job.Id, retryBudgetCount: 5, timeWindowMinutes: 5);
-Assert.False(exceeded);
+// Test validation
+var isValid = retryPolicyTests.IsValid_WithWellFormedConfiguration_ReturnsTrue(policy);
+Assert.True(isValid);
 ```
 
 ## JobEntityTests
@@ -111,4 +121,5 @@ Assert.Equal(100, successRate);
 // Test concurrency checks
 var canExecuteNow = job.CanExecuteNow(currentConcurrentCount: 0);
 Assert.True(canExecuteNow);
+```
 ```
