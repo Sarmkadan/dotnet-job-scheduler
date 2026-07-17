@@ -90,22 +90,22 @@ public static class JobExecutionSummaryValidation
             // When TotalExecutions is 0, all counts must be 0
             if (value.SuccessCount != 0)
             {
-                errors.Add($"SuccessCount must be 0 when TotalExecutions is 0, but was {value.SuccessCount}.");
+                errors.Add("SuccessCount must be 0 when TotalExecutions is 0.");
             }
 
             if (value.FailureCount != 0)
             {
-                errors.Add($"FailureCount must be 0 when TotalExecutions is 0, but was {value.FailureCount}.");
+                errors.Add("FailureCount must be 0 when TotalExecutions is 0.");
             }
 
             if (value.TimedOutCount != 0)
             {
-                errors.Add($"TimedOutCount must be 0 when TotalExecutions is 0, but was {value.TimedOutCount}.");
+                errors.Add("TimedOutCount must be 0 when TotalExecutions is 0.");
             }
 
             if (value.CancelledCount != 0)
             {
-                errors.Add($"CancelledCount must be 0 when TotalExecutions is 0, but was {value.CancelledCount}.");
+                errors.Add("CancelledCount must be 0 when TotalExecutions is 0.");
             }
         }
 
@@ -173,9 +173,7 @@ public static class JobExecutionSummaryValidation
     /// <returns><see langword="true"/> if valid; otherwise, <see langword="false"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     public static bool IsValid(this JobExecutionSummary? value)
-    {
-        return value?.Validate().Count == 0;
-    }
+        => value?.Validate().Count == 0;
 
     /// <summary>
     /// Ensures that the specified <see cref="JobExecutionSummary"/> is valid.
@@ -192,7 +190,8 @@ public static class JobExecutionSummaryValidation
         {
             throw new ArgumentException(
                 $"JobExecutionSummary is invalid. Validation errors:{Environment.NewLine}- {
-                    string.Join($"{Environment.NewLine}- ", errors)}");
+                string.Join($"{Environment.NewLine}- ", errors)}",
+                nameof(value));
         }
     }
 }
