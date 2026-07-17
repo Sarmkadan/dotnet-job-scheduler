@@ -231,4 +231,3 @@ await jobHistoryServiceTests.GetJobHistoryAsync_WithStatusFilter_ReturnsFiltered
 // Test getting job summary with executions
 await jobHistoryServiceTests.GetJobSummaryAsync_WithExecutions_ReturnsAccurateStatistics();
 ```
-```
