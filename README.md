@@ -179,4 +179,85 @@ string statsJson = stats.ToJson(indented: true);
 Console.WriteLine(statsJson);
 ```
 
+## CacheServiceValidation
+
+The `CacheServiceValidation` class provides validation helpers for the `CacheService` and related cache entities. It ensures cache keys, values, patterns, and statistics are valid before operations to prevent runtime errors and data integrity issues.
+
+### Usage Example
+
+```csharp
+using JobScheduler.Core.Services;
+using System;
+
+// Validate a CacheService instance
+var cacheService = new CacheService();
+var cacheServiceProblems = CacheServiceValidation.Validate(cacheService);
+if (cacheServiceProblems.Any())
+{
+    Console.WriteLine("CacheService has validation issues:");
+    foreach (var problem in cacheServiceProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+else
+{
+    Console.WriteLine("CacheService is valid!");
+}
+
+// Validate a cache key
+string cacheKey = "job:123:results";
+var keyProblems = CacheServiceValidation.ValidateKey(cacheKey);
+if (!keyProblems.Any())
+{
+    Console.WriteLine("Cache key is valid!");
+}
+else
+{
+    Console.WriteLine("Invalid cache key:");
+    foreach (var problem in keyProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// Validate a cache key pattern
+string cacheKeyPattern = "job:*:results";
+var patternProblems = CacheServiceValidation.ValidateKeyPattern(cacheKeyPattern);
+if (!patternProblems.Any())
+{
+    Console.WriteLine("Cache key pattern is valid!");
+}
+else
+{
+    Console.WriteLine("Invalid cache key pattern:");
+    foreach (var problem in patternProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+
+// Use EnsureValid to throw exceptions on invalid input
+try
+{
+    CacheServiceValidation.EnsureValidKey("invalid key with spaces");
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Validation failed: {ex.Message}");
+}
+
+// Validate cache statistics
+var stats = new CacheStatistics
+{
+    TotalKeys = 100,
+    Timestamp = DateTime.UtcNow
+};
+var statsProblems = CacheServiceValidation.Validate(stats);
+if (!statsProblems.Any())
+{
+    Console.WriteLine("Cache statistics are valid!");
+}
+```
+
 // ... existing content ...
