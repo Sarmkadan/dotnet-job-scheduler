@@ -23,7 +23,6 @@ public static class RepositoryJsonExtensions
         ReferenceHandler = ReferenceHandler.IgnoreCycles
     };
 
-
     /// <summary>
     /// Serializes the repository instance to a JSON string.
     /// </summary>
@@ -48,28 +47,30 @@ public static class RepositoryJsonExtensions
     /// <summary>
     /// Deserializes a JSON string to a repository instance.
     /// </summary>
+    /// <typeparam name="T">The type to deserialize into</typeparam>
     /// <param name="json">The JSON string to deserialize</param>
     /// <returns>The deserialized repository instance, or null if the JSON is null or empty</returns>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized</exception>
-    public static object? FromJson(string json)
+    public static T? FromJson<T>(string json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
-            return null;
+            return default;
         }
 
-        return JsonSerializer.Deserialize<object>(json, _jsonSerializerOptions);
+        return JsonSerializer.Deserialize<T>(json, _jsonSerializerOptions);
     }
 
     /// <summary>
     /// Attempts to deserialize a JSON string to a repository instance.
     /// </summary>
+    /// <typeparam name="T">The type to deserialize into</typeparam>
     /// <param name="json">The JSON string to deserialize</param>
     /// <param name="value">The deserialized repository instance, or null if deserialization fails</param>
     /// <returns>True if deserialization succeeds; otherwise, false</returns>
-    public static bool TryFromJson(string json, out object? value)
+    public static bool TryFromJson<T>(string json, out T? value)
     {
-        value = null;
+        value = default;
 
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -78,7 +79,7 @@ public static class RepositoryJsonExtensions
 
         try
         {
-            value = JsonSerializer.Deserialize<object>(json, _jsonSerializerOptions);
+            value = JsonSerializer.Deserialize<T>(json, _jsonSerializerOptions);
             return true;
         }
         catch (JsonException)
