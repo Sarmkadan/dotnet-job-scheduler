@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Threading;
 using System.Threading.Tasks;
 using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Services;
@@ -17,18 +16,18 @@ public static class EmailSendingJobHandlerExtensions
     /// <summary>
     /// Creates a new email sending job with the specified configuration.
     /// </summary>
-    /// <param name="scheduler">The job scheduler service</param>
-    /// <param name="name">The name of the job</param>
-    /// <param name="emailConfig">Email configuration as JSON string</param>
-    /// <param name="cronExpression">Cron expression for scheduling</param>
-    /// <param name="priority">Job priority</param>
-    /// <param name="isActive">Whether the job is active</param>
-    /// <param name="maxRetries">Maximum retry attempts</param>
-    /// <param name="timeoutSeconds">Execution timeout in seconds</param>
-    /// <param name="createdBy">Who created the job</param>
-    /// <returns>The created job</returns>
-    /// <exception cref="ArgumentNullException">Thrown when scheduler or name is null</exception>
-    /// <exception cref="ArgumentException">Thrown when name is empty or cronExpression is invalid</exception>
+    /// <param name="scheduler">The job scheduler service.</param>
+    /// <param name="name">The name of the job.</param>
+    /// <param name="emailConfig">Email configuration as JSON string.</param>
+    /// <param name="cronExpression">Cron expression for scheduling.</param>
+    /// <param name="priority">Job priority.</param>
+    /// <param name="isActive">Whether the job is active.</param>
+    /// <param name="maxRetries">Maximum retry attempts.</param>
+    /// <param name="timeoutSeconds">Execution timeout in seconds.</param>
+    /// <param name="createdBy">Who created the job.</param>
+    /// <returns>The created job.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="scheduler"/> or <paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is empty or <paramref name="cronExpression"/> is invalid.</exception>
     public static async Task<Job> CreateEmailSendingJobAsync(
         this JobSchedulerService scheduler,
         string name,
@@ -64,20 +63,21 @@ public static class EmailSendingJobHandlerExtensions
     /// <summary>
     /// Creates a batch of email sending jobs with sequential numbering.
     /// </summary>
-    /// <param name="scheduler">The job scheduler service</param>
-    /// <param name="baseName">Base name for the jobs (e.g., "DailyNewsletter")</param>
-    /// <param name="emailConfig">Email configuration as JSON string</param>
-    /// <param name="cronExpression">Cron expression for scheduling</param>
-    /// <param name="count">Number of jobs to create</param>
-    /// <param name="startIndex">Starting index for job names</param>
-    /// <param name="priority">Job priority</param>
-    /// <param name="isActive">Whether the jobs are active</param>
-    /// <param name="maxRetries">Maximum retry attempts</param>
-    /// <param name="timeoutSeconds">Execution timeout in seconds</param>
-    /// <param name="createdBy">Who created the jobs</param>
-    /// <returns>List of created jobs</returns>
-    /// <exception cref="ArgumentNullException">Thrown when scheduler or baseName is null</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when count is less than 1</exception>
+    /// <param name="scheduler">The job scheduler service.</param>
+    /// <param name="baseName">Base name for the jobs (e.g., "DailyNewsletter").</param>
+    /// <param name="emailConfig">Email configuration as JSON string.</param>
+    /// <param name="cronExpression">Cron expression for scheduling.</param>
+    /// <param name="count">Number of jobs to create.</param>
+    /// <param name="startIndex">Starting index for job names.</param>
+    /// <param name="priority">Job priority.</param>
+    /// <param name="isActive">Whether the jobs are active.</param>
+    /// <param name="maxRetries">Maximum retry attempts.</param>
+    /// <param name="timeoutSeconds">Execution timeout in seconds.</param>
+    /// <param name="createdBy">Who created the jobs.</param>
+    /// <returns>List of created jobs.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="scheduler"/>, <paramref name="baseName"/>, <paramref name="emailConfig"/>, or <paramref name="cronExpression"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="baseName"/>, <paramref name="emailConfig"/>, or <paramref name="cronExpression"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count"/> is less than 1.</exception>
     public static async Task<IReadOnlyList<Job>> CreateEmailSendingJobsBatchAsync(
         this JobSchedulerService scheduler,
         string baseName,
@@ -93,16 +93,16 @@ public static class EmailSendingJobHandlerExtensions
     {
         ArgumentNullException.ThrowIfNull(scheduler);
         ArgumentException.ThrowIfNullOrEmpty(baseName);
+        ArgumentException.ThrowIfNullOrEmpty(emailConfig);
+        ArgumentException.ThrowIfNullOrEmpty(cronExpression);
         ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
 
-        var jobs = new List<Job>(count);
         var tasks = new List<Task<Job>>(count);
 
         for (int i = 0; i < count; i++)
         {
             int jobNumber = startIndex + i;
             var jobName = $"{baseName}_{jobNumber:D4}";
-            var description = $"Email batch job #{jobNumber}: {baseName}";
 
             tasks.Add(scheduler.CreateEmailSendingJobAsync(
                 jobName,
@@ -122,9 +122,9 @@ public static class EmailSendingJobHandlerExtensions
     /// <summary>
     /// Gets all active email sending jobs from the scheduler.
     /// </summary>
-    /// <param name="scheduler">The job scheduler service</param>
-    /// <returns>Read-only list of active email jobs</returns>
-    /// <exception cref="ArgumentNullException">Thrown when scheduler is null</exception>
+    /// <param name="scheduler">The job scheduler service.</param>
+    /// <returns>Read-only list of active email jobs.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="scheduler"/> is <see langword="null"/>.</exception>
     public static async Task<IReadOnlyList<Job>> GetActiveEmailSendingJobsAsync(this JobSchedulerService scheduler)
     {
         ArgumentNullException.ThrowIfNull(scheduler);
@@ -134,8 +134,7 @@ public static class EmailSendingJobHandlerExtensions
 
         foreach (var job in jobs)
         {
-            if (string.Equals(job.HandlerType, typeof(EmailSendingJobHandler).FullName,
-                StringComparison.Ordinal))
+            if (job.HandlerType == typeof(EmailSendingJobHandler).FullName)
             {
                 emailJobs.Add(job);
             }
@@ -147,10 +146,11 @@ public static class EmailSendingJobHandlerExtensions
     /// <summary>
     /// Finds email sending jobs by name pattern.
     /// </summary>
-    /// <param name="scheduler">The job scheduler service</param>
-    /// <param name="namePattern">Name pattern to match (supports * and ?)</param>
-    /// <returns>Read-only list of matching jobs</returns>
-    /// <exception cref="ArgumentNullException">Thrown when scheduler or namePattern is null</exception>
+    /// <param name="scheduler">The job scheduler service.</param>
+    /// <param name="namePattern">Name pattern to match (supports * and ?).</param>
+    /// <returns>Read-only list of matching jobs.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="scheduler"/> or <paramref name="namePattern"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="namePattern"/> is empty.</exception>
     public static async Task<IReadOnlyList<Job>> FindEmailSendingJobsByNameAsync(
         this JobSchedulerService scheduler,
         string namePattern)
@@ -163,10 +163,8 @@ public static class EmailSendingJobHandlerExtensions
 
         foreach (var job in allJobs)
         {
-            if (string.Equals(job.HandlerType, typeof(EmailSendingJobHandler).FullName,
-                StringComparison.Ordinal) &&
-                (namePattern == "*" ||
-                 job.Name.Contains(namePattern, StringComparison.OrdinalIgnoreCase)))
+            if (job.HandlerType == typeof(EmailSendingJobHandler).FullName &&
+                (namePattern == "*" || job.Name.Contains(namePattern, StringComparison.OrdinalIgnoreCase)))
             {
                 matchingJobs.Add(job);
             }
@@ -178,9 +176,9 @@ public static class EmailSendingJobHandlerExtensions
     /// <summary>
     /// Validates email sending job configuration.
     /// </summary>
-    /// <param name="job">The job to validate</param>
-    /// <returns>True if valid; false otherwise</returns>
-    /// <exception cref="ArgumentNullException">Thrown when job is null</exception>
+    /// <param name="job">The job to validate.</param>
+    /// <returns>True if valid; false otherwise.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is <see langword="null"/>.</exception>
     public static bool ValidateEmailJobConfiguration(this Job job)
     {
         ArgumentNullException.ThrowIfNull(job);
@@ -196,9 +194,9 @@ public static class EmailSendingJobHandlerExtensions
     /// <summary>
     /// Gets the next execution time for an email job in a human-readable format.
     /// </summary>
-    /// <param name="job">The email job</param>
-    /// <returns>Formatted next execution time or "Not scheduled"</returns>
-    /// <exception cref="ArgumentNullException">Thrown when job is null</exception>
+    /// <param name="job">The email job.</param>
+    /// <returns>Formatted next execution time or "Not scheduled".</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is <see langword="null"/>.</exception>
     public static string GetNextExecutionTime(this Job job)
     {
         ArgumentNullException.ThrowIfNull(job);
@@ -210,19 +208,20 @@ public static class EmailSendingJobHandlerExtensions
     /// <summary>
     /// Creates a daily email sending job at a specific time.
     /// </summary>
-    /// <param name="scheduler">The job scheduler service</param>
-    /// <param name="name">The name of the job</param>
-    /// <param name="emailConfig">Email configuration as JSON string</param>
-    /// <param name="hour">Hour of day (0-23)</param>
-    /// <param name="minute">Minute of hour (0-59)</param>
-    /// <param name="priority">Job priority</param>
-    /// <param name="isActive">Whether the job is active</param>
-    /// <param name="maxRetries">Maximum retry attempts</param>
-    /// <param name="timeoutSeconds">Execution timeout in seconds</param>
-    /// <param name="createdBy">Who created the job</param>
-    /// <returns>The created job</returns>
-    /// <exception cref="ArgumentNullException">Thrown when scheduler or name is null</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when hour or minute is out of range</exception>
+    /// <param name="scheduler">The job scheduler service.</param>
+    /// <param name="name">The name of the job.</param>
+    /// <param name="emailConfig">Email configuration as JSON string.</param>
+    /// <param name="hour">Hour of day (0-23).</param>
+    /// <param name="minute">Minute of hour (0-59).</param>
+    /// <param name="priority">Job priority.</param>
+    /// <param name="isActive">Whether the job is active.</param>
+    /// <param name="maxRetries">Maximum retry attempts.</param>
+    /// <param name="timeoutSeconds">Execution timeout in seconds.</param>
+    /// <param name="createdBy">Who created the job.</param>
+    /// <returns>The created job.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="scheduler"/> or <paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="hour"/> or <paramref name="minute"/> is out of range.</exception>
     public static async Task<Job> CreateDailyEmailSendingJobAsync(
         this JobSchedulerService scheduler,
         string name,
