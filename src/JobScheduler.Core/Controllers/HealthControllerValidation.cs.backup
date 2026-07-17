@@ -16,7 +16,7 @@ namespace JobScheduler.Core.Controllers;
 /// Provides validation helpers for <see cref="HealthController"/> and related response types.
 /// Ensures health check endpoints return valid, meaningful data.
 /// </summary>
-public static class HealthControllerValidation
+public static sealed class HealthControllerValidation
 {
     /// <summary>
     /// Validates a HealthController instance and returns any validation problems.
