@@ -19,14 +19,14 @@ public static class JobEntityTestsExtensions
     /// <summary>
     /// Creates a job with minimal valid configuration for testing purposes.
     /// </summary>
+    /// <param name="_">The <see cref="JobEntityTests"/> instance.</param>
     /// <param name="name">The job name.</param>
     /// <param name="handlerType">The handler type string.</param>
     /// <param name="maxRetries">Maximum retry count (default: 3).</param>
     /// <param name="executionTimeoutSeconds">Execution timeout in seconds (default: 300).</param>
     /// <param name="maxConcurrentExecutions">Maximum concurrent executions (default: 1).</param>
-    /// <returns>A configured job entity ready for testing.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when name or handlerType is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when name or handlerType is empty.</exception>
+    /// <returns>A configured <see cref="Job"/> entity ready for testing.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> or <paramref name="handlerType"/> is null or empty.</exception>
     public static Job CreateMinimalValidJob(
         this JobEntityTests _,
         string name = "test-job",
@@ -35,7 +35,7 @@ public static class JobEntityTestsExtensions
         int executionTimeoutSeconds = 300,
         int maxConcurrentExecutions = 1)
     {
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(handlerType);
 
         return new Job
@@ -53,14 +53,15 @@ public static class JobEntityTestsExtensions
     /// <summary>
     /// Creates a job with invalid configuration (missing handler type) for negative testing.
     /// </summary>
+    /// <param name="_">The <see cref="JobEntityTests"/> instance.</param>
     /// <param name="name">The job name.</param>
-    /// <returns>A job with empty handler type to test validation failures.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when name is null.</exception>
+    /// <returns>A <see cref="Job"/> with empty handler type to test validation failures.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null or empty.</exception>
     public static Job CreateInvalidHandlerJob(
         this JobEntityTests _,
         string name = "invalid-job")
     {
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         return new Job
         {
@@ -77,17 +78,20 @@ public static class JobEntityTestsExtensions
     /// <summary>
     /// Creates a job with execution metrics already populated for testing success rate calculations.
     /// </summary>
-    /// <param name="successCount">Number of successful executions.</param>
-    /// <param name="failureCount">Number of failed executions.</param>
+    /// <param name="_">The <see cref="JobEntityTests"/> instance.</param>
+    /// <param name="successCount">The number of successful executions.</param>
+    /// <param name="failureCount">The number of failed executions.</param>
     /// <param name="name">The job name.</param>
-    /// <returns>A job with pre-populated execution metrics.</returns>
-    /// <exception cref="ArgumentException">Thrown when successCount or failureCount is negative.</exception>
+    /// <returns>A <see cref="Job"/> with pre-populated execution metrics.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null or empty, or <paramref name="successCount"/>/<paramref name="failureCount"/> is negative.</exception>
     public static Job CreateJobWithMetrics(
         this JobEntityTests _,
         int successCount,
         int failureCount,
         string name = "metrics-job")
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         if (successCount < 0)
         {
             throw new ArgumentException("Success count cannot be negative", nameof(successCount));
@@ -125,14 +129,15 @@ public static class JobEntityTestsExtensions
     /// <summary>
     /// Creates a job with suspended status for testing execution blocking.
     /// </summary>
+    /// <param name="_">The <see cref="JobEntityTests"/> instance.</param>
     /// <param name="name">The job name.</param>
-    /// <returns>A suspended job that should not execute.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when name is null.</exception>
+    /// <returns>A <see cref="Job"/> that should not execute.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null or empty.</exception>
     public static Job CreateSuspendedJob(
         this JobEntityTests _,
         string name = "suspended-job")
     {
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         return new Job
         {
@@ -149,17 +154,20 @@ public static class JobEntityTestsExtensions
     /// <summary>
     /// Creates a job with concurrency limit for testing concurrent execution limits.
     /// </summary>
+    /// <param name="_">The <see cref="JobEntityTests"/> instance.</param>
     /// <param name="maxConcurrentExecutions">Maximum concurrent execution slots.</param>
     /// <param name="currentConcurrentCount">Current number of active executions.</param>
     /// <param name="name">The job name.</param>
     /// <returns>A job configured for concurrency testing.</returns>
-    /// <exception cref="ArgumentException">Thrown when maxConcurrentExecutions or currentConcurrentCount is negative.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null or empty, or <paramref name="maxConcurrentExecutions"/>/<paramref name="currentConcurrentCount"/> is negative.</exception>
     public static Job CreateConcurrentJob(
         this JobEntityTests _,
         int maxConcurrentExecutions,
         int currentConcurrentCount,
         string name = "concurrent-job")
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         if (maxConcurrentExecutions < 0)
         {
             throw new ArgumentException("Max concurrent executions cannot be negative", nameof(maxConcurrentExecutions));
@@ -185,9 +193,10 @@ public static class JobEntityTestsExtensions
     /// <summary>
     /// Gets the execution metrics summary as a formatted string.
     /// </summary>
-    /// <param name="job">The job entity.</param>
-    /// <returns>A formatted string showing execution metrics.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when job is null.</exception>
+    /// <param name="_">The <see cref="JobEntityTests"/> instance.</param>
+    /// <param name="job">The <see cref="Job"/> entity to summarize.</param>
+    /// <returns>A formatted <see cref="string"/> showing execution metrics.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is null.</exception>
     public static string GetExecutionMetricsSummary(this JobEntityTests _, Job job)
     {
         ArgumentNullException.ThrowIfNull(job);
@@ -198,9 +207,10 @@ public static class JobEntityTestsExtensions
     /// <summary>
     /// Determines whether the job configuration is valid for scheduling with detailed validation errors.
     /// </summary>
-    /// <param name="job">The job entity to validate.</param>
-    /// <returns>An enumerable of validation error messages, or empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when job is null.</exception>
+    /// <param name="_">The <see cref="JobEntityTests"/> instance.</param>
+    /// <param name="job">The <see cref="Job"/> entity to validate.</param>
+    /// <returns>An <see cref="IEnumerable{T}"/> of validation error messages, or empty if valid.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is null.</exception>
     public static IEnumerable<string> GetValidationErrors(this JobEntityTests _, Job job)
     {
         ArgumentNullException.ThrowIfNull(job);
