@@ -71,10 +71,12 @@ public static class GlobalExceptionMiddlewareValidation
     /// <summary>
     /// Determines whether an ErrorResponse is valid.
     /// </summary>
-    /// <param name="value">The ErrorResponse to check</param>
-    /// <returns>True if valid; otherwise false</returns>
+    /// <param name="value">The ErrorResponse to validate. Must not be null.</param>
+    /// <returns>True if the ErrorResponse is valid; otherwise false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     public static bool IsValid(this ErrorResponse value)
     {
+        ArgumentNullException.ThrowIfNull(value);
         return value.Validate().Count == 0;
     }
 
