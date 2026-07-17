@@ -303,4 +303,33 @@ tests.IncrementConcurrencyCount_IncrementsJobCounter();
 tests.DecrementConcurrencyCount_DecrementsCounter();
 ```
 
-This example shows how to programmatically drive the concurrency tests, which can be useful for custom test harnesses or debugging complex scheduling scenarios.
+## ScheduleServiceTests
+
+The `ScheduleServiceTests` class provides unit tests for the `ScheduleService` class, ensuring correct job scheduling and execution time calculations. These tests cover various scenarios, including job scheduling, cron expression processing, and execution frequency calculations. The following example demonstrates how to use some of the public members of `ScheduleServiceTests`:
+
+```csharp
+using DotnetJobScheduler.Tests;
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+using Moq;
+using Xunit;
+
+// Create a test instance
+var tests = new ScheduleServiceTests();
+
+// Test getting upcoming execution times for a valid job
+await tests.GetUpcomingExecutionTimesAsync_WithValidJob_ReturnsMultipleTimes();
+
+// Test getting upcoming execution times for an inactive job
+await tests.GetUpcomingExecutionTimesAsync_WithInactiveJob_ReturnsEmpty();
+
+// Test getting upcoming execution times for a nonexistent job
+await tests.GetUpcomingExecutionTimesAsync_WithNonexistentJob_ReturnsEmpty();
+
+// Test getting execution frequency per day for a valid cron expression
+await tests.GetExecutionFrequencyPerDayAsync_CalculatesCorrectly();
+```
+
+This example shows how to programmatically drive the scheduling tests, which can be useful for custom test harnesses or debugging complex scheduling scenarios.
+```
