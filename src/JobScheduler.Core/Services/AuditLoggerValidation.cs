@@ -27,7 +27,7 @@ public static class AuditLoggerValidation
 
         var problems = new List<string>();
 
-        // Validate required properties
+        // Validate required properties using pattern matching for consistency
         if (value.EventId == Guid.Empty)
         {
             problems.Add("EventId must not be empty (Guid.Empty).");
@@ -50,8 +50,12 @@ public static class AuditLoggerValidation
         {
             problems.Add("Timestamp cannot be in the future.");
         }
+        else if (value.Timestamp < DateTime.UtcNow.AddYears(-1))
+        {
+            problems.Add("Timestamp cannot be more than one year in the past.");
+        }
 
-        if (value.Severity < AuditSeverity.Debug || value.Severity > AuditSeverity.Critical)
+        if (value.Severity is < AuditSeverity.Debug or > AuditSeverity.Critical)
         {
             problems.Add("Severity must be a valid AuditSeverity value.");
         }
@@ -68,7 +72,7 @@ public static class AuditLoggerValidation
         // Method and Path are not part of AuditLogEntry - they belong to ApiCallAudit
         // These would be validated separately if needed
 
-        // Validate nullable properties
+        // Validate nullable properties using pattern matching
         if (value.UserId is not null)
         {
             if (string.IsNullOrWhiteSpace(value.UserId))
@@ -106,8 +110,10 @@ public static class AuditLoggerValidation
     /// </summary>
     /// <param name="value">The audit log entry to check.</param>
     /// <returns><see langword="true"/> if valid; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
     public static bool IsValid(this AuditLogEntry? value)
     {
+        ArgumentNullException.ThrowIfNull(value);
         return value.Validate().Count == 0;
     }
 
@@ -122,13 +128,11 @@ public static class AuditLoggerValidation
         ArgumentNullException.ThrowIfNull(value);
 
         var problems = value.Validate();
-        if (problems.Count == 0)
+        if (problems.Count > 0)
         {
-            return;
+            throw new ArgumentException(
+                $"AuditLogEntry is not valid. Problems: {string.Join("; ", problems)}",
+                nameof(value));
         }
-
-        throw new ArgumentException(
-            $"AuditLogEntry is not valid. Problems: {string.Join("; ", problems)}",
-            nameof(value));
     }
 }
