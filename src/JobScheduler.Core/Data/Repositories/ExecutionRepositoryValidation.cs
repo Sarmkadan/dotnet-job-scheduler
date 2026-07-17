@@ -2,11 +2,10 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using JobScheduler.Core.Constants;
 using JobScheduler.Core.Domain.Entities;
 
@@ -26,14 +25,8 @@ public static class ExecutionRepositoryValidation
     /// <exception cref="ArgumentNullException">Thrown if value is null</exception>
     public static IReadOnlyList<string> Validate(this ExecutionRepository? value)
     {
-        var problems = new List<string>();
-
-        if (value is null)
-        {
-            problems.Add("ExecutionRepository instance cannot be null.");
-        }
-
-        return problems.AsReadOnly();
+        ArgumentNullException.ThrowIfNull(value);
+        return Array.Empty<string>();
     }
 
     /// <summary>
@@ -41,30 +34,14 @@ public static class ExecutionRepositoryValidation
     /// </summary>
     /// <param name="value">The repository instance to check</param>
     /// <returns>True if valid; false otherwise</returns>
-    public static bool IsValid(this ExecutionRepository? value)
-    {
-        return value is not null && value.Validate().Count == 0;
-    }
+    public static bool IsValid(this ExecutionRepository? value) => value is not null;
 
     /// <summary>
     /// Ensures that the specified ExecutionRepository instance is valid.
     /// </summary>
     /// <param name="value">The repository instance to validate</param>
-    /// <exception cref="ArgumentException">Thrown if value is null or invalid, containing the list of problems</exception>
-    public static void EnsureValid(this ExecutionRepository? value)
-    {
-        if (value is null)
-        {
-            throw new ArgumentException("ExecutionRepository instance cannot be null.");
-        }
-
-        var problems = value.Validate();
-        if (problems.Count > 0)
-        {
-            throw new ArgumentException(
-                $"ExecutionRepository is invalid. Problems:\n{string.Join("\n", problems)}");
-        }
-    }
+    /// <exception cref="ArgumentNullException">Thrown if value is null</exception>
+    public static void EnsureValid(this ExecutionRepository? value) => ArgumentNullException.ThrowIfNull(value);
 
     /// <summary>
     /// Validates parameters for GetLatestExecutionAsync method.
@@ -74,12 +51,10 @@ public static class ExecutionRepositoryValidation
     public static IReadOnlyList<string> Validate(this Guid jobId)
     {
         var problems = new List<string>();
-
         if (jobId == Guid.Empty)
         {
             problems.Add("Job ID cannot be empty.");
         }
-
         return problems.AsReadOnly();
     }
 
@@ -88,10 +63,7 @@ public static class ExecutionRepositoryValidation
     /// </summary>
     /// <param name="jobId">The job identifier to check</param>
     /// <returns>True if valid; false otherwise</returns>
-    public static bool IsValid(this Guid jobId)
-    {
-        return jobId != Guid.Empty;
-    }
+    public static bool IsValid(this Guid jobId) => jobId != Guid.Empty;
 
     /// <summary>
     /// Ensures that the specified jobId is valid for GetLatestExecutionAsync.
@@ -122,10 +94,7 @@ public static class ExecutionRepositoryValidation
     /// </summary>
     /// <param name="status">The status to check</param>
     /// <returns>Always true for ExecutionStatus enum values</returns>
-    public static bool IsValid(this ExecutionStatus status)
-    {
-        return true;
-    }
+    public static bool IsValid(this ExecutionStatus status) => true;
 
     /// <summary>
     /// Validates parameters for GetExecutionsByJobAndStatusAsync method.
@@ -136,12 +105,10 @@ public static class ExecutionRepositoryValidation
     public static IReadOnlyList<string> Validate(this Guid jobId, ExecutionStatus status)
     {
         var problems = new List<string>();
-
         if (jobId == Guid.Empty)
         {
             problems.Add("Job ID cannot be empty.");
         }
-
         // status is always valid as it's an enum
         return problems.AsReadOnly();
     }
@@ -152,10 +119,7 @@ public static class ExecutionRepositoryValidation
     /// <param name="jobId">The job identifier to check</param>
     /// <param name="status">The status to check</param>
     /// <returns>True if valid; false otherwise</returns>
-    public static bool IsValid(this Guid jobId, ExecutionStatus status)
-    {
-        return jobId != Guid.Empty;
-    }
+    public static bool IsValid(this Guid jobId, ExecutionStatus status) => jobId != Guid.Empty;
 
     /// <summary>
     /// Ensures that the specified jobId and status are valid for GetExecutionsByJobAndStatusAsync.
@@ -179,12 +143,10 @@ public static class ExecutionRepositoryValidation
     public static IReadOnlyList<string> ValidateForCurrentlyRunningCount(this Guid jobId)
     {
         var problems = new List<string>();
-
         if (jobId == Guid.Empty)
         {
             problems.Add("Job ID cannot be empty.");
         }
-
         return problems.AsReadOnly();
     }
 
@@ -193,10 +155,7 @@ public static class ExecutionRepositoryValidation
     /// </summary>
     /// <param name="jobId">The job identifier to check</param>
     /// <returns>True if valid; false otherwise</returns>
-    public static bool IsValidForCurrentlyRunningCount(this Guid jobId)
-    {
-        return jobId != Guid.Empty;
-    }
+    public static bool IsValidForCurrentlyRunningCount(this Guid jobId) => jobId != Guid.Empty;
 
     /// <summary>
     /// Ensures that the specified jobId is valid for GetCurrentlyRunningCountAsync.
@@ -220,18 +179,14 @@ public static class ExecutionRepositoryValidation
     public static IReadOnlyList<string> Validate(this Guid jobId, int? lastN = null)
     {
         var problems = new List<string>();
-
         if (jobId == Guid.Empty)
         {
             problems.Add("Job ID cannot be empty.");
         }
 
-        if (lastN.HasValue)
+        if (lastN.HasValue && lastN.Value <= 0)
         {
-            if (lastN.Value <= 0)
-            {
-                problems.Add("lastN must be a positive integer if specified.");
-            }
+            problems.Add("lastN must be a positive integer if specified.");
         }
 
         return problems.AsReadOnly();
@@ -246,10 +201,14 @@ public static class ExecutionRepositoryValidation
     public static bool IsValid(this Guid jobId, int? lastN = null)
     {
         if (jobId == Guid.Empty)
+        {
             return false;
+        }
 
         if (lastN.HasValue && lastN.Value <= 0)
+        {
             return false;
+        }
 
         return true;
     }
@@ -282,7 +241,6 @@ public static class ExecutionRepositoryValidation
     public static IReadOnlyList<string> Validate(this DateTime startDate, DateTime endDate)
     {
         var problems = new List<string>();
-
         if (startDate == default)
         {
             problems.Add("Start date cannot be default (Unix epoch).");
@@ -308,11 +266,7 @@ public static class ExecutionRepositoryValidation
     /// <param name="endDate">The end date to check</param>
     /// <returns>True if valid; false otherwise</returns>
     public static bool IsValid(this DateTime startDate, DateTime endDate)
-    {
-        return startDate != default
-            && endDate != default
-            && startDate <= endDate;
-    }
+        => startDate != default && endDate != default && startDate <= endDate;
 
     /// <summary>
     /// Ensures that the specified date range is valid for GetExecutionsByDateRangeAsync.
@@ -346,12 +300,10 @@ public static class ExecutionRepositoryValidation
     public static IReadOnlyList<string> ValidateForGetByJobId(this Guid jobId)
     {
         var problems = new List<string>();
-
         if (jobId == Guid.Empty)
         {
             problems.Add("Job ID cannot be empty.");
         }
-
         return problems.AsReadOnly();
     }
 
@@ -360,10 +312,7 @@ public static class ExecutionRepositoryValidation
     /// </summary>
     /// <param name="jobId">The job identifier to check</param>
     /// <returns>True if valid; false otherwise</returns>
-    public static bool IsValidForGetByJobId(this Guid jobId)
-    {
-        return jobId != Guid.Empty;
-    }
+    public static bool IsValidForGetByJobId(this Guid jobId) => jobId != Guid.Empty;
 
     /// <summary>
     /// Ensures that the specified jobId is valid for GetByJobIdAsync.
