@@ -5,7 +5,7 @@
 // CTO & Software Architect
 //
 // System.Text.Json serialization extensions for WebhookNotificationService
-// =============================================================================
+// =====================================================================
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -38,15 +38,9 @@ public static class WebhookNotificationServiceJsonExtensions
     public static string ToJson(this WebhookNotificationService value, bool indented = false)
     {
         ArgumentNullException.ThrowIfNull(value);
-
-        var options = indented
-            ? new JsonSerializerOptions(_jsonSerializerOptions)
-            {
-                WriteIndented = true
-            }
-            : _jsonSerializerOptions;
-
-        return JsonSerializer.Serialize(value, options);
+        return JsonSerializer.Serialize(value, indented
+            ? new JsonSerializerOptions(_jsonSerializerOptions) { WriteIndented = true }
+            : _jsonSerializerOptions);
     }
 
     /// <summary>
