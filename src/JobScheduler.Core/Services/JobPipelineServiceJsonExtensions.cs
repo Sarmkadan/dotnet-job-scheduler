@@ -3,7 +3,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -56,23 +56,21 @@ public static class JobPipelineServiceJsonExtensions
     /// Deserializes a JSON string to a <see cref="JobPipelineService"/> instance.
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
-    /// <returns>The deserialized <see cref="JobPipelineService"/> instance, or <see langword="null"/> if the JSON is empty or whitespace.</returns>
+    /// <returns>The deserialized <see cref="JobPipelineService"/> instance, or <see langword="null"/> if the JSON is null, empty, or whitespace.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is <see langword="null"/>.</exception>
     /// <exception cref="JsonException">
     /// Thrown when the JSON is invalid or cannot be deserialized into a <see cref="JobPipelineService"/>.
     /// </exception>
-    public static JobPipelineService? FromJson(string json)
+public static JobPipelineService? FromJson(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
+        ArgumentNullException.ThrowIfNull(json);
 
-        try
+        if (string.IsNullOrWhiteSpace(json))
         {
-            return JsonSerializer.Deserialize<JobPipelineService>(json, _jsonOptions);
+            return null;
         }
-        catch (JsonException ex)
-        {
-            throw new JsonException("Failed to deserialize JobPipelineService from JSON.", ex);
-        }
+
+        return JsonSerializer.Deserialize<JobPipelineService>(json, _jsonOptions);
     }
 
     /// <summary>
@@ -81,12 +79,17 @@ public static class JobPipelineServiceJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized instance if successful; otherwise, <see langword="null"/>.</param>
     /// <returns><see langword="true"/> if deserialization succeeded; otherwise, <see langword="false"/>.</returns>
-    public static bool TryFromJson(string json, out JobPipelineService? value)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is <see langword="null"/>.</exception>
+public static bool TryFromJson(string json, out JobPipelineService? value)
     {
+        ArgumentNullException.ThrowIfNull(json);
+
         value = null;
 
         if (string.IsNullOrWhiteSpace(json))
+        {
             return false;
+        }
 
         try
         {
