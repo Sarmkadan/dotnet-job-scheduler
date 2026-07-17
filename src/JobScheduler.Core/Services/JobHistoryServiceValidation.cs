@@ -34,6 +34,8 @@ public static class JobHistoryServiceValidation
 
         if (value.TotalCount < 0)
             problems.Add("TotalCount cannot be negative.");
+        else if (value.TotalCount > 0 && value.PageSize == 0)
+            problems.Add("PageSize must be positive when TotalCount is greater than 0.");
 
         if (value.PageNumber < 1)
             problems.Add("PageNumber must be at least 1.");
@@ -69,6 +71,8 @@ public static class JobHistoryServiceValidation
 
         if (value.TotalCount < 0)
             problems.Add("TotalCount cannot be negative.");
+        else if (value.TotalCount > 0 && value.PageSize == 0)
+            problems.Add("PageSize must be positive when TotalCount is greater than 0.");
 
         if (value.PageNumber < 1)
             problems.Add("PageNumber must be at least 1.");
