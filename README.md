@@ -276,6 +276,67 @@ public static class IntegrationTestRunner
 
 The `ConcurrencyManagerTests` class provides unit tests for the `ConcurrencyManager` class, ensuring correct concurrency control and capacity management. These tests cover various scenarios, including job execution, concurrency limits, and cache synchronization. The following example demonstrates how to use some of the public members of `ConcurrencyManagerTests`:
 
+## ReportGenerationJobHandler
+
+The `ReportGenerationJobHandler` class implements the `IJobHandler` interface and is responsible for generating scheduled reports by processing job data and producing formatted output. It executes asynchronously and returns a summary of the generated report content.
+
+The following example demonstrates how to use the public members of `ReportGenerationJobHandler`:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+
+// Register the handler in your DI container
+var services = new ServiceCollection();
+services.AddLogging(builder => builder.AddConsole());
+services.AddScoped<ReportGenerationJobHandler>();
+
+var provider = services.BuildServiceProvider();
+
+// Create a job that uses ReportGenerationJobHandler
+var reportJob = new Job
+{
+    Name = "DailyReport",
+    Description = "Generates daily report",
+    CronExpression = "0 9 * * *",
+    HandlerType = typeof(ReportGenerationJobHandler).FullName!,
+    Priority = JobPriority.High,
+    IsActive = true,
+    MaxRetries = 2,
+    ExecutionTimeoutSeconds = 300
+};
+
+// Execute the job
+using var scope = provider.CreateScope();
+var handler = scope.ServiceProvider.GetRequiredService<ReportGenerationJobHandler>();
+var result = await handler.ExecuteAsync(reportJob, CancellationToken.None);
+
+// result will contain: "Report generated: 10,500 records processed"
+```
+
+To run a complete example with job scheduling:
+
+```csharp
+public sealed class ReportGenerationJobHandler : IJobHandler
+{
+    private readonly ILogger<ReportGenerationJobHandler> _logger;
+
+    public ReportGenerationJobHandler(ILogger<ReportGenerationJobHandler> logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Generating report...");
+        await Task.Delay(250, cancellationToken);
+        return "Report generated: 10,500 records processed";
+    }
+}
+```
+
 ```csharp
 using DotnetJobScheduler.Tests;
 using JobScheduler.Core.Data.Repositories;
