@@ -61,6 +61,61 @@ public class HelloWorldDemo
         Console.WriteLine("Demo completed.");
     }
 }
-```
 
-These extensions streamline common hello‑world job scenarios while keeping the core scheduler logic untouched.
+## EmailSendingJobHandlerExtensions
+
+`EmailSendingJobHandlerExtensions` provides a set of extension methods for `JobSchedulerService` to simplify the creation and management of email sending jobs. These extensions enable you to create single or batched email sending jobs, retrieve active jobs, find jobs by name pattern, validate job configurations, and get the next execution time in a human-readable format.
+
+**Usage example**
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using JobScheduler.Core.Services;
+
+public class EmailSendingDemo
+{
+    public static async Task Main()
+    {
+        // Assume an already configured JobSchedulerService instance
+        var scheduler = new JobSchedulerService(/* dependencies */);
+
+        // Create a single email sending job
+        var emailJob = await scheduler.CreateEmailSendingJobAsync(
+            name: "DemoEmail",
+            emailConfig: "{\"to\":\"example@example.com\",\"subject\":\"Hello\"}",
+            cronExpression: "*/5 * * * *", // every 5 minutes
+            priority: JobPriority.Normal,
+            isActive: true,
+            maxRetries: 2,
+            timeoutSeconds: 30,
+            createdBy: "demo");
+
+        // Create a batch of email sending jobs
+        var emailBatch = await scheduler.CreateEmailSendingJobsBatchAsync(
+            baseName: "BatchEmail",
+            emailConfig: "{\"to\":\"example@example.com\",\"subject\":\"Hello\"}",
+            cronExpression: "0 * * * *", // hourly
+            count: 3,
+            startIndex: 1,
+            createdBy: "demo");
+
+        // Retrieve all active email sending jobs
+        var activeEmailJobs = await scheduler.GetActiveEmailSendingJobsAsync();
+
+        // Find email sending jobs by name pattern
+        var foundEmailJobs = await scheduler.FindEmailSendingJobsByNameAsync("Demo");
+
+        // Validate an email job configuration
+        bool isValidEmailJob = emailJob.ValidateEmailJobConfiguration();
+
+        // Get the next execution time for an email job
+        string nextExecutionTime = emailJob.GetNextExecutionTime();
+        Console.WriteLine($"Next execution: {nextExecutionTime}");
+
+        Console.WriteLine("Demo completed.");
+    }
+}
+
+These extensions streamline common email sending job scenarios while keeping the core scheduler logic untouched.
+```
