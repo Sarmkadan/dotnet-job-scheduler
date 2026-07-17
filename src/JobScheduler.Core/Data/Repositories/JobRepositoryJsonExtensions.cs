@@ -36,10 +36,7 @@ public static class JobRepositoryJsonExtensions
         ArgumentNullException.ThrowIfNull(value);
 
         var options = indented
-            ? new JsonSerializerOptions(_jsonOptions)
-            {
-                WriteIndented = true
-            }
+            ? new JsonSerializerOptions(_jsonOptions) { WriteIndented = true }
             : _jsonOptions;
 
         return JsonSerializer.Serialize(value, options);
@@ -51,18 +48,12 @@ public static class JobRepositoryJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>A deserialized <see cref="JobRepository"/> instance, or null if the JSON is invalid.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is null or empty.</exception>
+    /// <exception cref="JsonException">Thrown when the JSON is malformed or cannot be deserialized.</exception>
     public static JobRepository? FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrEmpty(json);
 
-        try
-        {
-            return JsonSerializer.Deserialize<JobRepository>(json, _jsonOptions);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+        return JsonSerializer.Deserialize<JobRepository>(json, _jsonOptions);
     }
 
     /// <summary>
