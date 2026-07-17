@@ -6,7 +6,9 @@
 // Validation helpers for CacheService to ensure data integrity and prevent runtime errors
 // =============================================================================
 
-using System.Globalization;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace JobScheduler.Core.Services;
 
@@ -21,7 +23,7 @@ public static class CacheServiceValidation
     /// </summary>
     /// <param name="value">The CacheService instance to validate.</param>
     /// <returns>A list of human-readable validation problems, or empty if valid.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if value is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
     public static IReadOnlyList<string> Validate(this CacheService? value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -39,17 +41,14 @@ public static class CacheServiceValidation
     /// </summary>
     /// <param name="value">The CacheService instance to check.</param>
     /// <returns>True if the instance is valid; otherwise, false.</returns>
-    public static bool IsValid(this CacheService? value)
-    {
-        return value is not null && !value.Validate().Any();
-    }
+    public static bool IsValid(this CacheService? value) => value is not null && !value.Validate().Any();
 
     /// <summary>
     /// Ensures that a <see cref="CacheService"/> instance is valid, throwing an exception if not.
     /// </summary>
     /// <param name="value">The CacheService instance to validate.</param>
-    /// <exception cref="ArgumentNullException">Thrown if value is null.</exception>
-    /// <exception cref="ArgumentException">Thrown if value has validation problems.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="value"/> has validation problems.</exception>
     public static void EnsureValid(this CacheService? value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -68,6 +67,8 @@ public static class CacheServiceValidation
     /// </summary>
     /// <param name="key">The cache key to validate.</param>
     /// <returns>A list of human-readable validation problems, or empty if valid.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="key"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="key"/> is empty or contains invalid characters.</exception>
     public static IReadOnlyList<string> ValidateKey(string? key)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
@@ -84,7 +85,7 @@ public static class CacheServiceValidation
             problems.Add("Cache key cannot exceed 1024 characters.");
         }
 
-        if (key.Contains(" ") || key.Contains("\t") || key.Contains("\n") || key.Contains("\r"))
+        if (key.Contains(' ') || key.Contains('\t') || key.Contains('\n') || key.Contains('\r'))
         {
             problems.Add("Cache key cannot contain whitespace characters.");
         }
@@ -102,20 +103,16 @@ public static class CacheServiceValidation
     /// </summary>
     /// <param name="key">The cache key to check.</param>
     /// <returns>True if the key is valid; otherwise, false.</returns>
-    public static bool IsValidKey(string? key)
-    {
-        return key is not null && !ValidateKey(key).Any();
-    }
+    public static bool IsValidKey(string? key) => key is not null && !ValidateKey(key).Any();
 
     /// <summary>
     /// Ensures that a cache key is valid, throwing an exception if not.
     /// </summary>
     /// <param name="key">The cache key to validate.</param>
-    /// <exception cref="ArgumentNullException">Thrown if key is null.</exception>
-    /// <exception cref="ArgumentException">Thrown if key has validation problems.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="key"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="key"/> has validation problems.</exception>
     public static void EnsureValidKey(string? key)
     {
-        ArgumentNullException.ThrowIfNull(key);
         ArgumentException.ThrowIfNullOrEmpty(key);
 
         var problems = ValidateKey(key);
@@ -132,6 +129,8 @@ public static class CacheServiceValidation
     /// </summary>
     /// <param name="keyPattern">The cache key pattern to validate.</param>
     /// <returns>A list of human-readable validation problems, or empty if valid.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="keyPattern"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="keyPattern"/> is empty.</exception>
     public static IReadOnlyList<string> ValidateKeyPattern(string? keyPattern)
     {
         ArgumentException.ThrowIfNullOrEmpty(keyPattern);
@@ -162,20 +161,16 @@ public static class CacheServiceValidation
     /// </summary>
     /// <param name="keyPattern">The cache key pattern to check.</param>
     /// <returns>True if the pattern is valid; otherwise, false.</returns>
-    public static bool IsValidKeyPattern(string? keyPattern)
-    {
-        return keyPattern is not null && !ValidateKeyPattern(keyPattern).Any();
-    }
+    public static bool IsValidKeyPattern(string? keyPattern) => keyPattern is not null && !ValidateKeyPattern(keyPattern).Any();
 
     /// <summary>
     /// Ensures that a cache key pattern is valid, throwing an exception if not.
     /// </summary>
     /// <param name="keyPattern">The cache key pattern to validate.</param>
-    /// <exception cref="ArgumentNullException">Thrown if keyPattern is null.</exception>
-    /// <exception cref="ArgumentException">Thrown if keyPattern has validation problems.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="keyPattern"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="keyPattern"/> has validation problems.</exception>
     public static void EnsureValidKeyPattern(string? keyPattern)
     {
-        ArgumentNullException.ThrowIfNull(keyPattern);
         ArgumentException.ThrowIfNullOrEmpty(keyPattern);
 
         var problems = ValidateKeyPattern(keyPattern);
@@ -192,6 +187,7 @@ public static class CacheServiceValidation
     /// </summary>
     /// <param name="statistics">The cache statistics to validate.</param>
     /// <returns>A list of human-readable validation problems, or empty if valid.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="statistics"/> is null.</exception>
     public static IReadOnlyList<string> Validate(this CacheStatistics? statistics)
     {
         ArgumentNullException.ThrowIfNull(statistics);
@@ -226,17 +222,14 @@ public static class CacheServiceValidation
     /// </summary>
     /// <param name="statistics">The cache statistics to check.</param>
     /// <returns>True if the statistics are valid; otherwise, false.</returns>
-    public static bool IsValid(this CacheStatistics? statistics)
-    {
-        return statistics is not null && !Validate(statistics).Any();
-    }
+    public static bool IsValid(this CacheStatistics? statistics) => statistics is not null && !Validate(statistics).Any();
 
     /// <summary>
     /// Ensures that cache statistics are valid, throwing an exception if not.
     /// </summary>
     /// <param name="statistics">The cache statistics to validate.</param>
-    /// <exception cref="ArgumentNullException">Thrown if statistics is null.</exception>
-    /// <exception cref="ArgumentException">Thrown if statistics has validation problems.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="statistics"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="statistics"/> has validation problems.</exception>
     public static void EnsureValid(this CacheStatistics? statistics)
     {
         ArgumentNullException.ThrowIfNull(statistics);
