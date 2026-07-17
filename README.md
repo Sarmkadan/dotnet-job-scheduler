@@ -95,7 +95,7 @@ var exception = new CyclicDependencyException
     Message = "A cyclic dependency was found in the job graph."
 };
 
-// 1. Get a human-readable description
+// 1. Get a human‑readable description
 string description = exception.GetDescription();
 Console.WriteLine($"Description: {description}");
 
@@ -118,6 +118,65 @@ foreach (var kvp in summary)
 {
     Console.WriteLine($"  {kvp.Key}: {kvp.Value}");
 }
+```
+
+## AuditLoggerJsonExtensions
+
+`AuditLoggerJsonExtensions` provides JSON‑serialization helpers for audit‑logging entities such as `AuditLogEntry`, `ApiCallAudit` and `AuditStatistics`. The extensions use `System.Text.Json` with camel‑case naming and optional indentation, and they include safe deserialization helpers for `AuditLogEntry`.
+
+### Usage Example
+
+```csharp
+using System;
+using JobScheduler.Core.Services;
+
+// Create an audit log entry (populate the properties you need)
+var entry = new AuditLogEntry
+{
+    // Example property assignments
+    // Id = Guid.NewGuid(),
+    // Timestamp = DateTime.UtcNow,
+    // Message = "Job executed successfully"
+};
+
+// Serialize to a compact JSON string
+string json = entry.ToJson();               // {"id":"...","timestamp":"...","message":"..."}
+Console.WriteLine(json);
+
+// Serialize with indentation for readability
+string indentedJson = entry.ToJson(indented: true);
+Console.WriteLine(indentedJson);
+
+// Deserialize back to an AuditLogEntry (throws on failure)
+AuditLogEntry? deserialized = AuditLoggerJsonExtensions.FromJsonToAuditLogEntry(json);
+Console.WriteLine(deserialized?.Message);
+
+// Try‑deserialize without throwing
+if (AuditLoggerJsonExtensions.TryFromJsonToAuditLogEntry(json, out var tryResult))
+{
+    Console.WriteLine($"Successfully parsed: {tryResult.Message}");
+}
+else
+{
+    Console.WriteLine("Failed to parse JSON.");
+}
+
+// Serialize other audit types
+var apiCall = new ApiCallAudit
+{
+    // Populate properties as needed
+};
+
+string apiJson = apiCall.ToJson();
+Console.WriteLine(apiJson);
+
+var stats = new AuditStatistics
+{
+    // Populate properties as needed
+};
+
+string statsJson = stats.ToJson(indented: true);
+Console.WriteLine(statsJson);
 ```
 
 // ... existing content ...
