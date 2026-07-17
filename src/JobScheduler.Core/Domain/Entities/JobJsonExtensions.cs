@@ -32,18 +32,7 @@ public static class JobJsonExtensions
     /// <returns>A JSON string representation of the job.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     public static string ToJson(this Job value, bool indented = false)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-
-        var options = indented
-            ? new JsonSerializerOptions(_jsonSerializerOptions)
-            {
-                WriteIndented = true
-            }
-            : _jsonSerializerOptions;
-
-        return JsonSerializer.Serialize(value, options);
-    }
+        => JsonSerializer.Serialize(value, indented ? new JsonSerializerOptions(_jsonSerializerOptions) { WriteIndented = true } : _jsonSerializerOptions);
 
     /// <summary>
     /// Deserializes a JSON string to a <see cref="Job"/> instance.
@@ -51,6 +40,7 @@ public static class JobJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>A <see cref="Job"/> instance if deserialization succeeds; otherwise, null.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is null or empty.</exception>
+    /// <exception cref="JsonException">Thrown when the JSON is invalid (caught and returns null).</exception>
     public static Job? FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrEmpty(json);
@@ -79,7 +69,7 @@ public static class JobJsonExtensions
         try
         {
             value = JsonSerializer.Deserialize<Job>(json, _jsonSerializerOptions);
-            return true;
+            return value is not null;
         }
         catch (JsonException)
         {
