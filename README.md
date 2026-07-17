@@ -69,4 +69,55 @@ string gracefulResult = await gracefulHandler.ExecuteAsync(job, CancellationToke
 Console.WriteLine(gracefulResult);
 ```
 
+## CyclicDependencyExceptionExtensions
+
+The `CyclicDependencyExceptionExtensions` class provides utility methods to enhance error handling and diagnostics for cyclic dependency detection in job scheduling. It offers functionality to format error details, check for specific job involvement, and generate diagnostic summaries.
+
+### Usage Example
+
+```csharp
+using JobScheduler.Core.Exceptions;
+using System;
+using System.Collections.Generic;
+
+// Assuming CyclicDependencyException is defined in JobScheduler.Core.Exceptions
+// and has the required properties (JobId, DependsOnJobId, ErrorCode, Message).
+
+var jobId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+var dependsOnJobId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+// Create an instance of the exception
+var exception = new CyclicDependencyException
+{
+    JobId = jobId,
+    DependsOnJobId = dependsOnJobId,
+    ErrorCode = "CYCLE_DETECTED",
+    Message = "A cyclic dependency was found in the job graph."
+};
+
+// 1. Get a human-readable description
+string description = exception.GetDescription();
+Console.WriteLine($"Description: {description}");
+
+// 2. Check if a specific job is involved in the cycle
+bool isInvolved = exception.InvolvesJob(jobId);
+Console.WriteLine($"Is Job {jobId} involved? {isInvolved}");
+
+// 3. Get a detailed description including error code
+string details = exception.FormatDetails();
+Console.WriteLine($"Details: {details}");
+
+// 4. Check if the exception matches a specific error code
+bool isCycleError = exception.IsSpecificError("CYCLE_DETECTED");
+Console.WriteLine($"Is specific error 'CYCLE_DETECTED'? {isCycleError}");
+
+// 5. Get a summary dictionary for logging
+IReadOnlyDictionary<string, object> summary = exception.GetSummary();
+Console.WriteLine("Summary:");
+foreach (var kvp in summary)
+{
+    Console.WriteLine($"  {kvp.Key}: {kvp.Value}");
+}
+```
+
 // ... existing content ...
