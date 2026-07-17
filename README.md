@@ -428,6 +428,88 @@ tests.IncrementConcurrencyCount_IncrementsJobCounter();
 tests.DecrementConcurrencyCount_DecrementsCounter();
 ```
 
+## SimpleJobHandler
+
+The `SimpleJobHandler` class provides a basic implementation of the `IJobHandler` interface for simple job execution scenarios. It's designed for quick testing, demonstrations, and scenarios where minimal job logic is required. The handler logs job execution and returns a completion status.
+
+### Key Features
+
+- Lightweight implementation for basic job execution
+- Built-in logging support via `ILogger<SimpleJobHandler>`
+- Returns execution completion status
+- Compatible with all supported database providers (SQL Server, PostgreSQL, MySQL, SQLite, Oracle)
+
+### Public Members
+
+- `SimpleJobHandler(ILogger<SimpleJobHandler> logger)` - Constructor
+- `Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)` - Executes the job
+
+### Usage Example
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+
+// Register the handler in your DI container
+var services = new ServiceCollection();
+services.AddLogging(builder => builder.AddConsole());
+services.AddScoped<SimpleJobHandler>();
+
+var provider = services.BuildServiceProvider();
+
+// Create a job that uses SimpleJobHandler
+var simpleJob = new Job
+{
+  Name = "SimpleDemoJob",
+  Description = "A simple demonstration job",
+  CronExpression = "*/15 * * * *",
+  HandlerType = typeof(SimpleJobHandler).FullName!,
+  Priority = JobPriority.Normal,
+  IsActive = true,
+  MaxRetries = 3,
+  ExecutionTimeoutSeconds = 30
+};
+
+// Execute the job directly
+using var scope = provider.CreateScope();
+var handler = scope.ServiceProvider.GetRequiredService<SimpleJobHandler>();
+var result = await handler.ExecuteAsync(simpleJob, CancellationToken.None);
+
+// result will contain: "Execution completed"
+```
+
+To integrate with the full job scheduling system:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+
+var services = new ServiceCollection();
+services.AddLogging(builder => builder.AddConsole());
+services.AddJobScheduler(options => 
+{
+  options.ConnectionString = ":memory:";
+  options.MaxConcurrentJobs = 5;
+  options.DefaultTimeoutSeconds = 60;
+});
+services.AddScoped<SimpleJobHandler>();
+
+var provider = services.BuildServiceProvider();
+
+using var scope = provider.CreateScope();
+var schedulerService = scope.ServiceProvider.GetRequiredService<JobSchedulerService>();
+
+// Create and schedule the job
+var createdJob = await schedulerService.CreateJobAsync(simpleJob, "demo");
+
+// Execute due jobs
+var executions = await schedulerService.ExecuteDueJobsAsync();
+```
+
 ## ScheduleServiceTests
 
 The `ScheduleServiceTests` class provides unit tests for the `ScheduleService` class, ensuring correct job scheduling and execution time calculations. These tests cover various scenarios, including job scheduling, cron expression processing, and execution frequency calculations. The following example demonstrates how to use some of the public members of `ScheduleServiceTests`:
