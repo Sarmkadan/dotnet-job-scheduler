@@ -276,6 +276,16 @@ public static class IntegrationTestRunner
 
 The `ConcurrencyManagerTests` class provides unit tests for the `ConcurrencyManager` class, ensuring correct concurrency control and capacity management. These tests cover various scenarios, including job execution, concurrency limits, and cache synchronization. The following example demonstrates how to use some of the public members of `ConcurrencyManagerTests`:
 
+## EmailSendingJobHandler
+
+The `EmailSendingJobHandler` class implements the `IJobHandler` interface and is responsible for sending emails. It executes asynchronously and returns a summary of the email sending process. Here's an example of how to use the `EmailSendingJobHandler`:
+
+```csharp
+var handler = new EmailSendingJobHandler(new LoggerFactory().CreateLogger<EmailSendingJobHandler>());
+var result = await handler.ExecuteAsync(new Job(), CancellationToken.None);
+Console.WriteLine(result);
+```
+
 ## ReportGenerationJobHandler
 
 The `ReportGenerationJobHandler` class implements the `IJobHandler` interface and is responsible for generating scheduled reports by processing job data and producing formatted output. It executes asynchronously and returns a summary of the generated report content.
@@ -393,4 +403,3 @@ await tests.GetExecutionFrequencyPerDayAsync_CalculatesCorrectly();
 ```
 
 This example shows how to programmatically drive the scheduling tests, which can be useful for custom test harnesses or debugging complex scheduling scenarios.
-```
