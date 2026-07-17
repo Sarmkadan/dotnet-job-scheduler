@@ -24,7 +24,7 @@ public static class CacheServiceBenchmarksValidation
 
         var errors = new List<string>();
 
-        // Validate _cacheService field
+        // Validate _cacheService field using reflection since it's private
         var cacheServiceField = typeof(CacheServiceBenchmarks).GetField(
             "_cacheService",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -50,10 +50,7 @@ public static class CacheServiceBenchmarksValidation
     /// </summary>
     /// <param name="value">The benchmark instance to check.</param>
     /// <returns><see langword="true"/> if valid; otherwise, <see langword="false"/>.</returns>
-    public static bool IsValid(this CacheServiceBenchmarks value)
-    {
-        return Validate(value).Count == 0;
-    }
+    public static bool IsValid(this CacheServiceBenchmarks value) => Validate(value).Count == 0;
 
     /// <summary>
     /// Ensures that the specified <see cref="CacheServiceBenchmarks"/> instance is valid.
@@ -70,8 +67,7 @@ public static class CacheServiceBenchmarksValidation
         if (errors.Count > 0)
         {
             throw new ArgumentException(
-                "CacheServiceBenchmarks instance is not valid. " +
-                string.Join(" ", errors),
+                $"CacheServiceBenchmarks instance is not valid. {string.Join(" ", errors)}",
                 nameof(value));
         }
     }
