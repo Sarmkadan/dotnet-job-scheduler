@@ -27,9 +27,9 @@ public static class RetryServiceBenchmarksJsonExtensions
     /// <summary>
     /// Serializes the <see cref="RetryServiceBenchmarks"/> instance to a JSON string.
     /// </summary>
-    /// <param name="value">The value to serialize.</param>
+    /// <param name="value">The value to serialize. Cannot be <see langword="null"/>.</param>
     /// <param name="indented">Whether to format the JSON with indentation for readability.</param>
-    /// <returns>A JSON string representation of the value.</returns>
+    /// <returns>A JSON string representation of the value in camelCase format.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
     public static string ToJson(this RetryServiceBenchmarks value, bool indented = false)
     {
