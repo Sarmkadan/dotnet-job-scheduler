@@ -1,34 +1,44 @@
-// ... existing content ...
+## JobSchedulerServiceTests
 
-## DatabaseLeaderElectionServiceTests
+The `JobSchedulerServiceTests` class provides unit tests for the `JobSchedulerService` class, ensuring correct job scheduling, management, and execution logic. These tests cover various scenarios, including job creation, suspension, resumption, deletion, and retry processing.
 
-The `DatabaseLeaderElectionServiceTests` class provides unit tests for the `DatabaseLeaderElectionService` class, focusing on distributed leadership election, lease management, and concurrency scenarios. These tests ensure that the service behaves correctly under various scenarios.
-
-The following example demonstrates how to use some of the public members of `DatabaseLeaderElectionServiceTests` in your application:
+The following example demonstrates how to use some of the public members of `JobSchedulerServiceTests`:
 
 ```csharp
 using DotnetJobScheduler.Tests;
-using JobScheduler.Core.Data;
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using Moq;
+using Xunit;
 
-// Create an instance of DatabaseLeaderElectionServiceTests
-var tests = new DatabaseLeaderElectionServiceTests();
+// Create a test instance
+var tests = new JobSchedulerServiceTests();
 
-// Initialize the test
-await tests.InitializeAsync();
+// Arrange test dependencies
+var jobRepoMock = tests._jobRepoMock;
+var job = tests.CreateValidJob();
 
-// Try acquiring leadership
-var service = tests.CreateService("node-1");
-var acquired = await service.TryAcquireLeadershipAsync();
+// Test creating a job
+await tests.CreateJobAsync_WithValidJob_PersistsAndReturnsJob();
 
-// Check if the service is leader
-var isLeader = service.IsLeader;
+// Test creating a job with null
+try
+{
+    await tests.CreateJobAsync_WithNullJob_ThrowsArgumentNullException();
+    Assert.Fail("Expected ArgumentNullException");
+}
+catch (ArgumentNullException)
+{
+}
 
-// Release leadership
-await service.ReleaseLeadershipAsync();
+// Test suspending and resuming a job
+await tests.SuspendJobAsync_WithActiveJob_SuspendsProperly();
+await tests.ResumeJobAsync_WithSuspendedJob_ResumesScheduling();
 
-// Dispose of the test
-await tests.DisposeAsync();
-``` 
+// Test deleting a job
+await tests.DeleteJobAsync_RemovesJobFromRepository();
+
+// Process retries
+await tests.ProcessRetriesAsync_RetriesFailedExecutions();
+```
