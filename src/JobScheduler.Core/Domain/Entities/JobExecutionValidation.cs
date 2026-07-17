@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using JobScheduler.Core.Constants;
 
 namespace JobScheduler.Core.Domain.Entities;
@@ -28,7 +27,7 @@ public static class JobExecutionValidation
     {
         ArgumentNullException.ThrowIfNull(value);
 
-        var errors = new List<string>();
+        var errors = new List<string>(20);
 
         // Validate JobId
         if (value.JobId == Guid.Empty)
@@ -125,13 +124,13 @@ public static class JobExecutionValidation
         {
             errors.Add("MemoryUsageMb cannot be negative.");
         }
-        else if (value.MemoryUsageMb > 1000000)
+        else if (value.MemoryUsageMb > 1_000_000)
         {
             errors.Add("MemoryUsageMb cannot exceed 1,000,000 MB (1 TB).");
         }
 
         // Validate CpuUsagePercent
-        if (value.CpuUsagePercent < 0 || value.CpuUsagePercent > 100)
+        if (value.CpuUsagePercent is < 0 or > 100)
         {
             errors.Add("CpuUsagePercent must be between 0 and 100 inclusive.");
         }
@@ -139,11 +138,8 @@ public static class JobExecutionValidation
         // Validate Status-specific constraints
         switch (value.Status)
         {
-            case ExecutionStatus.Success:
-                if (value.CompletedAt is null)
-                {
-                    errors.Add("CompletedAt must be set when Status is Success.");
-                }
+            case ExecutionStatus.Success when value.CompletedAt is null:
+                errors.Add("CompletedAt must be set when Status is Success.");
                 break;
 
             case ExecutionStatus.Failed:
@@ -151,55 +147,44 @@ public static class JobExecutionValidation
                 {
                     errors.Add("CompletedAt must be set when Status is Failed.");
                 }
+
                 if (string.IsNullOrWhiteSpace(value.ErrorMessage))
                 {
                     errors.Add("ErrorMessage must be set when Status is Failed.");
                 }
                 break;
 
-            case ExecutionStatus.TimedOut:
-                if (value.CompletedAt is null)
-                {
-                    errors.Add("CompletedAt must be set when Status is TimedOut.");
-                }
+            case ExecutionStatus.TimedOut when value.CompletedAt is null:
+                errors.Add("CompletedAt must be set when Status is TimedOut.");
                 break;
 
-            case ExecutionStatus.Cancelled:
-                if (value.CompletedAt is null)
-                {
-                    errors.Add("CompletedAt must be set when Status is Cancelled.");
-                }
+            case ExecutionStatus.Cancelled when value.CompletedAt is null:
+                errors.Add("CompletedAt must be set when Status is Cancelled.");
                 break;
 
-            case ExecutionStatus.Skipped:
-                if (value.CompletedAt is null)
-                {
-                    errors.Add("CompletedAt must be set when Status is Skipped.");
-                }
+            case ExecutionStatus.Skipped when value.CompletedAt is null:
+                errors.Add("CompletedAt must be set when Status is Skipped.");
                 break;
 
-            case ExecutionStatus.Running:
-                if (value.CompletedAt.HasValue)
-                {
-                    errors.Add("CompletedAt must not be set when Status is Running.");
-                }
+            case ExecutionStatus.Running when value.CompletedAt.HasValue:
+                errors.Add("CompletedAt must not be set when Status is Running.");
                 break;
         }
 
         // Validate Output length
-        if (!string.IsNullOrWhiteSpace(value.Output) && value.Output.Length > 1000000)
+        if (!string.IsNullOrWhiteSpace(value.Output) && value.Output.Length > 1_000_000)
         {
             errors.Add("Output cannot exceed 1,000,000 characters.");
         }
 
         // Validate ErrorMessage length
-        if (!string.IsNullOrWhiteSpace(value.ErrorMessage) && value.ErrorMessage.Length > 10000)
+        if (!string.IsNullOrWhiteSpace(value.ErrorMessage) && value.ErrorMessage.Length > 10_000)
         {
             errors.Add("ErrorMessage cannot exceed 10,000 characters.");
         }
 
         // Validate StackTrace length
-        if (!string.IsNullOrWhiteSpace(value.StackTrace) && value.StackTrace.Length > 100000)
+        if (!string.IsNullOrWhiteSpace(value.StackTrace) && value.StackTrace.Length > 100_000)
         {
             errors.Add("StackTrace cannot exceed 100,000 characters.");
         }
@@ -213,10 +198,7 @@ public static class JobExecutionValidation
     /// <param name="value">The job execution to check.</param>
     /// <returns><see langword="true"/> if valid; otherwise, <see langword="false"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
-    public static bool IsValid(this JobExecution value)
-    {
-        return value.Validate().Count == 0;
-    }
+    public static bool IsValid(this JobExecution value) => value.Validate().Count == 0;
 
     /// <summary>
     /// Ensures that the specified <see cref="JobExecution"/> is valid, throwing an <see cref="ArgumentException"/> if not.
@@ -230,13 +212,11 @@ public static class JobExecutionValidation
         ArgumentNullException.ThrowIfNull(value);
 
         var errors = value.Validate();
-        if (errors.Count == 0)
+        if (errors.Count != 0)
         {
-            return;
+            throw new ArgumentException(
+                $"JobExecution is invalid. Validation errors: {string.Join("; ", errors)}",
+                nameof(value));
         }
-
-        throw new ArgumentException(
-            $"JobExecution is invalid. Validation errors: {string.Join("; ", errors)}",
-            nameof(value));
     }
 }
