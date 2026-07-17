@@ -1,4 +1,5 @@
 #nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -41,6 +42,7 @@ public static class ExecutionStatsResponseJsonExtensions
     /// </summary>
     /// <param name="json">The JSON string to deserialize.</param>
     /// <returns>An <see cref="ExecutionStatsResponse"/> instance, or null if the JSON is empty or whitespace.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="json"/> is null or empty.</exception>
     /// <exception cref="JsonException">Thrown when the JSON is invalid or cannot be deserialized.</exception>
     public static ExecutionStatsResponse? FromJson(string json)
     {
@@ -60,6 +62,7 @@ public static class ExecutionStatsResponseJsonExtensions
     /// <param name="json">The JSON string to deserialize.</param>
     /// <param name="value">Receives the deserialized instance if successful.</param>
     /// <returns>True if deserialization succeeded; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="json"/> is null.</exception>
     public static bool TryFromJson(string json, out ExecutionStatsResponse? value)
     {
         ArgumentException.ThrowIfNullOrEmpty(json);
@@ -67,7 +70,7 @@ public static class ExecutionStatsResponseJsonExtensions
         try
         {
             value = JsonSerializer.Deserialize<ExecutionStatsResponse>(json, _jsonOptions);
-            return true;
+            return value is not null;
         }
         catch (JsonException)
         {
