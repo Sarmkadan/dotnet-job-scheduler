@@ -1,176 +1,66 @@
 // ... existing content ...
 
-## DatabaseLeaderElectionServiceTestsExtensions
+## HelloWorldJobHandlerExtensions
 
-The `DatabaseLeaderElectionServiceTestsExtensions` class supplies a collection of extension methods that simplify writing unit‑tests for `DatabaseLeaderElectionService`.  
-It lets you spin up isolated in‑memory databases, create paired services that share the same context, query the underlying `SchedulerLeaderLock` rows, and assert that leadership is correctly acquired or released.
-
-**Usage example**
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using JobScheduler.Core.Data;
-using JobScheduler.Core.Services;
-using DotnetJobScheduler.Tests; // contains DatabaseLeaderElectionServiceTests
-
-public class LeaderElectionDemo
-{
-    public async Task RunAsync()
-    {
-        // 1️⃣ Create an isolated service with its own in‑memory DB
-        var test = new DatabaseLeaderElectionServiceTests();
-        var isolatedService = test.CreateIsolatedService();
-
-        // 2️⃣ Create a pair of services that share the same DB (useful for coordination tests)
-        var (service1, service2) = test.CreateServicePair();
-
-        // 3️⃣ Acquire leadership with the first service and verify it became leader
-        await test.AssertHasLeadershipAsync(service1, service1.InstanceId);
-
-        // 4️⃣ The second service should not be able to acquire leadership while the first holds the lock
-        var acquiredBySecond = await service2.TryAcquireLeadershipAsync();
-        acquiredBySecond.Should().BeFalse("second instance must not acquire the lock while first is leader");
-
-        // 5️⃣ Query the current leader lock directly from the DB
-        var context = service1.GetContextForTesting();
-        var currentLock = await test.GetCurrentLeaderLockAsync(context);
-        Console.WriteLine($"Current leader: {currentLock?.LeaderInstanceId}");
-
-        // 6️⃣ Release leadership from the first service and verify the lock disappears
-        await test.AssertHasReleasedLeadershipAsync(service1, service1.InstanceId);
-
-        // 7️⃣ Create a short‑lease service to test lease‑expiration scenarios
-        var shortLeaseService = test.CreateShortLeaseService(leaseDurationSeconds: 1);
-        await shortLeaseService.TryAcquireLeadershipAsync(); // acquire quickly
-        await Task.Delay(TimeSpan.FromSeconds(2));           // let the lease expire
-
-        // 8️⃣ Retrieve the full leadership acquisition history for the short‑lease instance
-        var history = await test.GetLeadershipHistoryAsync(context, shortLeaseService.InstanceId);
-        Console.WriteLine($"Acquisition attempts: {history.Count}");
-    }
-}
-```
-
-The example demonstrates how the extension methods can be combined to:
-
-* spin up isolated or shared test environments,
-* acquire and release leadership,
-* inspect the underlying `SchedulerLeaderLock` rows,
-* and verify the expected behavior with FluentAssertions.
-
-## JobEntityTestsExtensions
-
-The `JobEntityTestsExtensions` class provides extension methods for creating test job entities with various configurations and validating job configurations. It simplifies test setup by providing factory methods for common job scenarios and validation helpers.
+`HelloWorldJobHandlerExtensions` offers a collection of extension methods for `JobSchedulerService` that make it easy to work with the built‑in `HelloWorldJobHandler`.  
+With these helpers you can create single or batched hello‑world jobs, retrieve active jobs, search by name pattern, validate a job's configuration, format its next execution time, and create recurring jobs using a simple interval.
 
 **Usage example**
 
 ```csharp
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using JobScheduler.Core.Domain.Entities;
-using DotnetJobScheduler.Tests; // contains JobEntityTestsExtensions
-
-public class JobEntityTestsDemo
-{
-    public void RunDemo()
-    {
-        var tests = new JobEntityTests(); // Instance needed for extension methods
-        
-        // Create a minimally valid job for testing
-        var validJob = tests.CreateMinimalValidJob("test-job", "MyHandler, MyAssembly");
-        
-        // Create a job with execution metrics for testing success rate calculations
-        var jobWithMetrics = tests.CreateJobWithMetrics(8, 2, "metrics-job");
-        
-        // Get formatted metrics summary
-        var metricsSummary = tests.GetExecutionMetricsSummary(jobWithMetrics);
-        Console.WriteLine(metricsSummary); // Output: Executions: 10, Success: 8, Failure: 2, Success Rate: 80.0%
-        
-        // Create a suspended job to test execution blocking
-        var suspendedJob = tests.CreateSuspendedJob("suspended-job");
-        
-        // Create a job configured for concurrency testing
-        var concurrentJob = tests.CreateConcurrentJob(5, 2, "concurrent-job");
-        
-        // Create an invalid job for negative testing
-        var invalidJob = tests.CreateInvalidHandlerJob("invalid-job");
-        
-        // Validate job configuration and get detailed error messages
-        var validationErrors = tests.GetValidationErrors(invalidJob).ToList();
-        Console.WriteLine($"Validation errors: {string.Join(", ", validationErrors)}");
-        // Output: Validation errors: HandlerType is required
-    }
-}
-```
-
-The example demonstrates how the extension methods can be combined to:
-
-* create jobs with various configurations for different test scenarios,
-* generate jobs with pre-populated execution metrics for testing calculations,
-* create jobs with specific statuses (suspended, concurrent limits) for behavioral testing,
-* generate invalid configurations for negative testing scenarios,
-* and retrieve detailed validation error messages for job configuration validation.
-
-## DelayingJobHandler
-
-The `DelayingJobHandler` is a simple test implementation of `IJobHandler` that demonstrates job execution with cancellable asynchronous operations. It performs a short, configurable delay using `Task.Delay` to allow testing of timeout and cancellation scenarios in the job execution pipeline.
-
-This handler is particularly useful for testing the job executor's ability to handle:
-* CancellationToken propagation
-* Execution timeouts
-* Concurrent execution limits
-* Status tracking and completion recording
-
-**Usage example**
-
-```csharp
-using System;
-using System.Threading;
 using System.Threading.Tasks;
 using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Services;
 
-public class DelayingJobHandlerDemo
+public class HelloWorldDemo
 {
-public async Task RunAsync()
-{
-// Create a job that uses DelayingJobHandler
-var job = new Job
-{
-Id = Guid.NewGuid(),
-Name = "delayed-job",
-CronExpression = "0 9 * * *",
-HandlerType = typeof(DelayingJobHandler).AssemblyQualifiedName!,
-MaxRetries = 3,
-ExecutionTimeoutSeconds = 10,
-MaxConcurrentExecutions = 2,
-Status = JobStatus.Scheduled
-};
+    public static async Task Main()
+    {
+        // Assume an already configured JobSchedulerService instance
+        var scheduler = new JobSchedulerService(/* dependencies */);
 
-// Create the job executor service with required dependencies
-var jobRepo = new InMemoryJobRepository(); // or your actual repository
-var executionRepo = new InMemoryExecutionRepository(); // or your actual repository
-var concurrencyManager = new ConcurrencyManager(executionRepo);
+        // 1️⃣ Create a single hello‑world job
+        var job = await scheduler.CreateHelloWorldJobAsync(
+            name: "DemoHello",
+            cronExpression: "*/5 * * * *", // every 5 minutes
+            priority: JobPriority.Normal,
+            isActive: true,
+            maxRetries: 2,
+            timeoutSeconds: 30,
+            createdBy: "demo");
 
-var executor = new JobExecutorService(jobRepo, executionRepo, concurrencyManager);
+        // 2️⃣ Create a batch of jobs
+        var batch = await scheduler.CreateHelloWorldJobsBatchAsync(
+            baseName: "BatchJob",
+            count: 3,
+            startIndex: 1,
+            cronExpression: "0 * * * *", // hourly
+            createdBy: "demo");
 
-// Execute the job with a cancellation token
-using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-var execution = await executor.ExecuteJobAsync(job, cts.Token);
+        // 3️⃣ Retrieve all active hello‑world jobs
+        IReadOnlyList<Job> activeJobs = await scheduler.GetActiveHelloWorldJobsAsync();
 
-// The execution result will be: "Job delayed-job executed successfully"
-Console.WriteLine(execution.Result);
+        // 4️⃣ Find jobs whose name contains "Demo"
+        IReadOnlyList<Job> found = await scheduler.FindHelloWorldJobsByNameAsync("Demo");
 
-// Verify execution was recorded
-Console.WriteLine($"Execution completed with status: {execution.Status}");
-}
+        // 5️⃣ Validate a job configuration
+        bool isValid = job.ValidateHelloWorldJobConfiguration();
+
+        // 6️⃣ Get a human‑readable next execution time
+        string next = job.GetNextExecutionTime();
+        Console.WriteLine($"Next execution: {next}");
+
+        // 7️⃣ Create a recurring hello‑world job that runs every 10 minutes
+        var recurring = await scheduler.CreateRecurringHelloWorldJobAsync(
+            name: "RecurringHello",
+            intervalMinutes: 10,
+            createdBy: "demo");
+
+        Console.WriteLine("Demo completed.");
+    }
 }
 ```
 
-The `DelayingJobHandler` demonstrates:
-* Proper implementation of `IJobHandler` interface
-* Asynchronous operation with cancellation support via `CancellationToken`
-* Simple, predictable behavior for testing job execution flows
-* Integration with the job executor's concurrency and timeout mechanisms
+These extensions streamline common hello‑world job scenarios while keeping the core scheduler logic untouched.
