@@ -260,4 +260,119 @@ if (!statsProblems.Any())
 }
 ```
 
+## JobHistoryServiceValidation
+
+The `JobHistoryServiceValidation` class provides validation helpers for job execution history entities such as `ExecutionResponse`, `JobExecutionSummary`, and paged results. It ensures historical job data is valid before storage or retrieval to maintain data integrity and prevent runtime errors.
+
+### Usage Example
+
+```csharp
+using JobScheduler.Core.Domain.Models;
+using JobScheduler.Core.Services;
+using System;
+using System.Linq;
+
+// Validate an ExecutionResponse instance
+var executionResponse = new ExecutionResponse
+{
+    Id = Guid.NewGuid(),
+    JobId = Guid.NewGuid(),
+    Status = "Completed",
+    StartedAt = DateTime.UtcNow.AddMinutes(-5),
+    CompletedAt = DateTime.UtcNow.AddMinutes(-3),
+    DurationMilliseconds = 120000,
+    AttemptNumber = 1,
+    ExecutionTimeMs = 118000,
+    RetryAttempt = 0,
+    CreatedAt = DateTime.UtcNow
+};
+
+var responseProblems = executionResponse.Validate();
+if (responseProblems.Any())
+{
+    Console.WriteLine("ExecutionResponse has validation issues:");
+    foreach (var problem in responseProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+else
+{
+    Console.WriteLine("ExecutionResponse is valid!");
+}
+
+// Validate a JobExecutionSummary instance
+var jobSummary = new JobExecutionSummary
+{
+    TotalExecutions = 42,
+    SuccessCount = 40,
+    FailureCount = 1,
+    TimedOutCount = 1,
+    CancelledCount = 0,
+    AverageDurationMs = 15000,
+    MinDurationMs = 10000,
+    MaxDurationMs = 20000,
+    LastExecutedAt = DateTime.UtcNow.AddHours(-1)
+};
+
+var summaryProblems = jobSummary.Validate();
+if (summaryProblems.Any())
+{
+    Console.WriteLine("JobExecutionSummary has validation issues:");
+    foreach (var problem in summaryProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+else
+{
+    Console.WriteLine("JobExecutionSummary is valid!");
+}
+
+// Validate a paged result of ExecutionResponse
+var pagedResult = new PagedResult<ExecutionResponse>
+{
+    Items = new List<ExecutionResponse> { executionResponse },
+    TotalCount = 1,
+    PageNumber = 1,
+    PageSize = 10,
+    TotalPages = 1
+};
+
+var pagedProblems = pagedResult.Validate();
+if (pagedProblems.Any())
+{
+    Console.WriteLine("PagedResult<ExecutionResponse> has validation issues:");
+    foreach (var problem in pagedProblems)
+    {
+        Console.WriteLine($"- {problem}");
+    }
+}
+else
+{
+    Console.WriteLine("PagedResult<ExecutionResponse> is valid!");
+}
+
+// Use IsValid to quickly check validity
+bool isValid = executionResponse.IsValid();
+Console.WriteLine($"Is execution response valid? {isValid}");
+
+// Use EnsureValid to throw exceptions on invalid input
+try
+{
+    var invalidResponse = new ExecutionResponse
+    {
+        Id = Guid.Empty, // Invalid: empty Guid
+        JobId = Guid.NewGuid(),
+        Status = "", // Invalid: empty status
+        StartedAt = DateTime.UtcNow.AddMinutes(1) // Invalid: future date
+    };
+    invalidResponse.EnsureValid();
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Validation failed: {ex.Message}");
+}
+```
+
 // ... existing content ...
