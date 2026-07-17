@@ -1,43 +1,38 @@
 // ... existing content ...
 
-## JobPipelineServiceTests
+## DistributedJobLockServiceTests
 
-The `JobPipelineServiceTests` class provides unit tests for the `JobPipelineService` class, focusing on pipeline creation, retrieval, deletion, and mapping functionality. These tests ensure that the service behaves correctly under various scenarios.
+The `DistributedJobLockServiceTests` class provides unit tests for the `DistributedJobLockService` class, focusing on distributed lock acquisition, renewal, and release functionality. These tests ensure that the service behaves correctly under various scenarios.
 
-The following example demonstrates how to use some of the public members of `JobPipelineServiceTests` in your application:
+The following example demonstrates how to use some of the public members of `DistributedJobLockServiceTests` in your application:
 
 ```csharp
 using DotnetJobScheduler.Tests;
 using JobScheduler.Core.Data;
-using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Services;
 
-// Create an instance of JobPipelineServiceTests
-var tests = new JobPipelineServiceTests();
+// Create an instance of DistributedJobLockServiceTests
+var tests = new DistributedJobLockServiceTests();
 
-// Create a test job
-var job = new Job { Id = Guid.NewGuid(), Name = "TestJob", CronExpression = "0 9 * * *" };
+// Create a test lock
+var jobId = Guid.NewGuid();
+var service = DistributedJobLockServiceTests.CreateService();
 
-// Create a test pipeline request
-var request = new CreatePipelineRequest
-{
-    Name = "TestPipeline",
-    Steps = new List<PipelineStepRequest> { new() { JobId = job.Id } }
-};
+// Try acquiring a lock
+var acquired = await service.TryAcquireLockAsync(jobId, "node-1", TimeSpan.FromMinutes(5));
 
-// Test creating a pipeline with a valid request
-var (service, ctx) = JobPipelineServiceTests.CreateService();
-var pipeline = await service.CreatePipelineAsync(request, "test-user");
+// Check if the lock is active
+var locked = await service.IsLockedAsync(jobId);
 
-// Test getting a pipeline by ID
-var fetchedPipeline = await service.GetPipelineAsync(pipeline.Id);
+// Release the lock
+await service.ReleaseLockAsync(jobId, "node-1");
 
-// Test deleting a pipeline
-var deleted = await service.DeletePipelineAsync(pipeline.Id);
+// Try renewing a lock
+var renewed = await service.RenewLockAsync(jobId, "node-1", TimeSpan.FromMinutes(10));
 
-// Test getting all pipelines
-var allPipelines = await service.GetAllPipelinesAsync();
+// Clean expired locks
+await service.CleanExpiredLocksAsync();
 
-// Test mapping a pipeline to a response
-var response = JobPipelineService.MapToResponse(pipeline);
+// Get active locks
+var activeLocks = await service.GetActiveLocksAsync();
 ``` 
