@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace JobScheduler.Core.Exceptions
 {
@@ -29,6 +30,7 @@ namespace JobScheduler.Core.Exceptions
         /// <param name="errorCode">The error code to compare against.</param>
         /// <returns>True if the exception's error code matches <paramref name="errorCode"/>; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="errorCode"/> is null or empty.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="exception"/> is null.</exception>
         public static bool IsSpecificError(this JobSchedulerException exception, string errorCode)
         {
             ArgumentNullException.ThrowIfNullOrEmpty(errorCode);
@@ -43,11 +45,11 @@ namespace JobScheduler.Core.Exceptions
         /// <param name="exception">The exception to summarize.</param>
         /// <returns>A dictionary containing the exception type, message, and error code.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="exception"/> is null.</exception>
-        public static System.Collections.Generic.IReadOnlyDictionary<string, object> GetSummary(this JobSchedulerException exception)
+        public static IReadOnlyDictionary<string, object> GetSummary(this JobSchedulerException exception)
         {
             ArgumentNullException.ThrowIfNull(exception);
 
-            return new System.Collections.Generic.Dictionary<string, object>
+            return new Dictionary<string, object>
             {
                 ["Type"] = exception.GetType().Name,
                 ["Message"] = exception.Message,
