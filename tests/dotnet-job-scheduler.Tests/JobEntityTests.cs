@@ -184,4 +184,74 @@ public sealed class JobEntityTests
         // Assert
         result.Should().BeTrue();
     }
+
+    [Fact]
+    public void ExecutionTimeoutSeconds_WithValidValue_ReturnsTrueInValidation()
+    {
+        // Arrange
+        var job = CreateValidJob();
+        job.ExecutionTimeoutSeconds = 60;
+
+        // Act
+        var result = job.IsValidForScheduling();
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ExecutionTimeoutSeconds_WithZero_ReturnsFalseInValidation()
+    {
+        // Arrange
+        var job = CreateValidJob();
+        job.ExecutionTimeoutSeconds = 0;
+
+        // Act
+        var result = job.IsValidForScheduling();
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ExecutionTimeoutSeconds_WithNegative_ReturnsFalseInValidation()
+    {
+        // Arrange
+        var job = CreateValidJob();
+        job.ExecutionTimeoutSeconds = -1;
+
+        // Act
+        var result = job.IsValidForScheduling();
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ExecutionTimeoutSeconds_WithLargeValue_ReturnsTrueInValidation()
+    {
+        // Arrange
+        var job = CreateValidJob();
+        job.ExecutionTimeoutSeconds = 86400; // Max allowed value
+
+        // Act
+        var result = job.IsValidForScheduling();
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ExecutionTimeoutSeconds_WithExceedingMaxValue_ReturnsFalseInValidation()
+    {
+        // Arrange
+        var job = CreateValidJob();
+        job.ExecutionTimeoutSeconds = 86401; // Exceeds max allowed value
+
+        // Act
+        var result = job.IsValidForScheduling();
+
+        // Assert
+        result.Should().BeFalse();
+    }
 }
