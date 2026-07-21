@@ -250,4 +250,191 @@ public sealed class DatabaseLeaderElectionServiceTests : IAsyncLifetime
         var leadersCount = services.Count(s => s.IsLeader);
         leadersCount.Should().Be(1);
     }
+
+    [Fact]
+    public async Task LeaderLeaseExpiry_AllowsAnotherNodeToTakeOver()
+    {
+        // Arrange - Create two services with very short lease duration using separate contexts
+        var shortLeaseContext1 = new JobSchedulerContext(_dbOptions);
+        var shortLeaseContext2 = new JobSchedulerContext(_dbOptions);
+        var service1 = new DatabaseLeaderElectionService(shortLeaseContext1, "node-1", leaseDurationSeconds: 1);
+        var service2 = new DatabaseLeaderElectionService(shortLeaseContext2, "node-2", leaseDurationSeconds: 1);
+
+        // Act - Node 1 acquires leadership
+        var node1Acquired = await service1.TryAcquireLeadershipAsync();
+        node1Acquired.Should().BeTrue();
+        service1.IsLeader.Should().BeTrue();
+
+        // Wait for lease to expire
+        await Task.Delay(1500);
+
+        // Node 2 should be able to take over
+        var node2Acquired = await service2.TryAcquireLeadershipAsync();
+        node2Acquired.Should().BeTrue();
+        service2.IsLeader.Should().BeTrue();
+
+        // Verify in database that node 2 is now the leader
+        var lockRow = await shortLeaseContext2.SchedulerLeaderLocks
+            .FirstOrDefaultAsync(r => r.LockName == SchedulerLeaderLock.DefaultLockName);
+        lockRow.Should().NotBeNull();
+        lockRow!.LeaderInstanceId.Should().Be("node-2");
+
+        await shortLeaseContext1.DisposeAsync();
+        await shortLeaseContext2.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task CurrentLeaderRenewsBeforeExpiry_KeepsLeadership()
+    {
+        // Arrange - Create service with short lease duration
+        var shortLeaseContext = new JobSchedulerContext(_dbOptions);
+        var service = new DatabaseLeaderElectionService(shortLeaseContext, "node-1", leaseDurationSeconds: 5);
+
+        // Act - Node acquires leadership
+        var firstAcquisition = await service.TryAcquireLeadershipAsync();
+        firstAcquisition.Should().BeTrue();
+        service.IsLeader.Should().BeTrue();
+
+        // Get initial lease expiry
+        var initialLockRow = await shortLeaseContext.SchedulerLeaderLocks
+            .FirstOrDefaultAsync(r => r.LockName == SchedulerLeaderLock.DefaultLockName);
+        initialLockRow.Should().NotBeNull();
+        var initialExpiry = initialLockRow!.LeaseExpiresAt;
+
+        // Wait but before lease expires
+        await Task.Delay(1000);
+
+        // Renew leadership
+        var renewed = await service.TryAcquireLeadershipAsync();
+        renewed.Should().BeTrue();
+        service.IsLeader.Should().BeTrue();
+
+        // Verify lease was extended
+        var updatedLockRow = await shortLeaseContext.SchedulerLeaderLocks
+            .FirstOrDefaultAsync(r => r.LockName == SchedulerLeaderLock.DefaultLockName);
+        updatedLockRow.Should().NotBeNull();
+        updatedLockRow!.LeaseExpiresAt.Should().BeAfter(initialExpiry);
+
+        await shortLeaseContext.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task FollowerRepeatedlyFailingToAcquire_StaysFollower()
+    {
+        // Arrange - Create multiple services
+        var service1 = CreateService("node-1");
+        var service2 = CreateService("node-2");
+        var service3 = CreateService("node-3");
+
+        // Act - Node 1 acquires leadership
+        var node1Acquired = await service1.TryAcquireLeadershipAsync();
+        node1Acquired.Should().BeTrue();
+        service1.IsLeader.Should().BeTrue();
+        service2.IsLeader.Should().BeFalse();
+        service3.IsLeader.Should().BeFalse();
+
+        // Act - Nodes 2 and 3 repeatedly try to acquire but fail
+        for (int i = 0; i < 5; i++)
+        {
+            var node2Attempt = await service2.TryAcquireLeadershipAsync();
+            var node3Attempt = await service3.TryAcquireLeadershipAsync();
+
+            node2Attempt.Should().BeFalse();
+            node3Attempt.Should().BeFalse();
+            service2.IsLeader.Should().BeFalse();
+            service3.IsLeader.Should().BeFalse();
+        }
+    }
+
+    [Fact]
+    public async Task LosingLeadership_IsObservableViaIsLeaderFlag()
+    {
+        // Arrange
+        var service1 = CreateService("node-1");
+        var service2 = CreateService("node-2");
+
+        // Act - Node 1 acquires leadership
+        var node1Acquired = await service1.TryAcquireLeadershipAsync();
+        node1Acquired.Should().BeTrue();
+        service1.IsLeader.Should().BeTrue();
+
+        // Node 2 cannot acquire while node 1 is leader
+        var node2Attempt = await service2.TryAcquireLeadershipAsync();
+        node2Attempt.Should().BeFalse();
+        service2.IsLeader.Should().BeFalse();
+
+        // Node 1 releases leadership
+        await service1.ReleaseLeadershipAsync();
+        service1.IsLeader.Should().BeFalse();
+
+        // Node 2 can now acquire
+        var node2Acquired = await service2.TryAcquireLeadershipAsync();
+        node2Acquired.Should().BeTrue();
+        service2.IsLeader.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LeaderElection_WithExpiredLease_UpdatesLeaderInstanceId()
+    {
+        // Arrange - Create context with expired lease
+        var expiredContext = new JobSchedulerContext(_dbOptions);
+        var expiredLock = new SchedulerLeaderLock
+        {
+            LockName = SchedulerLeaderLock.DefaultLockName,
+            LeaderInstanceId = "old-leader",
+            LeaseExpiresAt = DateTime.UtcNow.AddSeconds(-10), // Already expired
+            AcquiredAt = DateTime.UtcNow.AddMinutes(-1)
+        };
+        expiredContext.SchedulerLeaderLocks.Add(expiredLock);
+        await expiredContext.SaveChangesAsync();
+
+        var service1 = new DatabaseLeaderElectionService(expiredContext, "new-leader", leaseDurationSeconds: 30);
+
+        // Act - New leader should take over expired lease
+        var acquired = await service1.TryAcquireLeadershipAsync();
+        acquired.Should().BeTrue();
+        service1.IsLeader.Should().BeTrue();
+
+        // Assert - Leader instance ID should be updated
+        var lockRow = await expiredContext.SchedulerLeaderLocks
+            .FirstOrDefaultAsync(r => r.LockName == SchedulerLeaderLock.DefaultLockName);
+        lockRow.Should().NotBeNull();
+        lockRow!.LeaderInstanceId.Should().Be("new-leader");
+        lockRow.LeaseExpiresAt.Should().BeAfter(DateTime.UtcNow);
+
+        await expiredContext.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task LeadershipTransition_UpdatesLeadershipFlagsCorrectly()
+    {
+        // Arrange
+        var service1 = CreateService("node-1");
+        var service2 = CreateService("node-2");
+
+        // Act - Node 1 becomes leader
+        var node1Acquired = await service1.TryAcquireLeadershipAsync();
+        node1Acquired.Should().BeTrue();
+        service1.IsLeader.Should().BeTrue();
+        service2.IsLeader.Should().BeFalse();
+
+        // Node 2 attempts to acquire (should fail)
+        var node2Attempt = await service2.TryAcquireLeadershipAsync();
+        node2Attempt.Should().BeFalse();
+        service2.IsLeader.Should().BeFalse();
+
+        // Node 1 releases
+        await service1.ReleaseLeadershipAsync();
+        service1.IsLeader.Should().BeFalse();
+
+        // Node 2 acquires
+        var node2Acquired = await service2.TryAcquireLeadershipAsync();
+        node2Acquired.Should().BeTrue();
+        service2.IsLeader.Should().BeTrue();
+
+        // Node 1 attempts to acquire again (should fail)
+        var node1SecondAttempt = await service1.TryAcquireLeadershipAsync();
+        node1SecondAttempt.Should().BeFalse();
+        service1.IsLeader.Should().BeFalse();
+    }
 }
