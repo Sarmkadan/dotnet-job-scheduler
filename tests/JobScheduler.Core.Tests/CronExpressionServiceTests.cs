@@ -6,6 +6,7 @@
 // =============================================================================
 
 using System;
+using System.Linq;
 using Xunit;
 using JobScheduler.Core.Exceptions;
 using JobScheduler.Core.Services;
@@ -162,6 +163,20 @@ public sealed class CronExpressionServiceTests
     }
 
     [Fact]
+    public void GetNextExecutionTime_LeapYearExpressionInLeapYear_ReturnsSameYear()
+    {
+        // Arrange
+        var cron = "0 0 29 2 *"; // Feb 29th
+        var leapYear = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        // Act
+        var next = _service.GetNextExecutionTime(cron, leapYear);
+
+        // Assert
+        Assert.Equal(new DateTime(2024, 2, 29, 0, 0, 0, DateTimeKind.Utc), next);
+    }
+
+    [Fact]
     public void GetNextExecutionTimeInZone_ReturnsCorrectUtcTime()
     {
         // "0 9 * * *" in Eastern Standard Time (UTC-5) should return 14:00 UTC.
@@ -187,5 +202,60 @@ public sealed class CronExpressionServiceTests
     {
         Assert.Throws<ArgumentException>(() =>
             _service.GetNextExecutionTimeInZone("0 9 * * *", "Unknown/NotReal_TZ"));
+    }
+
+    // ------------------------------------------------------------------------
+    // Additional tests requested in the task description
+    // ------------------------------------------------------------------------
+
+    [Fact]
+    public void GetNextExecutionTime_Day31Expression_SkipsMonthsWithout31Days()
+    {
+        // Arrange
+        var cron = "0 0 31 * *"; // At midnight on the 31st day of any month
+        var start = new DateTime(2024, 4, 30, 0, 0, 0, DateTimeKind.Utc); // April has 30 days
+
+        // Act
+        var next = _service.GetNextExecutionTime(cron, start);
+        var following = _service.GetNextExecutionTime(cron, next.AddSeconds(1));
+
+        // Assert
+        // First occurrence should be May 31
+        Assert.Equal(new DateTime(2024, 5, 31, 0, 0, 0, DateTimeKind.Utc), next);
+        // Second occurrence should skip June (30 days) and be July 31
+        Assert.Equal(new DateTime(2024, 7, 31, 0, 0, 0, DateTimeKind.Utc), following);
+    }
+
+    [Fact]
+    public void GetNextExecutionTimes_StepEvery15Minutes_ReturnsCorrectIntervals()
+    {
+        // Arrange
+        var cron = "*/15 * * * *"; // Every 15 minutes
+        var now = new DateTime(2024, 1, 1, 0, 7, 0, DateTimeKind.Utc); // 07 minutes past the hour
+
+        // Act
+        var times = _service.GetNextExecutionTimes(cron, 3).ToList();
+
+        // Assert
+        Assert.Equal(3, times.Count);
+        // Expected times: 00:15, 00:30, 00:45 on the same day
+        Assert.Equal(new DateTime(2024, 1, 1, 0, 15, 0, DateTimeKind.Utc), times[0]);
+        Assert.Equal(new DateTime(2024, 1, 1, 0, 30, 0, DateTimeKind.Utc), times[1]);
+        Assert.Equal(new DateTime(2024, 1, 1, 0, 45, 0, DateTimeKind.Utc), times[2]);
+    }
+
+    [Fact]
+    public void ParseCronExpression_InvalidExpression_ThrowsCronExpressionException_WithMessage()
+    {
+        // Arrange
+        var invalidCron = "61 * * * *"; // Invalid minute value
+
+        // Act
+        var exception = Assert.Throws<CronExpressionException>(() => _service.ParseCronExpression(invalidCron));
+
+        // Assert
+        Assert.False(string.IsNullOrWhiteSpace(exception.Message));
+        // The message should contain some indication of why it failed.
+        Assert.Contains("minute", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
