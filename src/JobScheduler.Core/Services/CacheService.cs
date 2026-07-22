@@ -61,6 +61,10 @@ public sealed class CacheService : IDisposable
                 return value as T;
             }
 
+            // If it's in our tracker but not in cache, it's expired or evicted, remove it from tracker.
+            _keys.TryRemove(key, out _);
+            _cache.Remove(key); // Ensure it's fully removed from IMemoryCache as well
+
             _logger.LogDebug("Cache miss for key: {Key}", key);
             return null;
         }

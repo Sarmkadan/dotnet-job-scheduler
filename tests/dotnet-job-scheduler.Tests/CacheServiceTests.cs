@@ -428,6 +428,32 @@ public sealed class CacheServiceTests
 	}
 
     [Fact]
+    public async Task GetAsync_ProactivelyRemovesExpiredEntry()
+    {
+        /// <summary>
+        /// Tests that GetAsync proactively removes expired entries from both the cache and the tracker.
+        /// </summary>
+        // Arrange
+        var service = CreateService();
+        var expiredKey = "expired-key";
+        var value = new TestCacheValue { Id = 1, Name = "Will Expire" };
+
+        await service.SetAsync(expiredKey, value, TimeSpan.FromMilliseconds(50));
+        await Task.Delay(100);
+
+        // Verify it is in _keys
+        service.GetStatistics().TotalKeys.Should().Be(1);
+
+        // Act
+        var result = await service.GetAsync<TestCacheValue>(expiredKey);
+
+        // Assert
+        result.Should().BeNull();
+        // Statistics should reflect removal because GetAsync proactively removed it
+        service.GetStatistics().TotalKeys.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GetAsync_ExpiredEntry_ReturnsNullAndPreventsRaceCondition()
     {
         /// <summary>
