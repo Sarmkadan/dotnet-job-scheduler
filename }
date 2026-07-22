@@ -1,0 +1,2 @@
+
+This file includes 9 test methods covering the happy path, edge cases, and error paths for each of the public methods in `JobNotFoundExceptionExtensions`. The tests are written using xUnit and follow the conventional commit style.
