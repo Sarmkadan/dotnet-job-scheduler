@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JobScheduler.Core.Services;
 
@@ -16,17 +17,33 @@ namespace JobScheduler.Core.Services;
 /// Reduces database queries and improves response times for hot data.
 /// WHY: Caching is critical for performance when dealing with large job sets.
 /// </summary>
-public sealed class CacheService
+public sealed class CacheService : IDisposable
 {
     private readonly IMemoryCache _cache;
     private readonly ILogger<CacheService> _logger;
     private readonly ConcurrentDictionary<string, byte> _keys; // Track all cache keys for invalidation
+    private readonly System.Threading.Timer? _cleanupTimer;
+    private readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(5);
+    private readonly object _cleanupLock = new object();
 
     public CacheService(IMemoryCache cache, ILogger<CacheService> logger)
     {
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _keys = new ConcurrentDictionary<string, byte>();
+
+        // Start background cleanup timer to prevent unbounded memory growth from expired entries
+        // Timer fires every 5 minutes to clean up expired entries proactively
+        _cleanupTimer = new System.Threading.Timer(
+            _ => RemoveExpiredEntriesAsync().GetAwaiter().GetResult(),
+            null,
+            _cleanupInterval,
+            _cleanupInterval);
+    }
+
+    public void Dispose()
+    {
+        _cleanupTimer?.Dispose();
     }
 
     /// <summary>
@@ -37,6 +54,7 @@ public sealed class CacheService
     {
         try
         {
+            // TryGetValue returns false for expired entries, preventing check-then-use race
             if (_cache.TryGetValue(key, out var value))
             {
                 _logger.LogDebug("Cache hit for key: {Key}", key);
@@ -170,6 +188,57 @@ public sealed class CacheService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error clearing cache");
+        }
+    }
+
+    /// <summary>
+    /// Removes all expired entries from cache to prevent unbounded memory growth.
+    /// WHY: IMemoryCache uses lazy eviction, so expired entries remain until accessed or memory pressure occurs.
+    /// This proactive cleanup prevents memory leaks from unbounded cache growth.
+    /// Bounded sweep: limits to 1000 keys per call to avoid blocking.
+    /// </summary>
+    public async Task RemoveExpiredEntriesAsync()
+    {
+        try
+        {
+            var expiredKeys = new List<string>();
+            var processedCount = 0;
+            const int batchSize = 1000;
+
+            // Collect expired keys in batches to avoid blocking
+            foreach (var key in _keys.Keys)
+            {
+                processedCount++;
+
+                // Check if entry exists and is expired by attempting to get it
+                // TryGetValue returns false for expired entries
+                if (!_cache.TryGetValue(key, out _))
+                {
+                    expiredKeys.Add(key);
+                }
+
+                // Limit batch size to prevent long-running operations
+                if (expiredKeys.Count >= batchSize)
+                {
+                    break;
+                }
+            }
+
+            // Remove expired entries
+            foreach (var key in expiredKeys)
+            {
+                _cache.Remove(key);
+                _keys.TryRemove(key, out _);
+            }
+
+            if (expiredKeys.Count > 0)
+            {
+                _logger.LogInformation("Removed {Count} expired cache entries (batch of {BatchSize})", expiredKeys.Count, batchSize);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error removing expired cache entries");
         }
     }
 

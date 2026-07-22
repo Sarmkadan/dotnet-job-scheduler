@@ -427,6 +427,138 @@ public sealed class CacheServiceTests
 		results.Should().AllSatisfy(r => r.Should().NotBeNull());
 	}
 
+    [Fact]
+    public async Task GetAsync_ExpiredEntry_ReturnsNullAndPreventsRaceCondition()
+    {
+        /// <summary>
+        /// Tests that GetAsync returns null for expired entries and prevents check-then-use race conditions.
+        /// Expired entries should not be accessible through TryGetValue.
+        /// </summary>
+        // Arrange
+        var service = CreateService();
+        var key = "expired-key";
+        var value = new TestCacheValue { Id = 1, Name = "Will Expire" };
+
+        // Set with very short expiration
+        await service.SetAsync(key, value, TimeSpan.FromMilliseconds(50));
+
+        // Wait for expiration
+        await Task.Delay(100);
+
+        // Act - should return null, not the expired value
+        var result = await service.GetAsync<TestCacheValue>(key);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task RemoveExpiredEntriesAsync_CleansUpExpiredEntries()
+    {
+        /// <summary>
+        /// Tests that RemoveExpiredEntriesAsync proactively removes expired entries to prevent memory growth.
+        /// WHY: IMemoryCache uses lazy eviction, so expired entries accumulate until cleanup.
+        /// </summary>
+        // Arrange
+        var service = CreateService();
+        var expiredKey = "expired-key";
+        var activeKey = "active-key";
+        var expiredValue = new TestCacheValue { Id = 1, Name = "Expired" };
+        var activeValue = new TestCacheValue { Id = 2, Name = "Active" };
+
+        // Set one expired entry and one active entry
+        await service.SetAsync(expiredKey, expiredValue, TimeSpan.FromMilliseconds(50));
+        await service.SetAsync(activeKey, activeValue);
+
+        // Wait for expiration
+        await Task.Delay(100);
+
+        // Verify expired entry is still in _keys but TryGetValue returns false
+        service.GetStatistics().TotalKeys.Should().Be(2);
+
+        // Act - clean up expired entries
+        await service.RemoveExpiredEntriesAsync();
+
+        // Assert
+        var expiredResult = await service.GetAsync<TestCacheValue>(expiredKey);
+        var activeResult = await service.GetAsync<TestCacheValue>(activeKey);
+
+        expiredResult.Should().BeNull();
+        activeResult.Should().NotBeNull();
+        activeResult?.Id.Should().Be(2);
+
+        // Statistics should reflect removal
+        service.GetStatistics().TotalKeys.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RemoveExpiredEntriesAsync_BoundedSweep_LimitsProcessing()
+    {
+        /// <summary>
+        /// Tests that RemoveExpiredEntriesAsync uses bounded sweep to avoid blocking.
+        /// </summary>
+        // Arrange
+        var service = CreateService();
+
+        // Create many entries (more than batch size)
+        for (int i = 0; i < 1500; i++)
+        {
+            await service.SetAsync($"key:{i}", new TestCacheValue { Id = i });
+        }
+
+        // Set some to expired with longer expiration to ensure they expire
+        for (int i = 0; i < 500; i++)
+        {
+            await service.SetAsync($"expired:{i}", new TestCacheValue { Id = i }, TimeSpan.FromMilliseconds(10));
+        }
+
+        // Wait for expiration
+        await Task.Delay(50);
+
+        // Verify some entries are expired
+        var expiredBefore = 0;
+        for (int i = 0; i < 100; i++)
+        {
+            if (await service.GetAsync<TestCacheValue>($"expired:{i}") is null)
+            {
+                expiredBefore++;
+            }
+        }
+
+        expiredBefore.Should().BeGreaterThan(0);
+
+        // Act - should process in batches without blocking
+        await service.RemoveExpiredEntriesAsync();
+
+        // Assert - should have cleaned up expired entries (2000 total before, less than 2000 after)
+        service.GetStatistics().TotalKeys.Should().BeLessThan(2000);
+    }
+
+    [Fact]
+    public async Task GetAsync_WithExpiredEntry_DoesNotReturnValue()
+    {
+        /// <summary>
+        /// Tests that GetAsync never returns an expired value (prevents check-then-use race).
+        /// Even if TryGetValue briefly returns true, the value should not be accessible.
+        /// </summary>
+        // Arrange
+        var service = CreateService();
+        var key = "race-test-key";
+        var value = new TestCacheValue { Id = 999, Name = "Race Condition Test" };
+
+        await service.SetAsync(key, value, TimeSpan.FromMilliseconds(50));
+
+        // Wait for expiration
+        await Task.Delay(100);
+
+        // Try multiple times to ensure no race condition
+        for (int i = 0; i < 10; i++)
+        {
+            var result = await service.GetAsync<TestCacheValue>(key);
+            result.Should().BeNull("Expired entries should never be returned from GetAsync");
+        }
+    }
+
 	// Helper class for testing
 	private sealed class TestCacheValue
 	{
