@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using NCrontab;
+using JobScheduler.Core.Abstractions;
 using JobScheduler.Core.Exceptions;
 
 namespace JobScheduler.Core.Services;

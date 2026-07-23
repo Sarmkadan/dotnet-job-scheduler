@@ -1,10 +1,12 @@
 #nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
 // =====================================================================
 
 using System;
+using JobScheduler.Core.Abstractions;
 
 namespace JobScheduler.Core.Extensions;
 
@@ -13,33 +15,87 @@ namespace JobScheduler.Core.Extensions;
 /// </summary>
 public static class DateTimeExtensions
 {
+    private static ITimeProvider? _timeProvider;
+
+    /// <summary>
+    /// Sets the time provider for testing purposes.
+    /// </summary>
+    /// <param name="timeProvider">The time provider to use.</param>
+    internal static void SetTimeProvider(ITimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+    }
+
+    /// <summary>
+    /// Resets the time provider to the default system time provider.
+    /// </summary>
+    internal static void ResetTimeProvider()
+    {
+        _timeProvider = null;
+    }
+
+    /// <summary>
+    /// Gets the current time provider, or the system time provider if none is set.
+    /// </summary>
+    private static ITimeProvider TimeProvider => _timeProvider ?? SystemTimeProvider.Instance;
+
     /// <summary>
     /// Checks if a DateTime is in the past.
     /// </summary>
     /// <param name="dateTime">The DateTime to check.</param>
     /// <returns><see langword="true"/> if the DateTime is earlier than the current UTC time; otherwise, <see langword="false"/>.</returns>
-    public static bool IsInThePast(this DateTime dateTime) => dateTime < DateTime.UtcNow;
+    /// <exception cref="ArgumentException">Thrown if the DateTime kind is Unspecified and the date is in the past.</exception>
+    public static bool IsInThePast(this DateTime dateTime)
+    {
+        var utcNow = TimeProvider.UtcNowAsDateTime;
+        return dateTime.Kind == DateTimeKind.Utc
+            ? dateTime < utcNow
+            : dateTime.ToUniversalTime() < utcNow;
+    }
 
     /// <summary>
     /// Checks if a DateTime is in the future.
     /// </summary>
     /// <param name="dateTime">The DateTime to check.</param>
     /// <returns><see langword="true"/> if the DateTime is later than the current UTC time; otherwise, <see langword="false"/>.</returns>
-    public static bool IsInTheFuture(this DateTime dateTime) => dateTime > DateTime.UtcNow;
+    /// <exception cref="ArgumentException">Thrown if the DateTime kind is Unspecified and the date is in the future.</exception>
+    public static bool IsInTheFuture(this DateTime dateTime)
+    {
+        var utcNow = TimeProvider.UtcNowAsDateTime;
+        return dateTime.Kind == DateTimeKind.Utc
+            ? dateTime > utcNow
+            : dateTime.ToUniversalTime() > utcNow;
+    }
 
     /// <summary>
     /// Gets the time remaining until a DateTime.
     /// </summary>
     /// <param name="dateTime">The target DateTime.</param>
     /// <returns>A <see cref="TimeSpan"/> representing the time remaining. If the DateTime is in the past, the result will be negative.</returns>
-    public static TimeSpan TimeUntil(this DateTime dateTime) => dateTime - DateTime.UtcNow;
+    /// <exception cref="ArgumentException">Thrown if the DateTime kind is Unspecified.</exception>
+    public static TimeSpan TimeUntil(this DateTime dateTime)
+    {
+        var utcNow = TimeProvider.UtcNowAsDateTime;
+        var targetUtc = dateTime.Kind == DateTimeKind.Utc
+            ? dateTime
+            : dateTime.ToUniversalTime();
+        return targetUtc - utcNow;
+    }
 
     /// <summary>
     /// Gets the time elapsed since a DateTime.
     /// </summary>
     /// <param name="dateTime">The starting DateTime.</param>
     /// <returns>A <see cref="TimeSpan"/> representing the elapsed time. If the DateTime is in the future, the result will be negative.</returns>
-    public static TimeSpan TimeSince(this DateTime dateTime) => DateTime.UtcNow - dateTime;
+    /// <exception cref="ArgumentException">Thrown if the DateTime kind is Unspecified.</exception>
+    public static TimeSpan TimeSince(this DateTime dateTime)
+    {
+        var utcNow = TimeProvider.UtcNowAsDateTime;
+        var targetUtc = dateTime.Kind == DateTimeKind.Utc
+            ? dateTime
+            : dateTime.ToUniversalTime();
+        return utcNow - targetUtc;
+    }
 
     /// <summary>
     /// Checks if two DateTime values are on the same day (UTC).
