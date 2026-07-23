@@ -31,6 +31,9 @@ public sealed class EventPublisher : IEventPublisher
     /// </summary>
     public async Task PublishAsync<TEvent>(TEvent eventData) where TEvent : ISchedulerEvent
     {
+	if (eventData is null)
+		throw new ArgumentNullException(nameof(eventData));
+
         var eventType = typeof(TEvent).FullName ?? typeof(TEvent).Name;
 
         _logger.LogDebug("Publishing event: {EventType} (Id: {EventId})", eventType, eventData.EventId);
