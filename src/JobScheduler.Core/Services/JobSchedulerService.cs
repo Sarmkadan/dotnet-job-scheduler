@@ -124,10 +124,16 @@ public sealed class JobSchedulerService
                     await _jobRepository.SaveChangesAsync();
                 }
             }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "Error executing job {JobId}", job.Id);
-            }
+ catch (ConcurrencyException ex)
+ {
+	// ConcurrencyException means another scheduler instance claimed this job.
+	// This is expected in a distributed environment and should not be treated as an error.
+	_logger?.LogDebug(ex, "Job {JobId} skipped: another scheduler instance claimed the job", job.Id);
+ }
+ catch (Exception ex)
+ {
+ _logger?.LogError(ex, "Error executing job {JobId}", job.Id);
+ }
         }
 
         return executions;

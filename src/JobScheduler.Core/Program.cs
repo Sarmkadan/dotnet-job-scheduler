@@ -124,7 +124,8 @@ public sealed class SchedulerHostedService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in scheduler hosted service");
-            throw;
+            // Do not re-throw exceptions to prevent the hosted service from terminating
+            // This allows the scheduler to continue running even if individual jobs fail
         }
     }
 }
