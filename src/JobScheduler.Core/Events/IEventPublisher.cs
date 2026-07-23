@@ -95,6 +95,19 @@ public sealed class JobExecutionFailedEvent : ISchedulerEvent
     public bool WillRetry { get; set; }
 }
 
+public sealed class JobExecutionExhaustedEvent : ISchedulerEvent
+{
+    public Guid EventId { get; set; } = Guid.NewGuid();
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string EventType => "job.execution.exhausted";
+    public Guid JobId { get; set; }
+    public Guid ExecutionId { get; set; }
+    public string JobName { get; set; } = string.Empty;
+    public string ErrorMessage { get; set; } = string.Empty;
+    public int TotalAttempts { get; set; }
+    public int MaxRetries { get; set; }
+}
+
 public sealed class JobSuspendedEvent : ISchedulerEvent
 {
     public Guid EventId { get; set; } = Guid.NewGuid();

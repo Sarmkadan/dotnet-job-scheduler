@@ -2,7 +2,7 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =====================================================================
+// =============================================================================
 
 using System;
 using System.Diagnostics;
@@ -49,7 +49,7 @@ public class JobExecutorService
         IJobRepository jobRepository,
         IExecutionRepository executionRepository,
         ConcurrencyManager concurrencyManager)
-        : this(jobRepository, executionRepository, concurrencyManager, null, null)
+        : this(jobRepository, executionRepository, concurrencyManager, null)
     {
     }
 
@@ -62,25 +62,10 @@ public class JobExecutorService
         IExecutionRepository executionRepository,
         ConcurrencyManager concurrencyManager,
         ILogger<JobExecutorService>? logger)
-        : this(jobRepository, executionRepository, concurrencyManager, logger, null)
-    {
-    }
-
-    /// <summary>
-    /// Creates an executor service.
-    /// </summary>
-    /// <exception cref="ArgumentNullException">A dependency is null.</exception>
-    public JobExecutorService(
-        IJobRepository jobRepository,
-        IExecutionRepository executionRepository,
-        ConcurrencyManager concurrencyManager,
-        ILogger<JobExecutorService>? logger,
-        IEventPublisher? eventPublisher)
     {
         _jobRepository = jobRepository ?? throw new ArgumentNullException(nameof(jobRepository));
         _executionRepository = executionRepository ?? throw new ArgumentNullException(nameof(executionRepository));
         _concurrencyManager = concurrencyManager ?? throw new ArgumentNullException(nameof(concurrencyManager));
-        _eventPublisher = eventPublisher;
         _logger = logger;
     }
 
@@ -97,7 +82,7 @@ public class JobExecutorService
         // that never starts would corrupt the history and the success-rate metrics.
         await _concurrencyManager.EnsureCanExecuteAsync(job);
 
-        return await RunWithRetryAsync(job, handler: null, Environment.MachineName, cancellationToken);
+        return await RunAsync(job, handler: null, Environment.MachineName, cancellationToken);
     }
 
     /// <summary>
@@ -113,211 +98,92 @@ public class JobExecutorService
 
         await _concurrencyManager.EnsureCanExecuteAsync(job);
 
-        return await RunWithRetryAsync(job, handler, executorName, cancellationToken);
+        return await RunAsync(job, handler, executorName, cancellationToken);
     }
 
     /// <summary>
-    /// Shared execution pipeline with retry logic: records the attempt, runs the handler under a timeout,
-    /// classifies the outcome, publishes events, and always releases the concurrency slot.
+    /// Shared execution pipeline: records the attempt, runs the handler under a timeout,
+    /// classifies the outcome and always releases the concurrency slot.
     /// </summary>
-    private async Task<JobExecution> RunWithRetryAsync(Job job, IJobHandler? handler, string executorName, CancellationToken cancellationToken)
+    private async Task<JobExecution> RunAsync(Job job, IJobHandler? handler, string executorName, CancellationToken cancellationToken)
     {
-        var retryPolicy = job.GetEffectiveRetryPolicy();
-        JobExecution? finalExecution = null;
-        int attemptNumber = 0;
-        bool willRetry = false;
-
-        // Track if we should publish events
-        var shouldPublishEvents = _eventPublisher != null;
-
-        do
+        var execution = new JobExecution
         {
-            attemptNumber++;
-            willRetry = false;
+            Id = Guid.NewGuid(),
+            JobId = job.Id,
+            Status = ExecutionStatus.Running,
+            ExecutorName = executorName,
+            AttemptNumber = 1
+        };
 
-            var execution = new JobExecution
-            {
-                Id = Guid.NewGuid(),
-                JobId = job.Id,
-                Status = ExecutionStatus.Running,
-                ExecutorName = executorName,
-                AttemptNumber = attemptNumber
-            };
+        _concurrencyManager.IncrementConcurrencyCount(job.Id);
 
-            _concurrencyManager.IncrementConcurrencyCount(job.Id);
+        try
+        {
+            await _executionRepository.AddAsync(execution);
+            await _executionRepository.SaveChangesAsync();
+
+            _logger?.LogInformation("Starting execution {ExecutionId} for job {JobId} ({JobName})",
+                execution.Id, job.Id, job.Name);
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(job.ExecutionTimeoutSeconds));
+
+            var stopwatch = Stopwatch.StartNew();
 
             try
             {
-                await _executionRepository.AddAsync(execution);
-                await _executionRepository.SaveChangesAsync();
+                var result = handler is null
+                    ? await ExecuteJobHandlerAsync(job, execution, cts.Token)
+                    : await handler.ExecuteAsync(job, cts.Token);
 
-                _logger?.LogInformation("Starting execution {ExecutionId} for job {JobId} ({JobName}) - Attempt {Attempt}",
-                    execution.Id, job.Id, job.Name, attemptNumber);
+                stopwatch.Stop();
+                execution.SetOutput(result);
+                execution.MarkAsCompleted(ExecutionStatus.Success);
 
-                if (shouldPublishEvents)
-                {
-                    await _eventPublisher!.PublishAsync(new JobExecutionStartedEvent
-                    {
-                        JobId = job.Id,
-                        ExecutionId = execution.Id,
-                        JobName = job.Name
-                    });
-                }
-
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(TimeSpan.FromSeconds(job.ExecutionTimeoutSeconds));
-
-                var stopwatch = Stopwatch.StartNew();
-
-                try
-                {
-                    var result = handler is null
-                        ? await ExecuteJobHandlerAsync(job, execution, cts.Token)
-                        : await handler.ExecuteAsync(job, cts.Token);
-
-                    stopwatch.Stop();
-                    execution.SetOutput(result);
-                    execution.MarkAsCompleted(ExecutionStatus.Success);
-
-                    _logger?.LogInformation("Job {JobId} execution {ExecutionId} completed successfully in {Duration}ms",
-                        job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
-
-                    if (shouldPublishEvents)
-                    {
-                        await _eventPublisher!.PublishAsync(new JobExecutionCompletedEvent
-                        {
-                            JobId = job.Id,
-                            ExecutionId = execution.Id,
-                            JobName = job.Name,
-                            Success = true,
-                            ExecutionTimeMs = stopwatch.ElapsedMilliseconds,
-                            ErrorMessage = null
-                        });
-                    }
-
-                    finalExecution = execution;
-                    break; // Success - exit retry loop
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    stopwatch.Stop();
-                    execution.MarkAsCompleted(ExecutionStatus.Cancelled);
-                    execution.ErrorMessage = "Execution cancelled by caller";
-
-                    _logger?.LogWarning("Job {JobId} execution {ExecutionId} was cancelled after {Duration}ms",
-                        job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
-
-                    if (shouldPublishEvents)
-                    {
-                        await _eventPublisher!.PublishAsync(new JobExecutionFailedEvent
-                        {
-                            JobId = job.Id,
-                            ExecutionId = execution.Id,
-                            JobName = job.Name,
-                            ErrorMessage = execution.ErrorMessage ?? "Execution cancelled",
-                            RetryAttempt = attemptNumber,
-                            WillRetry = false
-                        });
-                    }
-
-                    finalExecution = execution;
-                    break;
-                }
-                catch (OperationCanceledException)
-                {
-                    stopwatch.Stop();
-                    execution.MarkAsCompleted(ExecutionStatus.TimedOut);
-                    execution.ErrorMessage = $"Execution timed out after {job.ExecutionTimeoutSeconds} seconds";
-
-                    _logger?.LogWarning("Job {JobId} execution {ExecutionId} timed out after {Duration}ms",
-                        job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
-
-                    if (shouldPublishEvents)
-                    {
-                        var timeoutRetryable = retryPolicy.RetryOnTimeout;
-                        willRetry = timeoutRetryable && attemptNumber <= retryPolicy.MaxRetries;
-
-                        await _eventPublisher!.PublishAsync(new JobExecutionFailedEvent
-                        {
-                            JobId = job.Id,
-                            ExecutionId = execution.Id,
-                            JobName = job.Name,
-                            ErrorMessage = execution.ErrorMessage,
-                            RetryAttempt = attemptNumber,
-                            WillRetry = willRetry
-                        });
-                    }
-
-                    finalExecution = execution;
-                }
-                catch (Exception ex)
-                {
-                    stopwatch.Stop();
-                    execution.MarkAsFailed(ex.Message, ex.StackTrace, true);
-
-                    _logger?.LogError(ex, "Job {JobId} execution {ExecutionId} failed with error: {Message}",
-                        job.Id, execution.Id, ex.Message);
-
-                    if (shouldPublishEvents)
-                    {
-                        // Determine if this exception type should be retried
-                        bool shouldRetry = retryPolicy.ShouldRetryOnException(ex.GetType().FullName ?? ex.GetType().Name);
-                        willRetry = shouldRetry && attemptNumber <= retryPolicy.MaxRetries;
-
-                        await _eventPublisher!.PublishAsync(new JobExecutionFailedEvent
-                        {
-                            JobId = job.Id,
-                            ExecutionId = execution.Id,
-                            JobName = job.Name,
-                            ErrorMessage = ex.Message,
-                            RetryAttempt = attemptNumber,
-                            WillRetry = willRetry
-                        });
-                    }
-                }
+                _logger?.LogInformation("Job {JobId} execution {ExecutionId} completed successfully in {Duration}ms",
+                    job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
             }
-            finally
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                _concurrencyManager.DecrementConcurrencyCount(job.Id);
+                stopwatch.Stop();
+                execution.MarkAsCompleted(ExecutionStatus.Cancelled);
+                execution.ErrorMessage = "Execution cancelled by caller";
 
-                job.UpdateExecutionMetrics(finalExecution?.Status == ExecutionStatus.Success);
-                job.LastExecutedAt = DateTime.UtcNow;
-
-                _executionRepository.Update(execution);
-                _jobRepository.Update(job);
-                await _executionRepository.SaveChangesAsync();
+                _logger?.LogWarning("Job {JobId} execution {ExecutionId} was cancelled after {Duration}ms",
+                    job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
             }
-
-            // If execution failed and we should retry, wait for the backoff period
-            if (finalExecution?.Status == ExecutionStatus.Failed && willRetry && attemptNumber <= retryPolicy.MaxRetries)
+            catch (OperationCanceledException)
             {
-                int backoffSeconds = retryPolicy.CalculateBackoffDelay(attemptNumber);
-                _logger?.LogInformation("Job {JobId} will retry in {BackoffSeconds}s (attempt {Attempt}/{MaxAttempts})",
-                    job.Id, backoffSeconds, attemptNumber, retryPolicy.MaxRetries);
+                stopwatch.Stop();
+                execution.MarkAsCompleted(ExecutionStatus.TimedOut);
+                execution.ErrorMessage = $"Execution timed out after {job.ExecutionTimeoutSeconds} seconds";
 
-                await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), cancellationToken);
+                _logger?.LogWarning("Job {JobId} execution {ExecutionId} timed out after {Duration}ms",
+                    job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
             }
-
-        } while (willRetry && attemptNumber <= retryPolicy.MaxRetries);
-
-        // If all retries exhausted and execution failed, publish exhausted event
-        if (finalExecution?.Status == ExecutionStatus.Failed && attemptNumber > retryPolicy.MaxRetries)
-        {
-            if (shouldPublishEvents)
+            catch (Exception ex)
             {
-                await _eventPublisher!.PublishAsync(new JobExecutionExhaustedEvent
-                {
-                    JobId = job.Id,
-                    ExecutionId = finalExecution.Id,
-                    JobName = job.Name,
-                    ErrorMessage = finalExecution.ErrorMessage ?? "All retry attempts exhausted",
-                    TotalAttempts = attemptNumber,
-                    MaxRetries = retryPolicy.MaxRetries
-                });
+                stopwatch.Stop();
+                execution.MarkAsFailed(ex.Message, ex.StackTrace, true);
+
+                _logger?.LogError(ex, "Job {JobId} execution {ExecutionId} failed with error: {Message}",
+                    job.Id, execution.Id, ex.Message);
             }
         }
+        finally
+        {
+            _concurrencyManager.DecrementConcurrencyCount(job.Id);
 
-        return finalExecution ?? throw new ExecutionException("Job execution failed to produce a result", Guid.Empty, job.Id);
+            job.UpdateExecutionMetrics(execution.Status == ExecutionStatus.Success);
+            job.LastExecutedAt = DateTime.UtcNow;
+
+            _executionRepository.Update(execution);
+            _jobRepository.Update(job);
+            await _executionRepository.SaveChangesAsync();
+        }
+
+        return execution;
     }
 
     /// <summary>

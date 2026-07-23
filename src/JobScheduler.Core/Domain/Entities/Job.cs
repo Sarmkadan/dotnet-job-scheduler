@@ -71,6 +71,11 @@ public class Job
 
     public virtual List<JobScheduleHistory> ScheduleHistories { get; set; } = new();
 
+/// <summary>
+/// Retry policy configuration for this job. Controls retry behavior on execution failures.
+/// </summary>
+public virtual RetryPolicy? RetryPolicy { get; set; }
+
     /// <summary>
     /// Validates the job configuration before scheduling.
     /// Throws ValidationException if validation fails.
@@ -126,6 +131,31 @@ public class Job
         return IsActive && Status != JobStatus.Suspended && Status != JobStatus.Cancelled &&
                currentConcurrentCount < MaxConcurrentExecutions;
     }
+
+/// <summary>
+/// Gets the effective retry policy for this job, falling back to default values if not configured.
+/// </summary>
+public RetryPolicy GetEffectiveRetryPolicy()
+{
+    if (RetryPolicy != null && RetryPolicy.IsValid())
+    {
+        return RetryPolicy;
+    }
+
+    // Return a default policy based on job's simple retry properties
+    return new RetryPolicy
+    {
+        JobId = Id,
+        MaxRetries = MaxRetries,
+        InitialBackoffSeconds = RetryBackoffSeconds,
+        MaxBackoffSeconds = SchedulerConstants.DefaultMaxRetryBackoffSeconds,
+        Strategy = BackoffStrategy.Exponential,
+        BackoffMultiplier = SchedulerConstants.RetryBackoffMultiplier,
+        RetryOnTimeout = true,
+        RetryOnCancellation = false,
+        RetryableExceptions = null
+    };
+}
 
     /// <summary>
     /// Returns an effective priority score that incorporates an aging bonus so that
