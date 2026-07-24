@@ -2,9 +2,12 @@
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
-// =============================================================================
+// =====================================================================
 
 namespace JobScheduler.Core.Domain.Entities;
+
+using JobScheduler.Core.Exceptions;
+using JobScheduler.Core.Services;
 
 /// <summary>
 /// A named, ordered sequence of jobs that run in series.
@@ -37,6 +40,33 @@ public sealed class JobPipeline
 
     /// <summary>Gets or sets the ordered list of steps that form this pipeline.</summary>
     public List<JobPipelineStep> Steps { get; set; } = new();
+
+    /// <summary>
+    /// Validates that this pipeline's dependency graph is acyclic (a DAG).
+    /// Performs a topological sort over all jobs in the pipeline's dependency graph.
+    /// </summary>
+    /// <param name="dependencyService">Service to query job dependencies.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task representing the validation result.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="dependencyService"/> is null.</exception>
+    /// <exception cref="CyclicDependencyException">Thrown if a cycle is detected, with the full cycle path in the message.</exception>
+    public async Task ValidateAsync(IJobDependencyService dependencyService, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(dependencyService);
+
+        var validationResult = await dependencyService.ValidateGraphAsync(cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            var cyclePath = validationResult.CycleNodes;
+            throw new CyclicDependencyException(
+                cyclePath.First(),
+                cyclePath.Last())
+            {
+                Data = { ["CyclePath"] = cyclePath.ToList() }
+            };
+        }
+    }
 }
 
 /// <summary>
@@ -57,7 +87,7 @@ public sealed class JobPipelineStep
     /// <summary>Gets or sets the zero-based execution order within the pipeline.</summary>
     public int StepOrder { get; set; }
 
-    /// <summary>
+    ///
     /// When true the pipeline halts if this step fails.
     /// When false subsequent steps are still attempted even if this one fails.
     /// Defaults to true.

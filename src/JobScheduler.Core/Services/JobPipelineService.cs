@@ -101,6 +101,9 @@ public sealed class JobPipelineService
             "Pipeline '{PipelineName}' ({PipelineId}) created with {StepCount} steps.",
             pipeline.Name, pipeline.Id, pipeline.Steps.Count);
 
+        // Validate the pipeline's dependency graph to catch any cycles immediately
+        await pipeline.ValidateAsync(_dependencyService, cancellationToken);
+
         return pipeline;
     }
 
