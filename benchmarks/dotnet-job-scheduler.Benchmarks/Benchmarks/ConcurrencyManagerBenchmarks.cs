@@ -296,4 +296,13 @@ internal sealed class ConcurrencyMockJobRepository : IJobRepository
         var results = _jobs.Values.ToList();
         return Task.FromResult(new JobQueryResult(results, results.Count));
     }
+public Task<IEnumerable<Job>> GetMisfiredJobsAsync()
+{
+    var now = DateTime.UtcNow;
+    var misfiredJobs = _jobs.Values
+        .Where(j => j.IsActive && j.Status != JobStatus.Suspended && j.Status != JobStatus.Cancelled &&
+                     j.NextExecutionAt.HasValue && j.NextExecutionAt < now.AddSeconds(-60))
+        .ToList();
+    return Task.FromResult<IEnumerable<Job>>(misfiredJobs);
+}
 }

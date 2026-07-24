@@ -45,6 +45,7 @@ public sealed class JobSchedulerContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(256).IsRequired();
             entity.Property(e => e.CronExpression).HasMaxLength(100).IsRequired();
             entity.Property(e => e.HandlerType).HasMaxLength(512).IsRequired();
+            entity.Property(e => e.MisfirePolicy).IsRequired();
         });
 
         // Configure JobExecution entity

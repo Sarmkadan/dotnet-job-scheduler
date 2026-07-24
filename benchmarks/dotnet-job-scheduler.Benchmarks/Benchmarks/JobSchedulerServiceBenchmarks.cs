@@ -308,6 +308,16 @@ internal sealed class MockJobRepository : IJobRepository
 
     public Task SaveChangesAsync() => Task.CompletedTask;
 
+public Task<IEnumerable<Job>> GetMisfiredJobsAsync()
+{
+    var now = DateTime.UtcNow;
+    var misfiredJobs = _jobs
+        .Where(j => j.IsActive && j.Status != JobStatus.Suspended && j.Status != JobStatus.Cancelled &&
+                     j.NextExecutionAt.HasValue && j.NextExecutionAt < now.AddSeconds(-60))
+        .ToList();
+    return Task.FromResult<IEnumerable<Job>>(misfiredJobs);
+}
+
     public Task<Job?> GetByNameAsync(string name)
     {
         var job = _jobs.FirstOrDefault(j => j.Name == name);

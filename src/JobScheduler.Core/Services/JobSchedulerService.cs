@@ -91,53 +91,110 @@ public sealed class JobSchedulerService
     /// <summary>
     /// Processes scheduled jobs that are due for execution.
     /// </summary>
-    public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationToken cancellationToken = default)
+public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationToken cancellationToken = default)
+{
+    var dueJobs = await _jobRepository.GetScheduledJobsForExecutionAsync();
+    var misfiredJobs = await _jobRepository.GetMisfiredJobsAsync();
+    var executions = new List<JobExecution>();
+
+    // Process regular due jobs first
+    foreach (var job in dueJobs)
     {
-        var dueJobs = await _jobRepository.GetScheduledJobsForExecutionAsync();
-        var executions = new List<JobExecution>();
+        if (cancellationToken.IsCancellationRequested)
+            break;
 
-        foreach (var job in dueJobs)
+        try
         {
-            if (cancellationToken.IsCancellationRequested)
-                break;
-
-            try
+            // Ask before executing: the executor throws when a limit is hit, and a job that is
+            // merely saturated is not an error worth logging on every scheduler tick.
+            if (!await _concurrencyManager.CanExecuteAsync(job))
             {
-                // Ask before executing: the executor throws when a limit is hit, and a job that is
-                // merely saturated is not an error worth logging on every scheduler tick.
-                if (!await _concurrencyManager.CanExecuteAsync(job))
-                {
-                    _logger?.LogDebug("Job {JobId} skipped: concurrency limit reached", job.Id);
-                    continue;
-                }
-
-                var execution = await _executorService.ExecuteJobAsync(job, cancellationToken);
-                executions.Add(execution);
-
-                // Schedule next execution
-                if (job.IsActive && job.Status != JobStatus.FailedPermanently)
-                {
-                    job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
-                        ? _cronService.GetNextExecutionTime(job.CronExpression, DateTime.UtcNow)
-                        : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId, DateTime.UtcNow);
-                    _jobRepository.Update(job);
-                    await _jobRepository.SaveChangesAsync();
-                }
+                _logger?.LogDebug("Job {JobId} skipped: concurrency limit reached", job.Id);
+                continue;
             }
- catch (ConcurrencyException ex)
- {
-	// ConcurrencyException means another scheduler instance claimed this job.
-	// This is expected in a distributed environment and should not be treated as an error.
-	_logger?.LogDebug(ex, "Job {JobId} skipped: another scheduler instance claimed the job", job.Id);
- }
- catch (Exception ex)
- {
- _logger?.LogError(ex, "Error executing job {JobId}", job.Id);
- }
-        }
 
-        return executions;
+            var execution = await _executorService.ExecuteJobAsync(job, cancellationToken);
+            executions.Add(execution);
+
+            // Schedule next execution
+            if (job.IsActive && job.Status != JobStatus.FailedPermanently)
+            {
+                job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
+                    ? _cronService.GetNextExecutionTime(job.CronExpression, DateTime.UtcNow)
+                    : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId, DateTime.UtcNow);
+                _jobRepository.Update(job);
+                await _jobRepository.SaveChangesAsync();
+            }
+        }
+        catch (ConcurrencyException ex)
+        {
+            // ConcurrencyException means another scheduler instance claimed this job.
+            // This is expected in a distributed environment and should not be treated as an error.
+            _logger?.LogDebug(ex, "Job {JobId} skipped: another scheduler instance claimed the job", job.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error executing job {JobId}", job.Id);
+        }
     }
+
+    // Process misfired jobs with misfire policy
+    foreach (var job in misfiredJobs)
+    {
+        if (cancellationToken.IsCancellationRequested)
+            break;
+
+        try
+        {
+            if (!await _concurrencyManager.CanExecuteAsync(job))
+            {
+                _logger?.LogDebug("Job {JobId} skipped: concurrency limit reached", job.Id);
+                continue;
+            }
+
+            // Apply misfire policy
+            switch (job.MisfirePolicy)
+            {
+                case MisfirePolicy.FireOnceNow:
+                    _logger?.LogInformation("Job {JobId} ({JobName}) misfired but will execute once now (MisfirePolicy.FireOnceNow)", job.Id, job.Name);
+                    var execution = await _executorService.ExecuteJobAsync(job, cancellationToken);
+                    executions.Add(execution);
+                    break;
+
+                case MisfirePolicy.SkipToNext:
+                    _logger?.LogInformation("Job {JobId} ({JobName}) misfired - skipping to next execution (MisfirePolicy.SkipToNext)", job.Id, job.Name);
+                    // Update next execution time to the next scheduled time from the original NextExecutionAt
+                    if (job.NextExecutionAt.HasValue)
+                    {
+                        job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
+                            ? _cronService.GetNextExecutionTime(job.CronExpression, job.NextExecutionAt.Value)
+                            : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId, job.NextExecutionAt.Value);
+                        _jobRepository.Update(job);
+                        await _jobRepository.SaveChangesAsync();
+                    }
+                    break;
+
+                case MisfirePolicy.FireAll:
+                    _logger?.LogInformation("Job {JobId} ({JobName}) misfired - will execute all missed occurrences (MisfirePolicy.FireAll)", job.Id, job.Name);
+                    // For FireAll, we execute once now and schedule the next occurrence
+                    var fireAllExecution = await _executorService.ExecuteJobAsync(job, cancellationToken);
+                    executions.Add(fireAllExecution);
+                    break;
+            }
+        }
+        catch (ConcurrencyException ex)
+        {
+            _logger?.LogDebug(ex, "Job {JobId} skipped: another scheduler instance claimed the job", job.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error handling misfired job {JobId}", job.Id);
+        }
+    }
+
+    return executions;
+}
+
 
     /// <summary>
     /// Processes failed executions that are eligible for retry.

@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using JobScheduler.Core.Constants;
 
 namespace JobScheduler.Core.Domain.Entities;
 
@@ -21,8 +22,35 @@ public static class JobExtensions
         ArgumentNullException.ThrowIfNull(job);
 
         return job.IsActive &&
-            job.NextExecutionAt.HasValue &&
-            job.NextExecutionAt.Value <= DateTime.UtcNow;
+        job.NextExecutionAt.HasValue &&
+        job.NextExecutionAt.Value <= DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Determines whether the job has missed its scheduled execution time (misfired).
+    /// A job is considered misfired if its NextExecutionAt is in the past by more than the tolerance.
+    /// </summary>
+    /// <param name="job">The job to evaluate.</param>
+    /// <param name="toleranceSeconds">The number of seconds after the scheduled time that is still considered on-time.</param>
+    /// <returns>
+    /// <c>true</c> if the job is misfired; otherwise <c>false</c>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is <c>null</c>.</exception>
+    public static bool IsMisfired(this Job job, int toleranceSeconds = 60)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+
+        if (!job.NextExecutionAt.HasValue || !job.IsActive)
+            return false;
+
+        var now = DateTime.UtcNow;
+        var scheduledTime = job.NextExecutionAt.Value;
+
+        // If scheduled time is in the future or within tolerance, it's not misfired
+        if (scheduledTime > now || (now - scheduledTime).TotalSeconds <= toleranceSeconds)
+            return false;
+
+        return true;
     }
 
     /// <summary>
@@ -54,9 +82,9 @@ public static class JobExtensions
     /// Thrown when <paramref name="job.TimeZoneId"/> is not <c>null</c> or whitespace but does not correspond to a valid system time zone ID.
     /// </exception>
     public static TimeZoneInfo GetTimeZoneInfo(this Job job) =>
-                string.IsNullOrWhiteSpace(job.TimeZoneId)
-                        ? TimeZoneInfo.Utc
-                        : TimeZoneInfo.FindSystemTimeZoneById(job.TimeZoneId);
+        string.IsNullOrWhiteSpace(job.TimeZoneId)
+            ? TimeZoneInfo.Utc
+            : TimeZoneInfo.FindSystemTimeZoneById(job.TimeZoneId);
 
     /// <summary>
     /// Generates a concise summary string for the job, including its name, status, priority, and execution statistics.

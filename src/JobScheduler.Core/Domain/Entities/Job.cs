@@ -41,6 +41,8 @@ public class Job
 
     public bool IsActive { get; set; } = true;
 
+public MisfirePolicy MisfirePolicy { get; set; } = MisfirePolicy.SkipToNext;
+
     public int MaxConcurrentExecutions { get; set; } = 1;
 
     public int MaxRetries { get; set; } = SchedulerConstants.DefaultMaxRetries;

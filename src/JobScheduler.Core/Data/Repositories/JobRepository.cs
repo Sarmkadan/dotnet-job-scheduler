@@ -69,6 +69,22 @@ public sealed class JobRepository : Repository<Job>, IJobRepository
             .ThenBy(j => j.NextExecutionAt);
     }
 
+    public async Task<IEnumerable<Job>> GetMisfiredJobsAsync()
+    {
+        var now = DateTime.UtcNow;
+        var jobs = await _dbSet
+            .Where(j => j.IsActive &&
+                        j.Status != JobStatus.Suspended &&
+                        j.Status != JobStatus.Cancelled &&
+                        j.NextExecutionAt.HasValue &&
+                        j.NextExecutionAt < now.AddSeconds(-60))
+            .ToListAsync();
+
+        return jobs
+            .OrderByDescending(j => j.CalculateEffectivePriority(now))
+            .ThenBy(j => j.NextExecutionAt);
+    }
+
     public async Task<IEnumerable<Job>> GetFailedJobsAsync()
     {
         return await _dbSet
