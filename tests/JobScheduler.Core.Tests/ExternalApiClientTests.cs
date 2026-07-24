@@ -15,69 +15,64 @@ namespace JobScheduler.Core.Tests
 {
     public class ExternalApiClientTests
     {
-        private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
+        private readonly Mock<HttpMessageHandler> _handlerMock;
         private readonly HttpClient _httpClient;
-        private readonly Mock<ILogger<ExternalApiClient>> _mockLogger;
+        private readonly Mock<ILogger<ExternalApiClient>> _loggerMock;
         private readonly ExternalApiClient _client;
 
         public ExternalApiClientTests()
         {
-            _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
-            _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
-            _mockLogger = new Mock<ILogger<ExternalApiClient>>();
-            _client = new ExternalApiClient(_httpClient, _mockLogger.Object);
+            _handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            _httpClient = new HttpClient(_handlerMock.Object);
+            _loggerMock = new Mock<ILogger<ExternalApiClient>>();
+            _client = new ExternalApiClient(_httpClient, _loggerMock.Object);
+        }
+
+        private void SetupHandler(HttpResponseMessage response, Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? func = null)
+        {
+            var setup = _handlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>());
+
+            if (func != null)
+                setup.Returns(func);
+            else
+                setup.ReturnsAsync(response);
         }
 
         [Fact]
-        public async Task GetAsync_ReturnsSuccess_WhenResponseIsSuccess()
+        public async Task GetAsync_ReturnsSuccess_WhenResponseIsOk()
         {
-            // Arrange
             var url = "https://api.example.com/data";
-            var responseData = new MyData { Id = 1, Name = "Test" };
-            var json = JsonSerializer.Serialize(responseData);
+            var expected = new MyData { Id = 1, Name = "Test" };
+            var json = JsonSerializer.Serialize(expected);
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
+            SetupHandler(response);
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ReturnsAsync(response);
-
-            // Act
             var result = await _client.GetAsync<MyData>(url);
 
-            // Assert
             Assert.True(result.Success);
             Assert.NotNull(result.Data);
-            Assert.Equal(responseData.Id, result.Data.Id);
-            Assert.Equal(responseData.Name, result.Data.Name);
+            Assert.Equal(expected.Id, result.Data!.Id);
+            Assert.Equal(expected.Name, result.Data.Name);
             Assert.Null(result.Error);
         }
 
         [Fact]
-        public async Task GetAsync_ReturnsFailure_WhenResponseIsNotSuccess()
+        public async Task GetAsync_ReturnsFailure_WhenStatusNotSuccess()
         {
-            // Arrange
             var url = "https://api.example.com/data";
             var response = new HttpResponseMessage(HttpStatusCode.NotFound);
+            SetupHandler(response);
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ReturnsAsync(response);
-
-            // Act
             var result = await _client.GetAsync<MyData>(url);
 
-            // Assert
             Assert.False(result.Success);
             Assert.Null(result.Data);
             Assert.Equal("HTTP NotFound", result.Error);
@@ -86,134 +81,84 @@ namespace JobScheduler.Core.Tests
         [Fact]
         public async Task GetAsync_ReturnsFailure_OnTimeout()
         {
-            // Arrange
             var url = "https://api.example.com/data";
+            SetupHandler(null, (req, ct) => throw new OperationCanceledException());
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ThrowsAsync(new OperationCanceledException());
-
-            // Act
             var result = await _client.GetAsync<MyData>(url);
 
-            // Assert
             Assert.False(result.Success);
             Assert.Null(result.Data);
             Assert.Equal("Request timeout", result.Error);
         }
 
         [Fact]
-        public async Task PostAsync_ReturnsSuccess_WhenResponseIsSuccess()
+        public async Task PostAsync_ReturnsSuccess_WhenResponseIsOk()
         {
-            // Arrange
             var url = "https://api.example.com/data";
-            var requestData = new MyData { Name = "Test" };
-            var responseData = new MyData { Id = 1, Name = "Test" };
+            var request = new MyData { Name = "Req" };
+            var responseData = new MyData { Id = 2, Name = "Resp" };
             var json = JsonSerializer.Serialize(responseData);
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
+            SetupHandler(response);
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ReturnsAsync(response);
+            var result = await _client.PostAsync<MyData, MyData>(url, request);
 
-            // Act
-            var result = await _client.PostAsync<MyData, MyData>(url, requestData);
-
-            // Assert
             Assert.True(result.Success);
             Assert.NotNull(result.Data);
-            Assert.Equal(responseData.Id, result.Data.Id);
+            Assert.Equal(responseData.Id, result.Data!.Id);
             Assert.Equal(responseData.Name, result.Data.Name);
             Assert.Null(result.Error);
         }
 
         [Fact]
-        public async Task PostAsync_ReturnsFailure_WhenResponseIsNotSuccess()
+        public async Task PostAsync_ReturnsFailure_WhenStatusNotSuccess()
         {
-            // Arrange
             var url = "https://api.example.com/data";
-            var requestData = new MyData { Name = "Test" };
+            var request = new MyData { Name = "Req" };
             var response = new HttpResponseMessage(HttpStatusCode.BadRequest);
+            SetupHandler(response);
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ReturnsAsync(response);
+            var result = await _client.PostAsync<MyData, MyData>(url, request);
 
-            // Act
-            var result = await _client.PostAsync<MyData, MyData>(url, requestData);
-
-            // Assert
             Assert.False(result.Success);
             Assert.Null(result.Data);
             Assert.Equal("HTTP BadRequest", result.Error);
         }
 
         [Fact]
-        public async Task PutAsync_ReturnsSuccess_WhenResponseIsSuccess()
+        public async Task PutAsync_ReturnsSuccess_WhenResponseIsOk()
         {
-            // Arrange
             var url = "https://api.example.com/data";
-            var requestData = new MyData { Name = "Updated" };
-            var responseData = new MyData { Id = 1, Name = "Updated" };
+            var request = new MyData { Name = "Update" };
+            var responseData = new MyData { Id = 3, Name = "Update" };
             var json = JsonSerializer.Serialize(responseData);
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
+            SetupHandler(response);
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ReturnsAsync(response);
+            var result = await _client.PutAsync<MyData, MyData>(url, request);
 
-            // Act
-            var result = await _client.PutAsync<MyData, MyData>(url, requestData);
-
-            // Assert
             Assert.True(result.Success);
             Assert.NotNull(result.Data);
-            Assert.Equal(responseData.Id, result.Data.Id);
+            Assert.Equal(responseData.Id, result.Data!.Id);
             Assert.Equal(responseData.Name, result.Data.Name);
             Assert.Null(result.Error);
         }
 
         [Fact]
-        public async Task DeleteAsync_ReturnsSuccess_WhenResponseIsSuccess()
+        public async Task DeleteAsync_ReturnsSuccess_WhenResponseIsOk()
         {
-            // Arrange
             var url = "https://api.example.com/data/1";
             var response = new HttpResponseMessage(HttpStatusCode.OK);
+            SetupHandler(response);
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ReturnsAsync(response);
-
-            // Act
             var result = await _client.DeleteAsync(url);
 
-            // Assert
             Assert.True(result.Success);
             Assert.True(result.Data);
             Assert.Null(result.Error);
@@ -222,154 +167,101 @@ namespace JobScheduler.Core.Tests
         [Fact]
         public async Task GetWithRetryAsync_ReturnsSuccess_OnFirstAttempt()
         {
-            // Arrange
             var url = "https://api.example.com/data";
-            var responseData = new { Id = 1 };
-            var json = JsonSerializer.Serialize(responseData);
+            var expected = new MyData { Id = 4, Name = "Retry" };
+            var json = JsonSerializer.Serialize(expected);
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
+            SetupHandler(response);
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ReturnsAsync(response);
-
-            // Act
             var result = await _client.GetWithRetryAsync<MyData>(url, maxRetries: 3);
 
-            // Assert
             Assert.True(result.Success);
             Assert.NotNull(result.Data);
-            Assert.Equal(responseData.Id, result.Data.Id);
+            Assert.Equal(expected.Id, result.Data!.Id);
+            Assert.Equal(expected.Name, result.Data.Name);
             Assert.Null(result.Error);
         }
 
         [Fact]
         public async Task GetWithRetryAsync_ReturnsSuccess_AfterRetry()
         {
-            // Arrange
             var url = "https://api.example.com/data";
-            var responseData = new { Id = 1 };
-            var json = JsonSerializer.Serialize(responseData);
-
-            // First two attempts fail, third succeeds
+            var expected = new MyData { Id = 5, Name = "RetryLater" };
+            var json = JsonSerializer.Serialize(expected);
             var failResponse = new HttpResponseMessage(HttpStatusCode.InternalServerError);
             var successResponse = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
 
-            _mockHttpMessageHandler
+            _handlerMock
                 .Protected()
                 .SetupSequence<Task<HttpResponseMessage>>(
                     "SendAsync",
                     ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
+                    ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(failResponse)
                 .ReturnsAsync(failResponse)
                 .ReturnsAsync(successResponse);
 
-            // Act
             var result = await _client.GetWithRetryAsync<MyData>(url, maxRetries: 3);
 
-            // Assert
             Assert.True(result.Success);
             Assert.NotNull(result.Data);
-            Assert.Equal(responseData.Id, result.Data.Id);
+            Assert.Equal(expected.Id, result.Data!.Id);
+            Assert.Equal(expected.Name, result.Data.Name);
             Assert.Null(result.Error);
         }
 
         [Fact]
         public async Task GetWithRetryAsync_ReturnsFailure_AfterMaxRetries()
         {
-            // Arrange
             var url = "https://api.example.com/data";
             var failResponse = new HttpResponseMessage(HttpStatusCode.InternalServerError);
+            SetupHandler(failResponse);
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ReturnsAsync(failResponse);
-
-            // Act
             var result = await _client.GetWithRetryAsync<MyData>(url, maxRetries: 2);
 
-            // Assert
             Assert.False(result.Success);
             Assert.Null(result.Data);
             Assert.Equal("Max retries exceeded", result.Error);
         }
 
         [Fact]
-        public async Task IsApiAvailableAsync_ReturnsTrue_WhenApiIsAvailable()
+        public async Task IsApiAvailableAsync_ReturnsTrue_WhenSuccess()
         {
-            // Arrange
             var url = "https://api.example.com/health";
             var response = new HttpResponseMessage(HttpStatusCode.OK);
+            SetupHandler(response);
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ReturnsAsync(response);
-
-            // Act
             var result = await _client.IsApiAvailableAsync(url);
 
-            // Assert
             Assert.True(result);
         }
 
         [Fact]
-        public async Task IsApiAvailableAsync_ReturnsFalse_WhenApiIsNotAvailable()
+        public async Task IsApiAvailableAsync_ReturnsFalse_WhenNotSuccess()
         {
-            // Arrange
             var url = "https://api.example.com/health";
             var response = new HttpResponseMessage(HttpStatusCode.NotFound);
+            SetupHandler(response);
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ReturnsAsync(response);
-
-            // Act
             var result = await _client.IsApiAvailableAsync(url);
 
-            // Assert
             Assert.False(result);
         }
 
         [Fact]
         public async Task IsApiAvailableAsync_ReturnsFalse_OnException()
         {
-            // Arrange
             var url = "https://api.example.com/health";
+            SetupHandler(null, (req, ct) => throw new HttpRequestException());
 
-            _mockHttpMessageHandler
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    It.IsAny<CancellationToken>())
-                .ThrowsAsync(new HttpRequestException());
-
-            // Act
             var result = await _client.IsApiAvailableAsync(url);
 
-            // Assert
             Assert.False(result);
         }
 
