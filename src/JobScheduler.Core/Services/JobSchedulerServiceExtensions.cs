@@ -8,12 +8,80 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JobScheduler.Core.Constants;
 using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Domain.Models;
 
 namespace JobScheduler.Core.Services;
+
+/// <summary>
+/// Provides safe wildcard pattern matching for job name filtering.
+/// </summary>
+internal static partial class PatternMatching
+{
+    private const int MaxPatternLength = 1024;
+    private const RegexOptions SafeRegexOptions = RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking;
+
+    /// <summary>
+    /// Converts a wildcard pattern to a safe Regex pattern.
+    /// </summary>
+    /// <param name="wildcardPattern">The wildcard pattern (supports * and ?).</param>
+    /// <returns>Regex pattern for matching.</returns>
+    /// <exception cref="ArgumentException">Thrown when pattern is too long or invalid.</exception>
+    internal static Regex WildcardToRegex(string wildcardPattern)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(wildcardPattern);
+
+        if (wildcardPattern.Length > MaxPatternLength)
+        {
+            throw new ArgumentException(
+                $"Pattern length exceeds maximum allowed length of {MaxPatternLength} characters.",
+                nameof(wildcardPattern));
+        }
+
+        // Escape all regex special characters except * and ?
+        var regexPattern = Regex.Escape(wildcardPattern)
+            .Replace("*", ".*")  // * matches any sequence of characters
+            .Replace("?", ".");   // ? matches any single character
+
+        // Ensure the pattern matches the entire string
+        regexPattern = $"^{regexPattern}$";
+
+        try
+        {
+            return new Regex(regexPattern, SafeRegexOptions, TimeSpan.FromMilliseconds(100));
+        }
+        catch (RegexParseException ex)
+        {
+            throw new ArgumentException("Invalid wildcard pattern.", nameof(wildcardPattern), ex);
+        }
+    }
+
+    /// <summary>
+    /// Safely matches a name against a wildcard pattern with timeout protection.
+    /// </summary>
+    internal static bool IsMatchWithTimeout(string input, string pattern, TimeSpan timeout)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+        try
+        {
+            var regex = WildcardToRegex(pattern);
+            return regex.IsMatch(input);
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            // Pattern caused timeout - reject it
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            // Timeout occurred
+            return false;
+        }
+    }
+}
 
 /// <summary>
 /// Extension methods for <see cref="JobSchedulerService"/> providing additional utility functionality
@@ -165,7 +233,7 @@ public static class JobSchedulerServiceExtensions
     /// <returns>Read-only list of active jobs for the specified handler type</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="service"/> is <c>null</c>.</exception>
     public static async Task<IReadOnlyList<Job>> GetActiveJobsByHandlerAsync<THandler>(this JobSchedulerService service)
-        where THandler : IJobHandler
+    where THandler : IJobHandler
     {
         ArgumentNullException.ThrowIfNull(service);
 
@@ -173,9 +241,9 @@ public static class JobSchedulerServiceExtensions
         var handlerTypeName = typeof(THandler).FullName!;
 
         return jobs.Where(j => string.Equals(j.HandlerType, handlerTypeName, StringComparison.Ordinal))
-                  .Where(j => j.IsActive)
-                  .ToList()
-                  .AsReadOnly();
+            .Where(j => j.IsActive)
+            .ToList()
+            .AsReadOnly();
     }
 
     /// <summary>
@@ -183,11 +251,12 @@ public static class JobSchedulerServiceExtensions
     /// </summary>
     /// <typeparam name="THandler">The job handler type to filter by</typeparam>
     /// <param name="service">The job scheduler service</param>
-    /// <param name="namePattern">Name pattern to match (supports * and ?)</param>
+    /// <param name="namePattern">Name pattern to match (supports * and ? wildcards, or "*" for all jobs)</param>
     /// <returns>Read-only list of matching jobs for the specified handler type</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="service"/> or <paramref name="namePattern"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="namePattern"/> is empty or exceeds maximum length.</exception>
     public static async Task<IReadOnlyList<Job>> FindJobsByNameAsync<THandler>(this JobSchedulerService service, string namePattern)
-        where THandler : IJobHandler
+    where THandler : IJobHandler
     {
         ArgumentNullException.ThrowIfNull(service);
         ArgumentException.ThrowIfNullOrEmpty(namePattern);
@@ -195,10 +264,19 @@ public static class JobSchedulerServiceExtensions
         var allJobs = await service.GetJobsAsync(null);
         var handlerTypeName = typeof(THandler).FullName!;
 
+        // Special case: "*" matches all jobs
+        if (namePattern == "*")
+        {
+            return allJobs.Where(j => string.Equals(j.HandlerType, handlerTypeName, StringComparison.Ordinal))
+                .ToList()
+                .AsReadOnly();
+        }
+
+        // Use safe wildcard pattern matching with ReDoS protection
         return allJobs.Where(j => string.Equals(j.HandlerType, handlerTypeName, StringComparison.Ordinal))
-                     .Where(j => namePattern == "*" || j.Name.Contains(namePattern, StringComparison.OrdinalIgnoreCase))
-                     .ToList()
-                     .AsReadOnly();
+            .Where(j => PatternMatching.IsMatchWithTimeout(j.Name, namePattern, TimeSpan.FromMilliseconds(100)))
+            .ToList()
+            .AsReadOnly();
     }
 
     /// <summary>
@@ -261,7 +339,7 @@ public static class JobSchedulerServiceExtensions
     {
         ArgumentNullException.ThrowIfNull(job);
         return job.NextExecutionAt?.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) ??
-               "Not scheduled";
+            "Not scheduled";
     }
 
     /// <summary>
