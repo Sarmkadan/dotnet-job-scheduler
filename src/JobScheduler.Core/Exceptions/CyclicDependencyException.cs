@@ -1,12 +1,14 @@
 #nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
 // =============================================================================
 
-namespace JobScheduler.Core.Exceptions;
 using System;
 using System.Text.Json.Serialization;
+
+namespace JobScheduler.Core.Exceptions;
 
 /// <summary>
 /// Thrown when adding a job dependency would introduce a cycle in the dependency graph,
@@ -15,11 +17,11 @@ using System.Text.Json.Serialization;
 public sealed class CyclicDependencyException : JobSchedulerException
 {
     /// <summary>Gets the ID of the job that was requested to be made dependent.</summary>
-[JsonInclude]
+    [JsonInclude]
     public Guid JobId { get; private set; }
 
     /// <summary>Gets the ID of the job that was requested as the prerequisite.</summary>
-[JsonInclude]
+    [JsonInclude]
     public Guid DependsOnJobId { get; private set; }
 
     /// <summary>
