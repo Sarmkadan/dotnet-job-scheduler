@@ -198,17 +198,21 @@ public class JobExecutorService
                     finalExecution = execution;
                     break; // Success - exit retry loop
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
                 {
                     stopwatch.Stop();
                     execution.MarkAsCompleted(ExecutionStatus.Cancelled);
                     execution.ErrorMessage = "Execution cancelled by caller";
 
-                    _logger?.LogWarning("Job {JobId} execution {ExecutionId} was cancelled after {Duration}ms",
+                    _logger?.LogWarning(ex, "Job {JobId} execution {ExecutionId} was cancelled after {Duration}ms",
                         job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
 
                     if (shouldPublishEvents)
                     {
+                        // Check if cancellation should be retried based on policy
+                        bool shouldRetry = retryPolicy.RetryOnCancellation && attemptNumber <= retryPolicy.MaxRetries;
+                        willRetry = shouldRetry;
+
                         await _eventPublisher!.PublishAsync(new JobExecutionFailedEvent
                         {
                             JobId = job.Id,
@@ -216,20 +220,21 @@ public class JobExecutorService
                             JobName = job.Name,
                             ErrorMessage = execution.ErrorMessage ?? "Execution cancelled",
                             RetryAttempt = attemptNumber,
-                            WillRetry = false
+                            WillRetry = willRetry
                         });
                     }
 
                     finalExecution = execution;
                     break;
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex)
                 {
+                    // This is a timeout-based cancellation (not graceful shutdown)
                     stopwatch.Stop();
                     execution.MarkAsCompleted(ExecutionStatus.TimedOut);
                     execution.ErrorMessage = $"Execution timed out after {job.ExecutionTimeoutSeconds} seconds";
 
-                    _logger?.LogWarning("Job {JobId} execution {ExecutionId} timed out after {Duration}ms",
+                    _logger?.LogWarning(ex, "Job {JobId} execution {ExecutionId} timed out after {Duration}ms",
                         job.Id, execution.Id, stopwatch.ElapsedMilliseconds);
 
                     if (shouldPublishEvents)
@@ -321,7 +326,7 @@ public class JobExecutorService
     }
 
     /// <summary>
-    /// Resolves <see cref="Job.HandlerType"/> to a type implementing <see cref="IJobHandler"/>,
+    /// Resolves <see cref="Job.HandlerType"/> to a type implementing <see cref="IJobHandler"/>
     /// instantiates it and executes it. Override to plug in a container-based handler factory.
     /// </summary>
     /// <exception cref="ExecutionException">

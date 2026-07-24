@@ -108,6 +108,21 @@ public sealed class JobExecutionExhaustedEvent : ISchedulerEvent
     public int MaxRetries { get; set; }
 }
 
+/// <summary>
+/// Event published when a job execution is interrupted during graceful shutdown.
+/// Allows handlers to perform cleanup and cleanup resources before termination.
+/// </summary>
+public sealed class JobExecutionInterruptedEvent : ISchedulerEvent
+{
+    public Guid EventId { get; set; } = Guid.NewGuid();
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string EventType => "job.execution.interrupted";
+    public Guid JobId { get; set; }
+    public Guid ExecutionId { get; set; }
+    public string JobName { get; set; } = string.Empty;
+    public string Reason { get; set; } = "Shutdown interrupted execution";
+}
+
 public sealed class JobSuspendedEvent : ISchedulerEvent
 {
     public Guid EventId { get; set; } = Guid.NewGuid();

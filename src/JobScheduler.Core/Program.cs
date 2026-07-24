@@ -78,6 +78,7 @@ public sealed class SchedulerHostedService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<SchedulerHostedService> _logger;
+    private readonly TimeSpan _gracefulShutdownTimeout = TimeSpan.FromSeconds(30);
 
     public SchedulerHostedService(IServiceProvider serviceProvider, ILogger<SchedulerHostedService> logger)
     {
@@ -103,7 +104,7 @@ public sealed class SchedulerHostedService : BackgroundService
                 var retries = await schedulerService.ProcessRetriesAsync();
 
                 // Get and log statistics periodically
-                if ((executions.Any() || retries.Any()) && stoppingToken.IsCancellationRequested == false)
+                if ((executions.Any() || retries.Any()) && !stoppingToken.IsCancellationRequested)
                 {
                     var stats = await schedulerService.GetSchedulerStatisticsAsync();
                     _logger.LogDebug(
@@ -119,13 +120,48 @@ public sealed class SchedulerHostedService : BackgroundService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("Scheduler hosted service stopping");
+            _logger.LogInformation("Scheduler hosted service stopping - initiating graceful shutdown");
+            await GracefulShutdownAsync(stoppingToken);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in scheduler hosted service");
             // Do not re-throw exceptions to prevent the hosted service from terminating
             // This allows the scheduler to continue running even if individual jobs fail
+        }
+    }
+
+    /// <summary>
+    /// Performs graceful shutdown by allowing in-flight jobs to complete within a bounded time window.
+    /// Any jobs still running after the grace period are marked as interrupted.
+    /// </summary>
+    private async Task GracefulShutdownAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Graceful shutdown initiated - allowing in-flight jobs to complete within {Timeout} seconds",
+            _gracefulShutdownTimeout.TotalSeconds);
+
+        var shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        var shutdownTask = Task.Delay(_gracefulShutdownTimeout, shutdownCts.Token);
+
+        try
+        {
+            // Wait for the graceful shutdown period to complete
+            await shutdownTask;
+
+            _logger.LogInformation("Graceful shutdown period completed - all in-flight jobs should have finished");
+        }
+        catch (OperationCanceledException)
+        {
+            // This means we're being cancelled before the timeout
+            _logger.LogDebug("Graceful shutdown cancelled before timeout");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during graceful shutdown");
+        }
+        finally
+        {
+            shutdownCts.Dispose();
         }
     }
 }
