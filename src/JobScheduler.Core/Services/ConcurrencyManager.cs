@@ -32,6 +32,7 @@ public class ConcurrencyManager
     /// <summary>
     /// Creates a concurrency manager with the default global limit and no logger.
     /// </summary>
+    /// <param name="executionRepository">The execution repository for tracking running jobs.</param>
     /// <exception cref="ArgumentNullException"><paramref name="executionRepository"/> is null.</exception>
     public ConcurrencyManager(IExecutionRepository executionRepository)
         : this(executionRepository, SchedulerConstants.DefaultMaxConcurrentJobs, null)
@@ -41,6 +42,9 @@ public class ConcurrencyManager
     /// <summary>
     /// Creates a concurrency manager.
     /// </summary>
+    /// <param name="executionRepository">The execution repository for tracking running jobs.</param>
+    /// <param name="maxGlobalConcurrency">Maximum number of concurrent job executions across all jobs.</param>
+    /// <param name="logger">Optional logger for diagnostic messages.</param>
     /// <exception cref="ArgumentNullException"><paramref name="executionRepository"/> is null.</exception>
     public ConcurrencyManager(IExecutionRepository executionRepository, int maxGlobalConcurrency = SchedulerConstants.DefaultMaxConcurrentJobs, ILogger<ConcurrencyManager>? logger = null)
     {
@@ -55,15 +59,12 @@ public class ConcurrencyManager
     /// <summary>
     /// Checks if a job can execute based on concurrency constraints.
     /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="job"/> is null.</exception>
     public virtual async Task<bool> CanExecuteAsync(Job job)
     {
-        if (job is null)
-        {
-            _logger?.LogError("CanExecuteAsync called with null job");
-            throw new ArgumentNullException(nameof(job));
-        }
+        ArgumentNullException.ThrowIfNull(job);
 
-        _logger?.LogDebug("Checking concurrency limits for job {JobId} (max: {MaxConcurrent})", job.Id, job.MaxConcurrentExecutions);
+        _logger?.LogDebug("Checking concurrency limits for job {JobId} (max: {MaxConcurrent}, disallow concurrent: {DisallowConcurrent})", job.Id, job.MaxConcurrentExecutions, job.DisallowConcurrentExecution);
 
         // Check global concurrency limit
         var globalCount = await _executionRepository.GetConcurrentRunningCountAsync();
@@ -74,7 +75,20 @@ public class ConcurrencyManager
             return false;
         }
 
-        // Check job-specific concurrency limit
+        // If DisallowConcurrentExecution is true, check if any instance of this job is currently running
+        if (job.DisallowConcurrentExecution)
+        {
+            var disallowConcurrentCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);
+            _logger?.LogDebug("Current job concurrency for {JobId} (disallow concurrent): {JobCount}", job.Id, disallowConcurrentCount);
+            if (disallowConcurrentCount > 0)
+            {
+                _logger?.LogWarning("Job {JobId} blocked: DisallowConcurrentExecution=true but {JobCount} instance(s) already running", job.Id, disallowConcurrentCount);
+                return false;
+            }
+            return true;
+        }
+
+        // Check job-specific concurrency limit for jobs that allow concurrent execution
         var jobSpecificCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);
         _logger?.LogDebug("Current job concurrency for {JobId}: {JobCount}/{MaxConcurrent}", job.Id, jobSpecificCount, job.MaxConcurrentExecutions);
         if (jobSpecificCount >= job.MaxConcurrentExecutions)
@@ -90,8 +104,12 @@ public class ConcurrencyManager
     /// <summary>
     /// Ensures a job can execute; throws if it cannot due to concurrency limits.
     /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="job"/> is null.</exception>
+    /// <exception cref="ConcurrencyException">Thrown when concurrency limits are exceeded.</exception>
     public virtual async Task EnsureCanExecuteAsync(Job job)
     {
+        ArgumentNullException.ThrowIfNull(job);
+
         if (!await CanExecuteAsync(job))
         {
             var currentCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);

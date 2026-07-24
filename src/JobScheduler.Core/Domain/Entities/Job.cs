@@ -45,6 +45,13 @@ public MisfirePolicy MisfirePolicy { get; set; } = MisfirePolicy.SkipToNext;
 
     public int MaxConcurrentExecutions { get; set; } = 1;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether concurrent execution of the same job is disallowed.
+        /// When true, only one instance of this job can run at any time, even if MaxConcurrentExecutions > 1.
+        /// This is useful for jobs that should not overlap with themselves (e.g., database migrations, file operations).
+        /// </summary>
+        public bool DisallowConcurrentExecution { get; set; } = false;
+
     public int MaxRetries { get; set; } = SchedulerConstants.DefaultMaxRetries;
 
     public int RetryBackoffSeconds { get; set; } = SchedulerConstants.DefaultRetryBackoffSeconds;
@@ -102,6 +109,11 @@ public virtual RetryPolicy? RetryPolicy { get; set; }
         if (MaxConcurrentExecutions <= 0 || MaxConcurrentExecutions > SchedulerConstants.MaxJobsPerPriority)
             return false;
 
+        if (DisallowConcurrentExecution && MaxConcurrentExecutions > 1)
+        {
+            MaxConcurrentExecutions = 1;
+        }
+
         return true;
     }
 
@@ -128,11 +140,23 @@ public virtual RetryPolicy? RetryPolicy { get; set; }
             UpdatedBy = updatedBy;
     }
 
-    public bool CanExecuteNow(int currentConcurrentCount)
-    {
-        return IsActive && Status != JobStatus.Suspended && Status != JobStatus.Cancelled &&
-               currentConcurrentCount < MaxConcurrentExecutions;
-    }
+        /// <summary>
+        /// Determines whether the job can execute based on its active status, suspension state, and concurrency limits.
+        /// </summary>
+        /// <param name="currentConcurrentCount">The current number of concurrent executions of this job.</param>
+        /// <returns><c>true</c> if the job can execute; otherwise, <c>false</c>.</returns>
+        public bool CanExecuteNow(int currentConcurrentCount)
+        {
+            // If DisallowConcurrentExecution is true, only allow execution if no instances are currently running
+            if (DisallowConcurrentExecution)
+            {
+                return IsActive && Status != JobStatus.Suspended && Status != JobStatus.Cancelled &&
+                       currentConcurrentCount == 0;
+            }
+
+            return IsActive && Status != JobStatus.Suspended && Status != JobStatus.Cancelled &&
+                   currentConcurrentCount < MaxConcurrentExecutions;
+        }
 
 /// <summary>
 /// Gets the effective retry policy for this job, falling back to default values if not configured.

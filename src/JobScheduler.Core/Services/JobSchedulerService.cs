@@ -105,11 +105,19 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
 
         try
         {
-            // Ask before executing: the executor throws when a limit is hit, and a job that is
-            // merely saturated is not an error worth logging on every scheduler tick.
+            // Check if job can execute based on concurrency and job-specific constraints
             if (!await _concurrencyManager.CanExecuteAsync(job))
             {
                 _logger?.LogDebug("Job {JobId} skipped: concurrency limit reached", job.Id);
+                continue;
+            }
+
+            // Additional check using job's CanExecuteNow method for immediate execution validation
+            var currentRunningCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);
+            if (!job.CanExecuteNow(currentRunningCount))
+            {
+                _logger?.LogDebug("Job {JobId} skipped: job state prevents execution (active: {IsActive}, suspended: {IsSuspended}, current concurrent: {CurrentCount})",
+                    job.Id, job.IsActive, job.Status == JobStatus.Suspended, currentRunningCount);
                 continue;
             }
 
@@ -149,6 +157,15 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
             if (!await _concurrencyManager.CanExecuteAsync(job))
             {
                 _logger?.LogDebug("Job {JobId} skipped: concurrency limit reached", job.Id);
+                continue;
+            }
+
+            // Additional check using job's CanExecuteNow method for immediate execution validation
+            var currentRunningCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);
+            if (!job.CanExecuteNow(currentRunningCount))
+            {
+                _logger?.LogDebug("Job {JobId} skipped: job state prevents execution (active: {IsActive}, suspended: {IsSuspended}, current concurrent: {CurrentCount})",
+                    job.Id, job.IsActive, job.Status == JobStatus.Suspended, currentRunningCount);
                 continue;
             }
 
