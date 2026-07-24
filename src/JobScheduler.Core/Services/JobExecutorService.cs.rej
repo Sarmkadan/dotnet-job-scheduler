@@ -1,0 +1,32 @@
+--- src/JobScheduler.Core/Services/JobExecutorService.cs
++++ src/JobScheduler.Core/Services/JobExecutorService.cs
+@@ -242,15 +242,26 @@ namespace JobScheduler.Core.Services;
+                     var timeoutRetryable = retryPolicy.RetryOnTimeout;
+                     willRetry = timeoutRetryable && attemptNumber <= retryPolicy.MaxRetries;
+ 
+-                    await _eventPublisher!.PublishAsync(new JobExecutionFailedEvent
++                    await _eventPublisher!.PublishAsync(new JobExecutionTimedOutEvent
+                     {
+                         JobId = job.Id,
+                         ExecutionId = execution.Id,
+                         JobName = job.Name,
+                         ErrorMessage = execution.ErrorMessage,
+-                        RetryAttempt = attemptNumber,
+-                        WillRetry = willRetry
++                        TimeoutSeconds = job.ExecutionTimeoutSeconds,
++                        ExecutionTimeMs = stopwatch.ElapsedMilliseconds
+                     });
++
++                    // Also publish a failed event for backward compatibility
++                    await _eventPublisher!.PublishAsync(new JobExecutionFailedEvent
++                    {
++                        JobId = job.Id,
++                        ExecutionId = execution.Id,
++                        JobName = job.Name,
++                        ErrorMessage = execution.ErrorMessage,
++                        RetryAttempt = attemptNumber,
++                        WillRetry = willRetry
++                    });
+                 }
+ 
+                 finalExecution = execution;

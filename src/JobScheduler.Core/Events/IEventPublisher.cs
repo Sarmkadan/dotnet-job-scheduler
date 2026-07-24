@@ -109,6 +109,23 @@ public sealed class JobExecutionExhaustedEvent : ISchedulerEvent
 }
 
 /// <summary>
+/// Event published when a job execution times out. Distinct from failures to allow
+/// specialized handling and monitoring of timeout scenarios.
+/// </summary>
+public sealed class JobExecutionTimedOutEvent : ISchedulerEvent
+{
+    public Guid EventId { get; set; } = Guid.NewGuid();
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string EventType => "job.execution.timed_out";
+    public Guid JobId { get; set; }
+    public Guid ExecutionId { get; set; }
+    public string JobName { get; set; } = string.Empty;
+    public string ErrorMessage { get; set; } = string.Empty;
+    public int TimeoutSeconds { get; set; }
+    public long ExecutionTimeMs { get; set; }
+}
+
+/// <summary>
 /// Event published when a job execution is interrupted during graceful shutdown.
 /// Allows handlers to perform cleanup and cleanup resources before termination.
 /// </summary>
