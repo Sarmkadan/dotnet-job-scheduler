@@ -13,7 +13,7 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 cd "$REPO_ROOT"
 
-# Restore NuGet packages
+# Restore NuGet packages and build the solution
 if command -v dotnet >/dev/null 2>&1; then
     dotnet restore
     dotnet build --configuration Release
