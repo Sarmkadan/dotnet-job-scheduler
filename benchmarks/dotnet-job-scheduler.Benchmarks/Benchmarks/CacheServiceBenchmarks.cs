@@ -38,6 +38,7 @@ public sealed class CacheServiceBenchmarks
     [Benchmark]
     public async Task<string?> GetOrAdd_CacheMissThenHit(string key = "test-cron-expression-0 9 * * *")
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
         string keyParam = key;
         var value = await _cacheService!.GetOrSetAsync(keyParam, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
         // Second access should hit cache
@@ -84,6 +85,7 @@ public sealed class CacheServiceBenchmarks
     [Benchmark(Baseline = true)]
     public async Task<string?> GetOrAdd_CacheHit(string key = "hot-cache-key")
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
         var keyParam = key;
         // Prime the cache
         _ = await _cacheService!.GetOrSetAsync(keyParam, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
@@ -95,6 +97,7 @@ public sealed class CacheServiceBenchmarks
     [Benchmark]
     public async Task Remove()
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
         const string key = "removable-key";
         await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
         await _cacheService.RemoveAsync(key);
