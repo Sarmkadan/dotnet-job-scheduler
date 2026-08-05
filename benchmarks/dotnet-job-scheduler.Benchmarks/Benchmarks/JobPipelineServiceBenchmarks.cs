@@ -188,6 +188,7 @@ internal sealed class MockJobDependencyService : IJobDependencyService
     public Task AddDependencyAsync(Guid jobId, Guid dependsOnJobId, string? createdBy = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(createdBy);
         if (!_dependencies.TryGetValue(jobId, out var list))
         {
             list = new List<Guid>();
