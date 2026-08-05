@@ -4,6 +4,7 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System;
 using JobScheduler.Core.Data;
 using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Domain.Models;
@@ -52,59 +53,76 @@ public sealed class JobPipelineService
         string? createdBy = null,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            throw new ArgumentException("Pipeline name is required.", nameof(request));
-
-        if (request.Steps.Count < 2)
-            throw new ArgumentException("A pipeline must have at least 2 steps.", nameof(request));
-
-        // Verify all jobs exist
-        foreach (var step in request.Steps)
-        {
-            var exists = await _context.Jobs.AnyAsync(j => j.Id == step.JobId, cancellationToken);
-            if (!exists)
-                throw new JobNotFoundException(step.JobId);
-        }
-
-        var pipeline = new JobPipeline
-        {
-            Name = request.Name,
-            Description = request.Description,
-            CreatedBy = createdBy
-        };
-
-        for (var i = 0; i < request.Steps.Count; i++)
-        {
-            pipeline.Steps.Add(new JobPipelineStep
-            {
-                JobId = request.Steps[i].JobId,
-                StepOrder = i,
-                StopOnFailure = request.Steps[i].StopOnFailure,
-                Pipeline = pipeline
-            });
-        }
-
-        _context.Set<JobPipeline>().Add(pipeline);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        // Register sequential dependency edges (step[i] depends on step[i-1])
-        for (var i = 1; i < request.Steps.Count; i++)
-        {
-            await _dependencyService.AddDependencyAsync(
-                request.Steps[i].JobId,
-                request.Steps[i - 1].JobId,
-                createdBy,
-                cancellationToken);
-        }
-
         _logger?.LogInformation(
-            "Pipeline '{PipelineName}' ({PipelineId}) created with {StepCount} steps.",
-            pipeline.Name, pipeline.Id, pipeline.Steps.Count);
+            "CreatePipelineAsync called with Name={Name}, StepCount={StepCount}, CreatedBy={CreatedBy}",
+            request.Name, request.Steps.Count, createdBy);
 
-        // Validate the pipeline's dependency graph to catch any cycles immediately
-        await pipeline.ValidateAsync(_dependencyService, cancellationToken);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                throw new ArgumentException("Pipeline name is required.", nameof(request));
 
-        return pipeline;
+            if (request.Steps.Count < 2)
+                throw new ArgumentException("A pipeline must have at least 2 steps.", nameof(request));
+
+            // Verify all jobs exist
+            foreach (var step in request.Steps)
+            {
+                var exists = await _context.Jobs.AnyAsync(j => j.Id == step.JobId, cancellationToken);
+                if (!exists)
+                    throw new JobNotFoundException(step.JobId);
+            }
+
+            var pipeline = new JobPipeline
+            {
+                Name = request.Name,
+                Description = request.Description,
+                CreatedBy = createdBy
+            };
+
+            for (var i = 0; i < request.Steps.Count; i++)
+            {
+                pipeline.Steps.Add(new JobPipelineStep
+                {
+                    JobId = request.Steps[i].JobId,
+                    StepOrder = i,
+                    StopOnFailure = request.Steps[i].StopOnFailure,
+                    Pipeline = pipeline
+                });
+            }
+
+            _context.Set<JobPipeline>().Add(pipeline);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Register sequential dependency edges (step[i] depends on step[i-1])
+            for (var i = 1; i < request.Steps.Count; i++)
+            {
+                await _dependencyService.AddDependencyAsync(
+                    request.Steps[i].JobId,
+                    request.Steps[i - 1].JobId,
+                    createdBy,
+                    cancellationToken);
+            }
+
+            _logger?.LogInformation(
+                "Pipeline '{PipelineName}' ({PipelineId}) created with {StepCount} steps.",
+                pipeline.Name, pipeline.Id, pipeline.Steps.Count);
+
+            // Validate the pipeline's dependency graph to catch any cycles immediately
+            await pipeline.ValidateAsync(_dependencyService, cancellationToken);
+
+            _logger?.LogInformation(
+                "CreatePipelineAsync completed successfully for PipelineId={PipelineId}",
+                pipeline.Id);
+
+            return pipeline;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex,
+                "Error in CreatePipelineAsync for Pipeline Name={Name}", request.Name);
+            throw;
+        }
     }
 
     /// <summary>
@@ -114,10 +132,28 @@ public sealed class JobPipelineService
     /// <param name="cancellationToken">Cancellation token.</param>
     public async Task<JobPipeline?> GetPipelineAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await _context.Set<JobPipeline>()
-            .Include(p => p.Steps)
-            .ThenInclude(s => s.Job)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        _logger?.LogInformation("GetPipelineAsync called for PipelineId={PipelineId}", id);
+        try
+        {
+            var pipeline = await _context.Set<JobPipeline>()
+                .Include(p => p.Steps)
+                .ThenInclude(s => s.Job)
+                .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+            if (pipeline is null)
+            {
+                _logger?.LogWarning("Pipeline not found for Id={PipelineId}", id);
+                return null;
+            }
+
+            _logger?.LogInformation("GetPipelineAsync succeeded for PipelineId={PipelineId}", id);
+            return pipeline;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error in GetPipelineAsync for PipelineId={PipelineId}", id);
+            throw;
+        }
     }
 
     /// <summary>
@@ -125,11 +161,23 @@ public sealed class JobPipelineService
     /// </summary>
     public async Task<IReadOnlyList<JobPipeline>> GetAllPipelinesAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.Set<JobPipeline>()
-            .Include(p => p.Steps)
-            .ThenInclude(s => s.Job)
-            .OrderByDescending(p => p.CreatedAt)
-            .ToListAsync(cancellationToken);
+        _logger?.LogInformation("GetAllPipelinesAsync called");
+        try
+        {
+            var pipelines = await _context.Set<JobPipeline>()
+                .Include(p => p.Steps)
+                .ThenInclude(s => s.Job)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            _logger?.LogInformation("GetAllPipelinesAsync retrieved {Count} pipelines", pipelines.Count);
+            return pipelines;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error in GetAllPipelinesAsync");
+            throw;
+        }
     }
 
     /// <summary>
@@ -141,28 +189,40 @@ public sealed class JobPipelineService
     /// <returns><c>true</c> if the pipeline existed and was deleted; <c>false</c> otherwise.</returns>
     public async Task<bool> DeletePipelineAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var pipeline = await _context.Set<JobPipeline>()
-            .Include(p => p.Steps)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-
-        if (pipeline is null)
-            return false;
-
-        var orderedSteps = pipeline.Steps.OrderBy(s => s.StepOrder).ToList();
-        for (var i = 1; i < orderedSteps.Count; i++)
+        _logger?.LogInformation("DeletePipelineAsync called for PipelineId={PipelineId}", id);
+        try
         {
-            await _dependencyService.RemoveDependencyAsync(
-                orderedSteps[i].JobId,
-                orderedSteps[i - 1].JobId,
-                cancellationToken);
+            var pipeline = await _context.Set<JobPipeline>()
+                .Include(p => p.Steps)
+                .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+            if (pipeline is null)
+            {
+                _logger?.LogWarning("Pipeline not found for deletion. Id={PipelineId}", id);
+                return false;
+            }
+
+            var orderedSteps = pipeline.Steps.OrderBy(s => s.StepOrder).ToList();
+            for (var i = 1; i < orderedSteps.Count; i++)
+            {
+                await _dependencyService.RemoveDependencyAsync(
+                    orderedSteps[i].JobId,
+                    orderedSteps[i - 1].JobId,
+                    cancellationToken);
+            }
+
+            _context.Set<JobPipeline>().Remove(pipeline);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger?.LogInformation("Pipeline '{PipelineName}' ({PipelineId}) deleted.", pipeline.Name, pipeline.Id);
+
+            return true;
         }
-
-        _context.Set<JobPipeline>().Remove(pipeline);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        _logger?.LogInformation("Pipeline '{PipelineName}' ({PipelineId}) deleted.", pipeline.Name, pipeline.Id);
-
-        return true;
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error in DeletePipelineAsync for PipelineId={PipelineId}", id);
+            throw;
+        }
     }
 
     /// <summary>
@@ -175,46 +235,60 @@ public sealed class JobPipelineService
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var pipeline = await _context.Set<JobPipeline>()
-            .Include(p => p.Steps)
-            .ThenInclude(s => s.Job)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-
-        if (pipeline is null)
-            return null;
-
-        var orderedSteps = pipeline.Steps.OrderBy(s => s.StepOrder).ToList();
-        var stepStatuses = new List<PipelineStepStatus>();
-        var previousStepSucceeded = true;
-
-        foreach (var step in orderedSteps)
+        _logger?.LogInformation("GetPipelineStatusAsync called for PipelineId={PipelineId}", id);
+        try
         {
-            var latestExecution = await _context.JobExecutions
-                .Where(e => e.JobId == step.JobId)
-                .OrderByDescending(e => e.StartedAt)
-                .FirstOrDefaultAsync(cancellationToken);
+            var pipeline = await _context.Set<JobPipeline>()
+                .Include(p => p.Steps)
+                .ThenInclude(s => s.Job)
+                .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-            var statusText = latestExecution is null ? "NotStarted" : latestExecution.Status.ToString();
-
-            stepStatuses.Add(new PipelineStepStatus
+            if (pipeline is null)
             {
-                StepOrder = step.StepOrder,
-                JobId = step.JobId,
-                JobName = step.Job?.Name,
-                Status = statusText,
-                LastExecutedAt = latestExecution?.StartedAt,
-                IsReady = previousStepSucceeded
-            });
+                _logger?.LogWarning("Pipeline not found for status request. Id={PipelineId}", id);
+                return null;
+            }
 
-            previousStepSucceeded = latestExecution?.Status == Constants.ExecutionStatus.Success;
+            var orderedSteps = pipeline.Steps.OrderBy(s => s.StepOrder).ToList();
+            var stepStatuses = new List<PipelineStepStatus>();
+            var previousStepSucceeded = true;
+
+            foreach (var step in orderedSteps)
+            {
+                var latestExecution = await _context.JobExecutions
+                    .Where(e => e.JobId == step.JobId)
+                    .OrderByDescending(e => e.StartedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                var statusText = latestExecution is null ? "NotStarted" : latestExecution.Status.ToString();
+
+                stepStatuses.Add(new PipelineStepStatus
+                {
+                    StepOrder = step.StepOrder,
+                    JobId = step.JobId,
+                    JobName = step.Job?.Name,
+                    Status = statusText,
+                    LastExecutedAt = latestExecution?.StartedAt,
+                    IsReady = previousStepSucceeded
+                });
+
+                previousStepSucceeded = latestExecution?.Status == Constants.ExecutionStatus.Success;
+            }
+
+            _logger?.LogInformation("GetPipelineStatusAsync succeeded for PipelineId={PipelineId}", id);
+
+            return new PipelineStatusResponse
+            {
+                PipelineId = pipeline.Id,
+                PipelineName = pipeline.Name,
+                StepStatuses = stepStatuses
+            };
         }
-
-        return new PipelineStatusResponse
+        catch (Exception ex)
         {
-            PipelineId = pipeline.Id,
-            PipelineName = pipeline.Name,
-            StepStatuses = stepStatuses
-        };
+            _logger?.LogError(ex, "Error in GetPipelineStatusAsync for PipelineId={PipelineId}", id);
+            throw;
+        }
     }
 
     /// <summary>
