@@ -97,7 +97,6 @@ public sealed class CacheServiceBenchmarks
     [Benchmark]
     public async Task Remove()
     {
-        ArgumentException.ThrowIfNullOrEmpty(key);
         const string key = "removable-key";
         await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
         await _cacheService.RemoveAsync(key);
