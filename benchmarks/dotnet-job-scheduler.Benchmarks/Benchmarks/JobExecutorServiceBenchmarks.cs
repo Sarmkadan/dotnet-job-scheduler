@@ -182,6 +182,7 @@ internal sealed class MockJobHandler : IJobHandler
 
     public MockJobHandler(string result, TimeSpan delay)
     {
+        ArgumentException.ThrowIfNullOrEmpty(result);
         _result = result;
         _delay = delay;
     }
