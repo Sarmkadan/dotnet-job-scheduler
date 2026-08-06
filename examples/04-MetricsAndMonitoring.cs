@@ -30,9 +30,13 @@ public sealed class ReportGenerationJobHandler : IJobHandler
 
     public async Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Generating report...");
+        _logger.LogInformation("Generating report for job {JobId}", job.Id);
+        
         await Task.Delay(250, cancellationToken);
-        return "Report generated: 10,500 records processed";
+        
+        var result = "Report generated: 10,500 records processed";
+        _logger.LogInformation("Report generated for job {JobId}: {Result}", job.Id, result);
+        return result;
     }
 }
 
