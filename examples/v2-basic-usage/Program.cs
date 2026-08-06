@@ -28,6 +28,7 @@ namespace JobScheduler.Examples.V2BasicUsage
             // Simulate some work
             await Task.Delay(1000, cancellationToken);
 
+            _logger.LogInformation("Completed basic job: {JobName}", job.Name);
             return "Basic job completed successfully";
         }
     }
