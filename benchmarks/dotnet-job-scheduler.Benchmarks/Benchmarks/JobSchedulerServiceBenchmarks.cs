@@ -239,11 +239,13 @@ internal sealed class MockJobRepository : IJobRepository
 
     public Task<IEnumerable<Job>> FindAsync(Expression<Func<Job, bool>> predicate)
     {
+        ArgumentNullException.ThrowIfNull(predicate);
         return Task.FromResult(_jobs.AsQueryable().Where(predicate).AsEnumerable());
     }
 
     public Task<Job?> FirstOrDefaultAsync(Expression<Func<Job, bool>> predicate)
     {
+        ArgumentNullException.ThrowIfNull(predicate);
         return Task.FromResult(_jobs.AsQueryable().FirstOrDefault(predicate));
     }
 
@@ -255,6 +257,7 @@ internal sealed class MockJobRepository : IJobRepository
 
     public Task AddAsync(Job entity)
     {
+        ArgumentNullException.ThrowIfNull(entity);
         if (entity.Id == Guid.Empty)
             entity.Id = Guid.NewGuid();
         entity.CreatedAt = DateTime.UtcNow;
@@ -264,6 +267,7 @@ internal sealed class MockJobRepository : IJobRepository
 
     public Task AddRangeAsync(IEnumerable<Job> entities)
     {
+        ArgumentNullException.ThrowIfNull(entities);
         foreach (var entity in entities)
         {
             if (entity.Id == Guid.Empty)
@@ -276,6 +280,7 @@ internal sealed class MockJobRepository : IJobRepository
 
     public void Update(Job entity)
     {
+        ArgumentNullException.ThrowIfNull(entity);
         var existing = _jobs.FirstOrDefault(j => j.Id == entity.Id);
         if (existing is not null)
         {
@@ -286,17 +291,20 @@ internal sealed class MockJobRepository : IJobRepository
 
     public void UpdateRange(IEnumerable<Job> entities)
     {
+        ArgumentNullException.ThrowIfNull(entities);
         foreach (var entity in entities)
             Update(entity);
     }
 
     public void Remove(Job entity)
     {
+        ArgumentNullException.ThrowIfNull(entity);
         _jobs.RemoveAll(j => j.Id == entity.Id);
     }
 
     public void RemoveRange(IEnumerable<Job> entities)
     {
+        ArgumentNullException.ThrowIfNull(entities);
         foreach (var entity in entities)
             Remove(entity);
     }
@@ -320,6 +328,7 @@ public Task<IEnumerable<Job>> GetMisfiredJobsAsync()
 
     public Task<Job?> GetByNameAsync(string name)
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
         var job = _jobs.FirstOrDefault(j => j.Name == name);
         return Task.FromResult(job);
     }
