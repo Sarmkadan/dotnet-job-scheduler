@@ -59,11 +59,13 @@ public abstract class BaseController : ControllerBase
     /// </summary>
     protected async Task LogAuditAsync(string eventType, string message)
     {
+        _logger.LogInformation("Starting audit log for event {EventType} by user {UserId}", eventType, GetUserId());
         await _auditLogger.LogSecurityEventAsync(
             eventType,
             GetUserId(),
             message,
             severity: 1);
+        _logger.LogInformation("Completed audit log for event {EventType}", eventType);
     }
 
     /// <summary>
