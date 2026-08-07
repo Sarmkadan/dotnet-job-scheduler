@@ -45,6 +45,10 @@ public class JobScheduleHistory
         string changeReason,
         string? changedBy = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(propertyName);
+        ArgumentException.ThrowIfNullOrEmpty(oldValue);
+        ArgumentException.ThrowIfNullOrEmpty(newValue);
+        ArgumentException.ThrowIfNullOrEmpty(changeReason);
         return new JobScheduleHistory
         {
             Id = Guid.NewGuid(),
@@ -68,6 +72,9 @@ public class JobScheduleHistory
         string reason,
         string? changedBy = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(oldStatus);
+        ArgumentException.ThrowIfNullOrEmpty(newStatus);
+        ArgumentException.ThrowIfNullOrEmpty(reason);
         return CreateChange(jobId, "Status", oldStatus, newStatus, reason, changedBy);
     }
 
@@ -80,6 +87,8 @@ public class JobScheduleHistory
         string newCron,
         string? changedBy = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(oldCron);
+        ArgumentException.ThrowIfNullOrEmpty(newCron);
         return CreateChange(jobId, "CronExpression", oldCron, newCron, "Cron schedule modified", changedBy);
     }
 
