@@ -93,6 +93,8 @@ public class CronExpressionService
     /// </summary>
     public virtual DateTime GetNextExecutionTime(string cronExpression, DateTime? baseTime = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(cronExpression, nameof(cronExpression));
+
         var schedule = ParseCronExpression(cronExpression);
         var reference = baseTime ?? DateTime.UtcNow;
 
@@ -139,6 +141,8 @@ public class CronExpressionService
     /// </param>
     public virtual DateTime GetNextExecutionTimeInZone(string cronExpression, string timezoneId, DateTime? baseTimeUtc = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(cronExpression, nameof(cronExpression));
+
         if (string.IsNullOrWhiteSpace(timezoneId))
             throw new ArgumentException("Timezone ID cannot be null or empty.", nameof(timezoneId));
 
@@ -198,6 +202,8 @@ public class CronExpressionService
     /// </summary>
     public virtual IEnumerable<DateTime> GetNextExecutionTimes(string cronExpression, int count, DateTime? baseTime = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(cronExpression, nameof(cronExpression));
+
         if (count <= 0)
             throw new ArgumentException("Count must be positive", nameof(count));
 
@@ -222,6 +228,8 @@ public class CronExpressionService
     /// </summary>
     public virtual bool ShouldExecuteAt(string cronExpression, DateTime checkTime)
     {
+        ArgumentException.ThrowIfNullOrEmpty(cronExpression, nameof(cronExpression));
+
         try
         {
             var schedule = ParseCronExpression(cronExpression);
@@ -273,6 +281,8 @@ public class CronExpressionService
     /// <returns>The description, or "Invalid cron expression" when the expression cannot be parsed.</returns>
     public virtual string GetCronDescription(string cronExpression)
     {
+        ArgumentException.ThrowIfNullOrEmpty(cronExpression, nameof(cronExpression));
+
         try
         {
             // Parsing first guarantees the description never describes an expression the scheduler
