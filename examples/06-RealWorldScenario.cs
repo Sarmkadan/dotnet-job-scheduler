@@ -25,6 +25,7 @@ public sealed class DailySalesReportJobHandler : IJobHandler
 
     public DailySalesReportJobHandler(ILogger<DailySalesReportJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
@@ -56,6 +57,7 @@ public sealed class InventorySyncJobHandler : IJobHandler
 
     public InventorySyncJobHandler(ILogger<InventorySyncJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
@@ -83,6 +85,7 @@ public sealed class CustomerNotificationJobHandler : IJobHandler
 
     public CustomerNotificationJobHandler(ILogger<CustomerNotificationJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
