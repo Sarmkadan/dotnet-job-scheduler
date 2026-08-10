@@ -120,6 +120,7 @@ public static class JobHelper
     /// </summary>
     public static int CalculateReliabilityScore(Job job)
     {
+        ArgumentNullException.ThrowIfNull(job);
         if (job.TotalExecutions == 0)
             return 50;
 
@@ -139,6 +140,7 @@ public static class JobHelper
     /// </summary>
     public static string GetRecommendedAction(Job job)
     {
+        ArgumentNullException.ThrowIfNull(job);
         if (job.Status == JobStatus.FailedPermanently)
             return "Review job configuration and error details. Fix and reactivate if needed.";
 
@@ -182,6 +184,7 @@ public static class JobHelper
     /// </summary>
     public static bool IsConcerning(Job job)
     {
+        ArgumentNullException.ThrowIfNull(job);
         if (job.Status == JobStatus.FailedPermanently)
             return true;
 
