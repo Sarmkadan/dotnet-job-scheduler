@@ -20,7 +20,10 @@ namespace JobScheduler.Core.Data.Repositories;
 /// </summary>
 public sealed class ExecutionRepository : Repository<JobExecution>, IExecutionRepository
 {
-    public ExecutionRepository(JobSchedulerContext context) : base(context) { }
+    public ExecutionRepository(JobSchedulerContext context) : base(context)
+{
+    ArgumentNullException.ThrowIfNull(context);
+}
 
     public async Task<JobExecution?> GetLatestExecutionAsync(Guid jobId)
     {
