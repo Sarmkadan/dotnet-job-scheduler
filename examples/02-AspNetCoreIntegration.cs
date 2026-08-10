@@ -31,17 +31,25 @@ public sealed class EmailSendingJobHandler : IJobHandler
 
     public async Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Sending emails...");
+            if (job == null)
+            {
+                throw new ArgumentNullException(nameof(job));
+            }
+            if (cancellationToken == null)
+            {
+                throw new ArgumentNullException(nameof(cancellationToken));
+            }
+            _logger.LogInformation("Sending emails...");
 
-        // Simulate email sending
-        var emailCount = 5;
-        for (int i = 0; i < emailCount; i++)
-        {
-            await Task.Delay(50, cancellationToken); // Simulate email send
-            _logger.LogInformation("Email {Number} sent", i + 1);
-        }
+            // Simulate email sending
+            var emailCount = 5;
+            for (int i = 0; i < emailCount; i++)
+            {
+                await Task.Delay(50, cancellationToken); // Simulate email send
+                _logger.LogInformation("Email {Number} sent", i + 1);
+            }
 
-        return $"Successfully sent {emailCount} emails";
+            return $"Successfully sent {emailCount} emails";
     }
 }
 
