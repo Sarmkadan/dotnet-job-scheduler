@@ -25,15 +25,17 @@ public sealed class ReportGenerationJobHandler : IJobHandler
 
     public ReportGenerationJobHandler(ILogger<ReportGenerationJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
     public async Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(job);
         _logger.LogInformation("Generating report for job {JobId}", job.Id);
-        
+
         await Task.Delay(250, cancellationToken);
-        
+
         var result = "Report generated: 10,500 records processed";
         _logger.LogInformation("Report generated for job {JobId}: {Result}", job.Id, result);
         return result;
@@ -46,11 +48,13 @@ public sealed class MetricAnalysisJobHandler : IJobHandler
 
     public MetricAnalysisJobHandler(ILogger<MetricAnalysisJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
     public async Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(job);
         _logger.LogInformation("Analyzing metrics...");
         await Task.Delay(150, cancellationToken);
         return "Metrics analyzed and stored";
