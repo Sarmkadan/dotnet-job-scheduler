@@ -26,11 +26,13 @@ public sealed class HelloWorldJobHandler : IJobHandler
 
     public HelloWorldJobHandler(ILogger<HelloWorldJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
     public async Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(job);
         _logger.LogInformation("Hello World job executed at {Time}", DateTime.UtcNow);
         await Task.Delay(100, cancellationToken);
         return $"Hello World job completed at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
@@ -43,11 +45,13 @@ public sealed class CounterJobHandler : IJobHandler
 
     public CounterJobHandler(ILogger<CounterJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
     public async Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(job);
         _logger.LogInformation("Counter job started");
 
         for (int i = 1; i <= 5; i++)
@@ -64,6 +68,7 @@ public sealed class BasicConsoleExample
 {
     public static async Task Main(string[] args)
     {
+        ArgumentNullException.ThrowIfNull(args);
         Console.WriteLine("=== Basic Console Application Example ===\n");
 
         var services = new ServiceCollection();
