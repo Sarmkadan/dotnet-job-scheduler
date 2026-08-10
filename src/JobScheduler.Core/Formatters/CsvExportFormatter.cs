@@ -23,6 +23,7 @@ public sealed class CsvExportFormatter
     /// </summary>
     public static string ExportJobsToCsv(IEnumerable<Job> jobs)
     {
+        ArgumentNullException.ThrowIfNull(jobs);
         var sb = new StringBuilder();
 
         // Header row
@@ -63,6 +64,7 @@ public sealed class CsvExportFormatter
     /// </summary>
     public static string ExportExecutionsToCsv(IEnumerable<JobExecution> executions)
     {
+        ArgumentNullException.ThrowIfNull(executions);
         var sb = new StringBuilder();
 
         // Header row
@@ -98,6 +100,7 @@ public sealed class CsvExportFormatter
     /// </summary>
     public static string ExportStatisticsToCsv(Dictionary<Guid, (int Total, int Successful, long AvgTime)> stats)
     {
+        ArgumentNullException.ThrowIfNull(stats);
         var sb = new StringBuilder();
 
         // Header row
@@ -130,6 +133,7 @@ public sealed class CsvExportFormatter
     /// </summary>
     public static List<JobCsvRow> ParseJobsCsv(string csv)
     {
+        ArgumentException.ThrowIfNullOrEmpty(csv);
         var lines = csv.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         if (lines.Length < 2)
             return new();
