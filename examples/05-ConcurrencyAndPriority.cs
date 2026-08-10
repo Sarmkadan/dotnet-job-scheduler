@@ -25,11 +25,13 @@ public sealed class LongRunningJobHandler : IJobHandler
 
     public LongRunningJobHandler(ILogger<LongRunningJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
     public async Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(job);
         _logger.LogInformation("Long running job started");
 
         // Simulate long-running operation
