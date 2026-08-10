@@ -57,8 +57,7 @@ public static class CryptoUtility
     /// </summary>
     public static string ComputeSha256(string input)
     {
-        if (string.IsNullOrEmpty(input))
-            return string.Empty;
+        ArgumentException.ThrowIfNullOrEmpty(input);
 
         using (var sha256 = SHA256.Create())
         {
@@ -74,8 +73,8 @@ public static class CryptoUtility
     /// </summary>
     public static string ComputeHmacSha256(string message, string secret)
     {
-        if (string.IsNullOrEmpty(message) || string.IsNullOrEmpty(secret))
-            return string.Empty;
+        ArgumentException.ThrowIfNullOrEmpty(message);
+        ArgumentException.ThrowIfNullOrEmpty(secret);
 
         using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret)))
         {
@@ -90,6 +89,10 @@ public static class CryptoUtility
     /// </summary>
     public static bool VerifyHmacSha256(string message, string signature, string secret)
     {
+        ArgumentException.ThrowIfNullOrEmpty(message);
+        ArgumentException.ThrowIfNullOrEmpty(signature);
+        ArgumentException.ThrowIfNullOrEmpty(secret);
+
         try
         {
             var expected = ComputeHmacSha256(message, secret);
@@ -107,8 +110,8 @@ public static class CryptoUtility
     /// </summary>
     public static (string Ciphertext, string Iv) EncryptAes256(string plaintext, string key)
     {
-        if (string.IsNullOrEmpty(plaintext))
-            return (string.Empty, string.Empty);
+        ArgumentException.ThrowIfNullOrEmpty(plaintext);
+        ArgumentException.ThrowIfNullOrEmpty(key);
 
         using (var aes = Aes.Create())
         {
@@ -147,8 +150,9 @@ public static class CryptoUtility
     /// </summary>
     public static string DecryptAes256(string ciphertext, string key, string iv)
     {
-        if (string.IsNullOrEmpty(ciphertext))
-            return string.Empty;
+        ArgumentException.ThrowIfNullOrEmpty(ciphertext);
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentException.ThrowIfNullOrEmpty(iv);
 
         try
         {
@@ -188,8 +192,8 @@ public static class CryptoUtility
     /// </summary>
     public static bool CompareStringsSecurely(string a, string b)
     {
-        if (a is null || b is null)
-            return a == b;
+        ArgumentNullException.ThrowIfNull(a);
+        ArgumentNullException.ThrowIfNull(b);
 
         if (a.Length != b.Length)
             return false;
@@ -209,7 +213,9 @@ public static class CryptoUtility
     /// </summary>
     public static string ComputeFileHash(Stream stream)
     {
-        if (stream is null || !stream.CanRead)
+        ArgumentNullException.ThrowIfNull(stream);
+
+        if (!stream.CanRead)
             throw new ArgumentException("Stream must be readable", nameof(stream));
 
         using (var sha256 = SHA256.Create())
@@ -225,6 +231,8 @@ public static class CryptoUtility
     /// </summary>
     public static (string Hash, string Salt) GeneratePasswordHash(string password, int iterations = 10000)
     {
+        ArgumentException.ThrowIfNullOrEmpty(password);
+
         using (var rng = RandomNumberGenerator.Create())
         {
             var salt = new byte[16];
@@ -243,6 +251,10 @@ public static class CryptoUtility
     /// </summary>
     public static bool VerifyPasswordHash(string password, string hash, string salt, int iterations = 10000)
     {
+        ArgumentException.ThrowIfNullOrEmpty(password);
+        ArgumentException.ThrowIfNullOrEmpty(hash);
+        ArgumentException.ThrowIfNullOrEmpty(salt);
+
         try
         {
             var saltBytes = Convert.FromBase64String(salt);
