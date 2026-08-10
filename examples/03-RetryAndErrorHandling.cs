@@ -26,6 +26,7 @@ public sealed class UnstableExternalApiJobHandler : IJobHandler
 
     public UnstableExternalApiJobHandler(ILogger<UnstableExternalApiJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
@@ -60,6 +61,7 @@ public sealed class DatabaseQueryJobHandler : IJobHandler
 
     public DatabaseQueryJobHandler(ILogger<DatabaseQueryJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
@@ -85,6 +87,7 @@ public sealed class GracefulFailureJobHandler : IJobHandler
 
     public GracefulFailureJobHandler(ILogger<GracefulFailureJobHandler> logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
