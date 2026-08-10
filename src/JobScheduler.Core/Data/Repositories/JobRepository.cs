@@ -20,10 +20,14 @@ namespace JobScheduler.Core.Data.Repositories;
 /// </summary>
 public sealed class JobRepository : Repository<Job>, IJobRepository
 {
-    public JobRepository(JobSchedulerContext context) : base(context) { }
+    public JobRepository(JobSchedulerContext context) : base(context)
+        {
+            ArgumentNullException.ThrowIfNull(context);
+        }
 
     public async Task<Job?> GetByNameAsync(string name)
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
         return await _dbSet
             .FirstOrDefaultAsync(j => j.Name == name);
     }
