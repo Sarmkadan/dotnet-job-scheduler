@@ -130,4 +130,6 @@ public sealed class ExecutionMetrics
 
         return true;
     }
+
+    public override string ToString() => $"ExecutionMetrics {{ Id = {Id}, JobId = {JobId}, TotalExecutions = {TotalExecutions}, SuccessfulExecutions = {SuccessfulExecutions}, FailedExecutions = {FailedExecutions}, TimedOutExecutions = {TimedOutExecutions} }}";
 }
