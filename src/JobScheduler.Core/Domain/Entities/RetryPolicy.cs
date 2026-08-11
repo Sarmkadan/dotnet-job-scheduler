@@ -109,6 +109,11 @@ public sealed class RetryPolicy
             _ => "Unknown strategy"
         };
     }
+
+    /// <summary>
+    /// Returns a concise string representation of the retry policy.
+    /// </summary>
+    public override string ToString() => $"RetryPolicy {{ Id = {Id}, JobId = {JobId}, MaxRetries = {MaxRetries}, InitialBackoffSeconds = {InitialBackoffSeconds}, MaxBackoffSeconds = {MaxBackoffSeconds}, Strategy = {Strategy} }}";
 }
 
 /// <summary>
