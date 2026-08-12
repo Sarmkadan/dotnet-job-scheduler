@@ -32,6 +32,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public void RecordExecutionTime(Guid jobId, string jobName, long elapsedMs, bool success)
     {
+        _logger.LogInformation("RecordExecutionTime called with {JobId} and {JobName}", jobId, jobName);
         var metric = new PerformanceMetric
         {
             JobId = jobId,
@@ -51,6 +52,7 @@ public sealed class PerformanceMonitor
 
         _logger.LogDebug("Recorded execution time for {JobName}: {ElapsedMs}ms (Success: {Success})",
             jobName, elapsedMs, success);
+        _logger.LogInformation("RecordExecutionTime finished with {ElapsedMs}ms and success {Success}", elapsedMs, success);
     }
 
     /// <summary>
@@ -58,6 +60,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public long GetAverageExecutionTime(Guid jobId)
     {
+        _logger.LogInformation("GetAverageExecutionTime called with {JobId}", jobId);
         var jobMetrics = _metrics.Where(m => m.JobId == jobId).ToList();
         return jobMetrics.Any() ? (long)jobMetrics.Average(m => m.ExecutionTimeMs) : 0;
     }
@@ -68,6 +71,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public long GetAverageExecutionTimeMs()
     {
+        _logger.LogInformation("GetAverageExecutionTimeMs called");
         var allMetrics = _metrics.ToList();
         return allMetrics.Any() ? (long)allMetrics.Average(m => m.ExecutionTimeMs) : 0;
     }
@@ -77,6 +81,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public double GetThroughputPerMinute()
     {
+        _logger.LogInformation("GetThroughputPerMinute called");
         var now = DateTime.UtcNow;
         var oneMinuteAgo = now.AddMinutes(-1);
         var recentMetrics = _metrics.Where(m => m.Timestamp > oneMinuteAgo).Count();
@@ -88,6 +93,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public double GetSuccessRate()
     {
+        _logger.LogInformation("GetSuccessRate called");
         var allMetrics = _metrics.ToList();
         if (!allMetrics.Any())
             return 100;
@@ -101,6 +107,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public double GetSuccessRate(Guid jobId)
     {
+        _logger.LogInformation("GetSuccessRate called with {JobId}", jobId);
         var jobMetrics = _metrics.Where(m => m.JobId == jobId).ToList();
         if (!jobMetrics.Any())
             return 100;
@@ -115,6 +122,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public long GetPercentileExecutionTime(Guid jobId, double percentile)
     {
+        _logger.LogInformation("GetPercentileExecutionTime called with {JobId} and {Percentile}", jobId, percentile);
         if (percentile < 0 || percentile > 100)
             throw new ArgumentException("Percentile must be between 0 and 100", nameof(percentile));
 
@@ -132,17 +140,21 @@ public sealed class PerformanceMonitor
     /// </summary>
     public double GetCpuUtilization()
     {
+        _logger.LogInformation("GetCpuUtilization called");
         try
         {
             using (var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total"))
             {
                 cpuCounter.NextValue(); // First call returns 0
                 System.Threading.Thread.Sleep(100);
-                return cpuCounter.NextValue();
+                var result = cpuCounter.NextValue();
+                _logger.LogInformation("CPU utilization measured at {CpuUtilization:P}", result);
+                return result;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to measure CPU utilization");
             return 0;
         }
     }
@@ -152,7 +164,10 @@ public sealed class PerformanceMonitor
     /// </summary>
     public long GetMemoryUsageMb()
     {
-        return GC.GetTotalMemory(false) / 1024 / 1024;
+        _logger.LogInformation("GetMemoryUsageMb called");
+        var memoryUsage = GC.GetTotalMemory(false) / 1024 / 1024;
+        _logger.LogInformation("Memory usage measured at {MemoryUsageMb}MB", memoryUsage);
+        return memoryUsage;
     }
 
     /// <summary>
@@ -161,6 +176,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public async Task<List<PerformanceTimelinePoint>> GetPerformanceTimelineAsync(DateTime from)
     {
+        _logger.LogInformation("GetPerformanceTimelineAsync called with from {From}", from);
         var metrics = _metrics.Where(m => m.Timestamp >= from).ToList();
         var timeline = new List<PerformanceTimelinePoint>();
 
@@ -189,6 +205,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public void ClearMetrics()
     {
+        _logger.LogWarning("ClearMetrics called - clearing all performance metrics");
         while (_metrics.TryDequeue(out _)) { }
         _logger.LogInformation("Cleared all performance metrics");
     }
@@ -198,6 +215,7 @@ public sealed class PerformanceMonitor
     /// </summary>
     public MetricsSummary GetSummary()
     {
+        _logger.LogInformation("GetSummary called");
         var allMetrics = _metrics.ToList();
 
         return new MetricsSummary
