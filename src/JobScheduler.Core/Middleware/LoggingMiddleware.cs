@@ -29,6 +29,7 @@ public sealed class LoggingMiddleware
 
     public async Task InvokeAsync(HttpContext context, AuditLogger auditLogger)
     {
+        _logger.LogInformation("InvokeAsync started for {Method} {Path}", context.Request.Method, context.Request.Path);
         var stopwatch = Stopwatch.StartNew();
         var request = await CaptureRequestAsync(context);
 
@@ -41,6 +42,11 @@ public sealed class LoggingMiddleware
             try
             {
                 await _next(context);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled exception while processing {Method} {Path}", request.Method, request.Path);
+                throw;
             }
             finally
             {
