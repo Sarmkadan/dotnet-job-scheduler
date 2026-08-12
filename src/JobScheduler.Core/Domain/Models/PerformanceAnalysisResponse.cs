@@ -23,4 +23,6 @@ public sealed class PerformanceAnalysisResponse
     public long FastestExecutionTimeMs { get; set; }
     public DateTime? SlowestExecutionAt { get; set; }
     public DateTime? FastestExecutionAt { get; set; }
+
+    public override string ToString() => $"PerformanceAnalysisResponse {{ JobId = {JobId}, AverageExecutionTimeMs = {AverageExecutionTimeMs}, MedianExecutionTimeMs = {MedianExecutionTimeMs}, P95ExecutionTimeMs = {P95ExecutionTimeMs}, P99ExecutionTimeMs = {P99ExecutionTimeMs}, SlowestExecutionTimeMs = {SlowestExecutionTimeMs} }}";
 }
