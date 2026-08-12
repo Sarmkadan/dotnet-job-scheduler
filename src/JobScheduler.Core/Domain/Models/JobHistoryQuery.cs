@@ -29,6 +29,8 @@ public sealed class JobHistoryQuery
     /// <summary>Maximum records per page. Defaults to 20, capped at 200.</summary>
     public int PageSize { get; set; } = 20;
 
+    public override string ToString() => $"JobHistoryQuery {{ Status = {Status}, From = {From}, To = {To}, PageNumber = {PageNumber}, PageSize = {PageSize} }}";
+
     /// <summary>Returns a validated, clamped copy of this query.</summary>
     public JobHistoryQuery Normalize()
     {
