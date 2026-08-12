@@ -46,10 +46,13 @@ public sealed class JobHistoryService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <exception cref="JobNotFoundException">Thrown when the job does not exist.</exception>
     public async Task<PagedResult<ExecutionResponse>> GetJobHistoryAsync(
+
         Guid jobId,
         JobHistoryQuery? query = null,
         CancellationToken cancellationToken = default)
     {
+        _logger?.LogInformation("GetJobHistoryAsync called for {JobId}", jobId);
+
         var jobExists = await _jobRepository.GetByIdAsync(jobId);
         if (jobExists is null)
             throw new JobNotFoundException(jobId);
@@ -82,6 +85,7 @@ public sealed class JobHistoryService
             .ToList();
 
         _logger?.LogDebug("Job {JobId} history query returned {Count}/{Total} records", jobId, page.Count, total);
+        _logger?.LogInformation("GetJobHistoryAsync completed for {JobId} with {Count} results", jobId, page.Count);
 
         return new PagedResult<ExecutionResponse>(page, total, normalized.PageNumber, normalized.PageSize);
     }
@@ -96,6 +100,8 @@ public sealed class JobHistoryService
         JobHistoryQuery? query = null,
         CancellationToken cancellationToken = default)
     {
+        _logger?.LogInformation("GetSystemHistoryAsync called");
+
         var normalized = (query ?? new JobHistoryQuery()).Normalize();
 
         IEnumerable<JobExecution> executions;
@@ -155,6 +161,8 @@ public sealed class JobHistoryService
         DateTime? to = null,
         CancellationToken cancellationToken = default)
     {
+        _logger?.LogInformation("GetJobSummaryAsync called for {JobId}", jobId);
+
         var job = await _jobRepository.GetByIdAsync(jobId);
         if (job is null)
             throw new JobNotFoundException(jobId);
@@ -171,7 +179,9 @@ public sealed class JobHistoryService
             executions = await _executionRepository.GetExecutionsByJobAsync(jobId);
         }
 
-        return BuildSummary(executions, jobId, job.Name);
+        var summary = BuildSummary(executions, jobId, job.Name);
+        _logger?.LogInformation("GetJobSummaryAsync completed for {JobId} with {Count} executions", jobId, summary.TotalExecutions);
+        return summary;
     }
 
     /// <summary>
@@ -185,6 +195,7 @@ public sealed class JobHistoryService
         DateTime? to = null,
         CancellationToken cancellationToken = default)
     {
+        _logger?.LogInformation("GetSystemSummaryAsync called");
         IEnumerable<JobExecution> executions;
         if (from.HasValue || to.HasValue)
         {
