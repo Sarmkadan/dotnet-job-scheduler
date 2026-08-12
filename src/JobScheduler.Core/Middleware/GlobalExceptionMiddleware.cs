@@ -85,4 +85,7 @@ public sealed class ErrorResponse
     public DateTime Timestamp { get; set; }
     public string? ExceptionType { get; set; }
     public string? StackTrace { get; set; }
+
+    public override string ToString() =>
+        $"ErrorResponse {{ Message = {Message}, Timestamp = {Timestamp}, ExceptionType = {ExceptionType}, StackTrace = {StackTrace} }}";
 }
