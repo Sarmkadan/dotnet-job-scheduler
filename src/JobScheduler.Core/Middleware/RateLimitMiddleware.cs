@@ -35,9 +35,12 @@ public sealed class RateLimitMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        _logger.LogInformation("RateLimitMiddleware invoked for path {Path}", context.Request.Path);
+
         // Skip rate limiting for health check endpoints
         if (IsHealthCheckEndpoint(context.Request.Path))
         {
+            _logger.LogInformation("Skipping rate limiting for health check endpoint {Path}", context.Request.Path);
             await _next(context);
             return;
         }
@@ -47,7 +50,7 @@ public sealed class RateLimitMiddleware
 
         if (!bucket.AllowRequest())
         {
-            _logger.LogWarning("Rate limit exceeded for client: {ClientId}", clientId);
+            _logger.LogWarning("Rate limit exceeded for client {ClientId}", clientId);
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
             context.Response.Headers.Add("Retry-After", _settings.WindowSizeSeconds.ToString());
 
@@ -60,6 +63,7 @@ public sealed class RateLimitMiddleware
             return;
         }
 
+        _logger.LogInformation("Rate limit check passed for client {ClientId}", clientId);
         await _next(context);
     }
 
