@@ -257,6 +257,12 @@ public sealed class CacheService : IDisposable
             Timestamp = DateTime.UtcNow
         };
     }
+
+    public override string ToString()
+    {
+        var stats = GetStatistics();
+        return $"CacheService {{ TotalKeys = {stats.TotalKeys}, Timestamp = {stats.Timestamp} }}";
+    }
 }
 
 /// <summary>
