@@ -67,6 +67,8 @@ public sealed class JobPipeline
             };
         }
     }
+
+    public override string ToString() => $"JobPipeline {{ Id = {Id}, Name = {Name}, Description = {Description}, IsActive = {IsActive}, CreatedAt = {CreatedAt}, UpdatedAt = {UpdatedAt} }}";
 }
 
 /// <summary>
