@@ -151,7 +151,7 @@ public sealed class DataExportAndReportingExample
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            _logger.LogError(ex, "Failed to export job execution data");
         }
 
         Console.WriteLine("\nExample completed.");
