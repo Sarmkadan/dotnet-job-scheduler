@@ -32,8 +32,13 @@ public sealed class SlackNotificationService
     /// </summary>
     public async Task SendJobFailureNotificationAsync(Job job, JobExecution execution, string webhookUrl)
     {
+        _logger.LogInformation("Sending job failure notification for Job {JobName} (ExecutionId: {ExecutionId}, Attempt: {Attempt}/{MaxRetries})", job.Name, execution.Id, execution.RetryAttempt, job.MaxRetries);
+
         if (string.IsNullOrEmpty(webhookUrl))
+        {
+            _logger.LogWarning("Webhook URL is null or empty for job {JobName}, skipping Slack notification", job.Name);
             return;
+        }
 
         var color = execution.RetryAttempt < job.MaxRetries ? "warning" : "danger";
         var message = new SlackMessage
@@ -59,6 +64,7 @@ public sealed class SlackNotificationService
         };
 
         await SendSlackMessageAsync(message, webhookUrl);
+        _logger.LogInformation("Job failure notification sent successfully for Job {JobName}", job.Name);
     }
 
     /// <summary>
@@ -67,8 +73,13 @@ public sealed class SlackNotificationService
     /// </summary>
     public async Task SendJobSuccessNotificationAsync(Job job, JobExecution execution, string webhookUrl)
     {
+        _logger.LogInformation("Sending job success notification for Job {JobName} (ExecutionId: {ExecutionId}, ExecutionTime: {ExecutionTimeMs}ms)", job.Name, execution.Id, execution.ExecutionTimeMs);
+
         if (string.IsNullOrEmpty(webhookUrl))
+        {
+            _logger.LogWarning("Webhook URL is null or empty for job {JobName}, skipping Slack notification", job.Name);
             return;
+        }
 
         var message = new SlackMessage
         {
@@ -92,6 +103,7 @@ public sealed class SlackNotificationService
         };
 
         await SendSlackMessageAsync(message, webhookUrl);
+        _logger.LogInformation("Job success notification sent successfully for Job {JobName}", job.Name);
     }
 
     /// <summary>
@@ -99,8 +111,13 @@ public sealed class SlackNotificationService
     /// </summary>
     public async Task SendSchedulerAlertAsync(string title, string message, string severity, string webhookUrl)
     {
+        _logger.LogInformation("Sending scheduler alert: {Title} with severity {Severity}", title, severity);
+
         if (string.IsNullOrEmpty(webhookUrl))
+        {
+            _logger.LogWarning("Webhook URL is null or empty for scheduler alert: {Title}", title);
             return;
+        }
 
         var color = severity switch
         {
@@ -129,6 +146,7 @@ public sealed class SlackNotificationService
         };
 
         await SendSlackMessageAsync(slackMessage, webhookUrl);
+        _logger.LogInformation("Scheduler alert sent successfully: {Title}", title);
     }
 
     private async Task SendSlackMessageAsync(SlackMessage message, string webhookUrl)
@@ -154,7 +172,7 @@ public sealed class SlackNotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending Slack notification");
+            _logger.LogError(ex, "Error sending Slack notification: {ExceptionMessage}", ex.Message);
         }
     }
 }
