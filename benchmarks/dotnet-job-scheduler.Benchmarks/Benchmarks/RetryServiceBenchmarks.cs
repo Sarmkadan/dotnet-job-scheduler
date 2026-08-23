@@ -129,6 +129,8 @@ public sealed class RetryServiceBenchmarks
         var message = _retryService!.FormatRetryMessage(3, TimeSpan.FromSeconds(15), "test-server");
         return message;
     }
+
+    public override string ToString() => $"RetryServiceBenchmarks {{ MaxAttempts = {new MockRetryPolicy().MaxAttempts}, BackoffStrategy = {new MockRetryPolicy().BackoffStrategy}, BaseDelaySeconds = {new MockRetryPolicy().BaseDelaySeconds} }}";
 }
 
 /// <summary>
