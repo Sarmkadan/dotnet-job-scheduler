@@ -64,4 +64,6 @@ public sealed class ExecutionException : JobSchedulerException
         ExecutionId = executionId;
         JobId = jobId;
     }
+
+   public override string ToString() => $"ExecutionException {{ ExecutionId = {ExecutionId}, JobId = {JobId}, AttemptNumber = {AttemptNumber} }}";
 }
