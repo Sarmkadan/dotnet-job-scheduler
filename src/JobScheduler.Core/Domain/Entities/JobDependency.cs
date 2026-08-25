@@ -37,4 +37,9 @@ public class JobDependency
 
     /// <summary>Gets or sets the navigation property for the prerequisite job.</summary>
     public virtual Job? DependsOnJob { get; set; }
+
+    public override string ToString()
+    {
+        return $"JobDependency {{ Id = {Id}, JobId = {JobId}, DependsOnJobId = {DependsOnJobId}, CreatedAt = {CreatedAt}, CreatedBy = {CreatedBy}, Job = {Job} }}";
+    }
 }
