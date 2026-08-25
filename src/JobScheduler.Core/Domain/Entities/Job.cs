@@ -85,6 +85,8 @@ public MisfirePolicy MisfirePolicy { get; set; } = MisfirePolicy.SkipToNext;
 /// </summary>
 public virtual RetryPolicy? RetryPolicy { get; set; }
 
+    public override string ToString() => $"Job {{ Id = {Id}, Name = {Name}, Description = {Description}, CronExpression = {CronExpression}, TimeZoneId = {TimeZoneId}, Priority = {Priority} }}";
+
     /// <summary>
     /// Validates the job configuration before scheduling.
     /// Throws ValidationException if validation fails.
