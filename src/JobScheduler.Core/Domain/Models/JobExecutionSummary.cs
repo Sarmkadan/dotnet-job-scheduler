@@ -52,4 +52,7 @@ public sealed class JobExecutionSummary
 
     /// <summary>Status of the most recent execution, if any.</summary>
     public ExecutionStatus? LastStatus { get; set; }
+
+    /// <inheritdoc />
+    public override string ToString() => $"JobExecutionSummary {{ JobId = {JobId}, JobName = {JobName}, TotalExecutions = {TotalExecutions}, SuccessCount = {SuccessCount}, FailureCount = {FailureCount}, TimedOutCount = {TimedOutCount} }}";
 }
