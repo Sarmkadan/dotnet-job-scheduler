@@ -170,4 +170,6 @@ public class JobExecution
             _ => "Execution in progress"
         };
     }
+
+    public override string ToString() => $"JobExecution {{ Id = {Id}, JobId = {JobId}, Status = {Status}, StartedAt = {StartedAt}, CompletedAt = {CompletedAt}, DurationMilliseconds = {DurationMilliseconds} }}";
 }
