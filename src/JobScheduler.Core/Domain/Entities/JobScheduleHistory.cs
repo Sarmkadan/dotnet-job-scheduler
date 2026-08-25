@@ -119,4 +119,6 @@ public class JobScheduleHistory
 
         return true;
     }
+
+    public override string ToString() => $"JobScheduleHistory {{ Id = {Id}, JobId = {JobId}, PropertyName = {PropertyName}, OldValue = {OldValue}, NewValue = {NewValue}, ChangedAt = {ChangedAt} }}";
 }
