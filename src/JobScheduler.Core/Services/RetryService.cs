@@ -260,6 +260,8 @@ public sealed class RetryStatistics
     public double AverageRetriesPerFailure { get; set; }
     public DateTime? LastFailureTime { get; set; }
     public double RecentFailureRate { get; set; }
+
+    public override string ToString() => $"RetryStatistics {{ JobId = {JobId}, TotalExecutions = {TotalExecutions}, TotalFailures = {TotalFailures}, TotalRetries = {TotalRetries}, AverageRetriesPerFailure = {AverageRetriesPerFailure}, LastFailureTime = {LastFailureTime} }}";
 }
 
 /// <summary>
