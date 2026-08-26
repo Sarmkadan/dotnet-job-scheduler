@@ -153,6 +153,8 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
     /// </summary>
     /// <returns>The JobSchedulerContext instance.</returns>
     public JobSchedulerContext GetContextForTesting() => _context;
+
+    public override string ToString() => $"DatabaseLeaderElectionService {{ Id = {_context?.SchedulerLeaderLocks?.FirstOrDefault()?.Id ?? 0}, LockName = {SchedulerLeaderLock.DefaultLockName}, LeaderInstanceId = {_instanceId}, LeaseExpiresAt = {_context?.SchedulerLeaderLocks?.FirstOrDefault()?.LeaseExpiresAt ?? default}, AcquiredAt = {_context?.SchedulerLeaderLocks?.FirstOrDefault()?.AcquiredAt ?? default} }}";
 }
 
 /// <summary>
