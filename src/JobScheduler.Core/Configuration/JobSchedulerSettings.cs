@@ -22,6 +22,8 @@ public sealed class JobSchedulerSettings
     public int CleanupIntervalMs { get; set; } = 300000;
     public int MaxJobNameLength { get; set; } = 255;
     public int MaxCronExpressionLength { get; set; } = 255;
+
+    public override string ToString() => $"JobSchedulerSettings {{ ConnectionString = {ConnectionString}, MaxConcurrentJobs = {MaxConcurrentJobs}, DefaultTimeoutSeconds = {DefaultTimeoutSeconds}, DefaultMaxRetries = {DefaultMaxRetries}, DefaultRetryBackoffSeconds = {DefaultRetryBackoffSeconds}, QueuePollIntervalMs = {QueuePollIntervalMs} }}";
 }
 
 /// <summary>
