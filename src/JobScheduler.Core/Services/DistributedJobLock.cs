@@ -29,4 +29,9 @@ public sealed class DistributedJobLock
 
     /// <summary>Returns true when the lock has passed its expiry time.</summary>
     public bool IsExpired(DateTime? utcNow = null) => (utcNow ?? DateTime.UtcNow) >= ExpiresAt;
+
+    public override string ToString()
+    {
+        return $"DistributedJobLock {{ Id = {Id}, JobId = {JobId}, HolderInstanceId = {HolderInstanceId}, AcquiredAt = {AcquiredAt}, ExpiresAt = {ExpiresAt} }}";
+    }
 }
