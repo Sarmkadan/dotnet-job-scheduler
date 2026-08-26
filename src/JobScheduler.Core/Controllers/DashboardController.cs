@@ -291,6 +291,11 @@ public sealed class DashboardOverview
     public int SuccessfulExecutions { get; set; }
     public long AverageExecutionTimeMs { get; set; }
     public DateTime LastUpdatedAt { get; set; }
+
+    public override string ToString()
+    {
+        return $"DashboardOverview {{ TotalJobs = {TotalJobs}, ActiveJobs = {ActiveJobs}, RunningExecutions = {RunningExecutions}, FailedJobsLast24Hours = {FailedJobsLast24Hours}, AverageSuccessRate = {AverageSuccessRate}, TotalExecutions = {TotalExecutions} }}";
+    }
 }
 
 public sealed class QueueStatusResponse
