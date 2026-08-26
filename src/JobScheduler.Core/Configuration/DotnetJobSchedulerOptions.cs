@@ -44,4 +44,9 @@ public class DotnetJobSchedulerOptions
     /// The interval in milliseconds to run the cleanup job.
     /// </summary>
     public int CleanupIntervalMs { get; set; }
+
+    public override string ToString()
+    {
+        return $"DotnetJobSchedulerOptions {{ ConnectionString = {ConnectionString}, MaxConcurrentJobs = {MaxConcurrentJobs}, DefaultTimeoutSeconds = {DefaultTimeoutSeconds}, DefaultMaxRetries = {DefaultMaxRetries}, DefaultRetryBackoffSeconds = {DefaultRetryBackoffSeconds}, QueuePollIntervalMs = {QueuePollIntervalMs} }}";
+    }
 }
