@@ -84,4 +84,9 @@ public sealed class CreateJobRequest
             IsActive = IsActive
         };
     }
+
+    public override string ToString()
+    {
+        return $"CreateJobRequest {{ Name = {Name}, Description = {Description}, CronExpression = {CronExpression}, TimeZoneId = {TimeZoneId}, HandlerType = {HandlerType}, HandlerParameters = {HandlerParameters} }}";
+    }
 }
