@@ -697,6 +697,12 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
             return false;
         }
     }
+
+    /// <summary>
+    /// Returns a concise, informative representation of the scheduler service.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(JobSchedulerService)} {{ Job = n/a, ExecutionStatistics = n/a, LastExecution = n/a, TotalExecutions = n/a, NextScheduledTime = n/a, TotalJobs = n/a }}";
 }
 
 public sealed class JobDetailsDto
