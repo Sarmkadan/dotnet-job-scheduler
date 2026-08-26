@@ -26,6 +26,11 @@ public sealed class PerformanceMonitor
         _metrics = new ConcurrentQueue<PerformanceMetric>();
     }
 
+    public override string ToString()
+    {
+        return $"PerformanceMonitor {{ JobId = n/a, JobName = n/a, ExecutionTimeMs = n/a, Success = n/a, Timestamp = n/a, TotalExecutions = n/a }}";
+    }
+
     /// <summary>
     /// Records execution time for a job.
     /// Metrics are stored in-memory for analysis.
