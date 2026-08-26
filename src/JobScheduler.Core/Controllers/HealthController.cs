@@ -28,6 +28,12 @@ public sealed class HealthController : ControllerBase
     }
 
     /// <summary>
+    /// Returns a concise, informative representation of the health controller.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(HealthController)} {{ Timestamp = n/a, Version = n/a, Status = n/a, Database = n/a, Jobs = n/a, Executions = n/a }}";
+
+    /// <summary>
     /// Quick liveness probe for load balancers. Returns 200 if service is running.
     /// This endpoint has minimal dependencies and should respond quickly.
     /// </summary>
