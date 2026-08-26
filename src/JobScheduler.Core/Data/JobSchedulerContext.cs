@@ -29,6 +29,11 @@ public sealed class JobSchedulerContext : DbContext
     public DbSet<JobPipelineStep> JobPipelineSteps { get; set; } = null!;
     public DbSet<DistributedJobLock> DistributedJobLocks { get; set; } = null!;
 
+    public override string ToString()
+    {
+        return $"{nameof(JobSchedulerContext)} {{ Jobs = {Jobs}, JobExecutions = {JobExecutions}, JobScheduleHistories = {JobScheduleHistories}, RetryPolicies = {RetryPolicies}, ExecutionMetrics = {ExecutionMetrics}, JobDependencies = {JobDependencies} }}";
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
