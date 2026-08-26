@@ -29,6 +29,11 @@ public abstract class BaseController : ControllerBase
         _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     }
 
+    public override string ToString()
+    {
+        return $"BaseController {{ Success = n/a, Message = n/a, Data = n/a, Timestamp = n/a }}";
+    }
+
     /// <summary>
     /// Gets the currently authenticated user ID.
     /// Returns "Anonymous" if not authenticated.
