@@ -118,4 +118,35 @@ public class EmailSendingDemo
 }
 
 These extensions streamline common email sending job scenarios while keeping the core scheduler logic untouched.
+
+## JobValidationExceptionTests
+
+The `JobValidationExceptionTests` class verifies the behavior of the `JobValidationException` exception, including constructor overloads and property mutability.
+
+**Usage example**
+
+```csharp
+using JobScheduler.Core.Exceptions;
+
+// Creating an exception with only a message
+var ex1 = new JobValidationException("Job validation failed");
+// ex1.Message == "Job validation failed"
+// ex1.PropertyName == null
+
+// Creating an exception with message and property name
+var ex2 = new JobValidationException("Invalid priority", "Priority");
+// ex2.Message == "Invalid priority"
+// ex2.PropertyName == "Priority"
+
+// Creating an exception with message and inner exception
+var inner = new InvalidOperationException("Inner failure");
+var ex3 = new JobValidationException("Validation error occurred", inner);
+// ex3.Message == "Validation error occurred"
+// ex3.InnerException == inner
+
+// Modifying the PropertyName after construction
+ex1.PropertyName = "JobId";
+// ex1.PropertyName == "JobId"
+```
+```
 ```
