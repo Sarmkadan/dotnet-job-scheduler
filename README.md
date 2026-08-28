@@ -150,3 +150,30 @@ ex1.PropertyName = "JobId";
 ```
 ```
 ```
+
+## JobSchedulerExceptionExtensionsTests
+
+The `JobSchedulerExceptionExtensionsTests` class verifies the behavior of the extension methods for `JobSchedulerException`,
+including formatting details, checking specific error codes, and generating a summary dictionary.
+
+**Usage example**
+
+```csharp
+using JobScheduler.Core.Exceptions;
+
+// Create an exception with an error code
+var exception = new JobSchedulerException("Something went wrong", "JOB-123");
+
+// Get formatted details (includes error code)
+string details = exception.FormatDetails();
+// details == "Something went wrong (Error Code: JOB-123)"
+
+// Check if the exception matches a specific error code
+bool isMatch = exception.IsSpecificError("JOB-123");
+// isMatch == true
+
+// Get a summary of the exception as a dictionary
+var summary = exception.GetSummary();
+// summary contains Type, Message, and ErrorCode
+```
+```
