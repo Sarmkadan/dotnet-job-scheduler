@@ -176,4 +176,31 @@ bool isMatch = exception.IsSpecificError("JOB-123");
 var summary = exception.GetSummary();
 // summary contains Type, Message, and ErrorCode
 ```
+
+## JobSchedulerExceptionTests
+
+The `JobSchedulerExceptionTests` class verifies the behavior of the `JobSchedulerException` exception,
+including constructor overloads, property behavior, and validation of null arguments.
+
+**Usage example**
+
+```csharp
+using JobScheduler.Core.Exceptions;
+
+// Creating an exception with only a message
+var ex1 = new JobSchedulerException("Job scheduler failed");
+// ex1.Message == "Job scheduler failed"
+// ex1.ErrorCode == null
+
+// Creating an exception with message and error code
+var ex2 = new JobSchedulerException("Job scheduler failed", "SCH-001");
+// ex2.Message == "Job scheduler failed"
+// ex2.ErrorCode == "SCH-001"
+
+// Creating an exception with message and inner exception
+var inner = new InvalidOperationException("Inner failure");
+var ex3 = new JobSchedulerException("Job scheduler failed", inner);
+// ex3.Message == "Job scheduler failed"
+// ex3.InnerException == inner
+```
 ```
