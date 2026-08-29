@@ -204,3 +204,30 @@ var ex3 = new JobSchedulerException("Job scheduler failed", inner);
 // ex3.InnerException == inner
 ```
 ```
+
+## ConcurrencyExceptionTests
+
+The `ConcurrencyExceptionTests` class verifies the behavior of the `ConcurrencyException` exception,
+which is thrown when job execution exceeds concurrency limits. It tests constructor behavior,
+message formatting, property mutability, and inheritance from `JobSchedulerException`.
+
+**Usage example**
+
+```csharp
+using JobScheduler.Core.Exceptions;
+
+// Creating a concurrency exception with job ID and counts
+var jobId = Guid.Parse("12345678-1234-1234-1234-123456789012");
+var ex = new ConcurrencyException(jobId, 5, 3);
+// ex.Message == "Job 12345678-1234-1234-1234-123456789012 cannot execute: current concurrent executions (5) exceed maximum allowed (3)."
+// ex.JobId == jobId
+// ex.CurrentConcurrentExecutions == 5
+// ex.MaxAllowed == 3
+// ex.ErrorCode == "CONCURRENCY_LIMIT_EXCEEDED"
+
+// Properties can be modified after construction
+ex.JobId = Guid.NewGuid();
+ex.CurrentConcurrentExecutions = 99;
+ex.MaxAllowed = 100;
+```
+```
