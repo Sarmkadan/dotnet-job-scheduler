@@ -265,3 +265,44 @@ ex1.JobId = Guid.NewGuid();
 ex1.AttemptNumber = 5;
 ```
 ```
+
+## JobNotFoundExceptionTests
+
+The `JobNotFoundExceptionTests` class verifies the behavior of the `JobNotFoundException` exception, including constructor overloads for GUID and string job identifiers, property mutability, and inheritance from `JobSchedulerException`.
+
+**Usage example**
+
+
+
+## JobNotFoundExceptionTests
+
+The `JobNotFoundExceptionTests` class verifies the behavior of the `JobNotFoundException` exception, including constructor overloads for GUID and string job identifiers, property mutability, and inheritance from `JobSchedulerException`.
+
+**Usage example**
+
+```csharp
+using JobScheduler.Core.Exceptions;
+using System;
+
+// Creating an exception with a job GUID
+var jobId = Guid.NewGuid();
+var ex1 = new JobNotFoundException(jobId);
+// ex1.JobId == jobId
+// ex1.Message == $"Job with ID '{jobId}' not found.";
+
+// Creating an exception with a job name
+var jobName = "ImportantJob";
+var ex2 = new JobNotFoundException(jobName);
+// ex2.Message == $"Job with name '{jobName}' not found.";
+
+// Creating an exception with an inner exception
+var inner = new InvalidOperationException("Inner failure");
+var ex3 = new JobNotFoundException(jobId, inner);
+// ex3.JobId == jobId
+// ex3.Message == $"Job with ID '{jobId}' not found.";
+// ex3.InnerException == inner;
+
+// Modifying the JobId after construction
+ex1.JobId = Guid.NewGuid();
+// ex1.JobId now equals the new GUID
+```
