@@ -17,6 +17,12 @@ namespace JobScheduler.Core.Services;
 /// </summary>
 public sealed class ScheduleService
 {
+    private const int DefaultUpcomingCount = 10;
+    private const int DefaultLookAheadMinutes = 5;
+    private const int FrequencySamplingDays = 1;
+    private const int HoursPerDay = 24;
+    private const int DistributionSampleCount = 30;
+
     private readonly IJobRepository _jobRepository;
     private readonly CronExpressionService _cronService;
     private readonly ILogger<ScheduleService> _logger;
@@ -35,7 +41,9 @@ public sealed class ScheduleService
     /// Gets the next N scheduled execution times for a job.
     /// Useful for displaying upcoming execution schedule to users.
     /// </summary>
-    public async Task<List<DateTime>> GetUpcomingExecutionTimesAsync(Guid jobId, int count = 10)
+    public async Task<List<DateTime>> GetUpcomingExecutionTimesAsync(
+        Guid jobId,
+        int count = DefaultUpcomingCount)
     {
         try
         {
@@ -71,7 +79,7 @@ public sealed class ScheduleService
         {
             var times = new List<DateTime>();
             var start = DateTime.UtcNow.Date;
-            var end = start.AddDays(1);
+            var end = start.AddDays(FrequencySamplingDays);
 
             // Step back one second so an occurrence falling exactly on midnight is counted:
             // the window is [start, end) and cron returns the strictly next occurrence.
@@ -142,7 +150,7 @@ public sealed class ScheduleService
     /// Finds the next N jobs scheduled to execute.
     /// Used to determine scheduler's immediate workload.
     /// </summary>
-    public async Task<List<Job>> GetNextScheduledJobsAsync(int count = 10)
+    public async Task<List<Job>> GetNextScheduledJobsAsync(int count = DefaultUpcomingCount)
     {
         try
         {
@@ -172,14 +180,14 @@ public sealed class ScheduleService
         try
         {
             var distribution = new Dictionary<int, int>();
-            for (int i = 0; i < 24; i++)
+            for (int i = 0; i < HoursPerDay; i++)
                 distribution[i] = 0;
 
             var allJobs = await _jobRepository.GetAllAsync();
 
             foreach (var job in allJobs.Where(j => j.IsActive))
             {
-                var times = await GetUpcomingExecutionTimesAsync(job.Id, 30);
+                var times = await GetUpcomingExecutionTimesAsync(job.Id, DistributionSampleCount);
                 foreach (var time in times)
                 {
                     distribution[time.Hour]++;
@@ -198,7 +206,8 @@ public sealed class ScheduleService
     /// <summary>
     /// Returns jobs that would execute in the next N minutes.
     /// </summary>
-    public async Task<List<Job>> GetJobsExecutingInNextMinutesAsync(int minutes = 5)
+    public async Task<List<Job>> GetJobsExecutingInNextMinutesAsync(
+        int minutes = DefaultLookAheadMinutes)
     {
         try
         {
