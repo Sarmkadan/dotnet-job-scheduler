@@ -230,4 +230,38 @@ ex.JobId = Guid.NewGuid();
 ex.CurrentConcurrentExecutions = 99;
 ex.MaxAllowed = 100;
 ```
+
+## ExecutionExceptionTests
+
+The `ExecutionExceptionTests` class verifies the behavior of the `ExecutionException` exception,
+including constructor overloads for setting execution ID, job ID, attempt number, and inner exception,
+as well as property mutability and inheritance from `JobSchedulerException`.
+
+**Usage example**
+
+```csharp
+using JobScheduler.Core.Exceptions;
+
+// Creating an exception with execution ID and job ID (defaults attempt number to 0)
+var executionId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+var jobId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+var ex1 = new ExecutionException("Job failed", executionId, jobId);
+// ex1.ExecutionId == executionId
+// ex1.JobId == jobId
+// ex1.AttemptNumber == 0
+
+// Creating an exception with attempt number specified
+var ex2 = new ExecutionException("Job failed on retry", executionId, jobId, 3);
+// ex2.AttemptNumber == 3
+
+// Creating an exception with inner exception
+var inner = new InvalidOperationException("Database connection failed");
+var ex3 = new ExecutionException("Job execution failed", executionId, jobId, inner);
+// ex3.InnerException == inner
+
+// Properties can be modified after construction
+ex1.ExecutionId = Guid.NewGuid();
+ex1.JobId = Guid.NewGuid();
+ex1.AttemptNumber = 5;
+```
 ```
