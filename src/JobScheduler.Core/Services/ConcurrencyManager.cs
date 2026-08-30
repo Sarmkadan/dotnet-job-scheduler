@@ -71,7 +71,11 @@ public class ConcurrencyManager
         _logger?.LogDebug("Current global concurrency: {GlobalCount}/{MaxGlobalConcurrency}", globalCount, _maxGlobalConcurrency);
         if (globalCount >= _maxGlobalConcurrency)
         {
-            _logger?.LogWarning("Job {JobId} blocked: global concurrency limit reached ({GlobalCount}/{MaxGlobalConcurrency})", job.Id, globalCount, _maxGlobalConcurrency);
+            var currentJobCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);
+            var jobLimit = job.DisallowConcurrentExecution ? 1 : job.MaxConcurrentExecutions;
+            _logger?.LogDebug(
+                "Job {JobId} rejected by concurrency limits: current job count {CurrentJobCount}, job limit {JobLimit}, global count {GlobalCount}, global limit {GlobalLimit}",
+                job.Id, currentJobCount, jobLimit, globalCount, _maxGlobalConcurrency);
             return false;
         }
 
@@ -82,7 +86,9 @@ public class ConcurrencyManager
             _logger?.LogDebug("Current job concurrency for {JobId} (disallow concurrent): {JobCount}", job.Id, disallowConcurrentCount);
             if (disallowConcurrentCount > 0)
             {
-                _logger?.LogWarning("Job {JobId} blocked: DisallowConcurrentExecution=true but {JobCount} instance(s) already running", job.Id, disallowConcurrentCount);
+                _logger?.LogDebug(
+                    "Job {JobId} rejected by concurrency limits: current job count {CurrentJobCount}, job limit {JobLimit}, global count {GlobalCount}, global limit {GlobalLimit}",
+                    job.Id, disallowConcurrentCount, 1, globalCount, _maxGlobalConcurrency);
                 return false;
             }
             return true;
@@ -93,7 +99,9 @@ public class ConcurrencyManager
         _logger?.LogDebug("Current job concurrency for {JobId}: {JobCount}/{MaxConcurrent}", job.Id, jobSpecificCount, job.MaxConcurrentExecutions);
         if (jobSpecificCount >= job.MaxConcurrentExecutions)
         {
-            _logger?.LogWarning("Job {JobId} blocked: job-specific concurrency limit reached ({JobCount}/{MaxConcurrent})", job.Id, jobSpecificCount, job.MaxConcurrentExecutions);
+            _logger?.LogDebug(
+                "Job {JobId} rejected by concurrency limits: current job count {CurrentJobCount}, job limit {JobLimit}, global count {GlobalCount}, global limit {GlobalLimit}",
+                job.Id, jobSpecificCount, job.MaxConcurrentExecutions, globalCount, _maxGlobalConcurrency);
             return false;
         }
 
@@ -113,7 +121,7 @@ public class ConcurrencyManager
         if (!await CanExecuteAsync(job))
         {
             var currentCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);
-            _logger?.LogError("Concurrency limit exceeded for job {JobId}: {CurrentCount}/{MaxConcurrent}", job.Id, currentCount, job.MaxConcurrentExecutions);
+            _logger?.LogWarning("Concurrency limit exceeded for job {JobId}: {CurrentCount}/{MaxConcurrent}", job.Id, currentCount, job.MaxConcurrentExecutions);
             throw new ConcurrencyException(job.Id, currentCount, job.MaxConcurrentExecutions);
         }
 
@@ -135,7 +143,29 @@ public class ConcurrencyManager
     /// </summary>
     public virtual void DecrementConcurrencyCount(Guid jobId)
     {
-        var oldCount = _jobConcurrencyCache.AddOrUpdate(jobId, 0, (_, current) => Math.Max(0, current - 1));
+        var decrementBelowZero = 0;
+        var newCount = _jobConcurrencyCache.AddOrUpdate(
+            jobId,
+            _ =>
+            {
+                Interlocked.Exchange(ref decrementBelowZero, 1);
+                return 0;
+            },
+            (_, current) =>
+            {
+                if (current <= 0)
+                {
+                    Interlocked.Exchange(ref decrementBelowZero, 1);
+                    return 0;
+                }
+
+                return current - 1;
+            });
+
+        if (decrementBelowZero != 0)
+        {
+            _logger?.LogWarning("Cannot decrement concurrency count for job {JobId} below zero", jobId);
+        }
 
         // Compare-and-swap keeps the global counter from going negative when several
         // executions finish at the same time (a plain check-then-decrement races).
@@ -148,7 +178,7 @@ public class ConcurrencyManager
         }
         while (Interlocked.CompareExchange(ref _globalRunningCount, observed - 1, observed) != observed);
 
-        _logger?.LogDebug("Decremented concurrency count for job {JobId}: was {OldCount}", jobId, oldCount);
+        _logger?.LogDebug("Decremented concurrency count for job {JobId}: {NewCount}", jobId, newCount);
     }
 
     /// <summary>
@@ -184,6 +214,7 @@ public class ConcurrencyManager
 
         // The repository count is authoritative: it also covers executions started by other nodes.
         Volatile.Write(ref _globalRunningCount, await _executionRepository.GetConcurrentRunningCountAsync());
+        _logger?.LogInformation("Synchronized concurrency state with {RunningExecutionCount} running executions", runningExecutions.Count);
     }
 
     /// <summary>
