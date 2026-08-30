@@ -17,6 +17,12 @@ namespace JobScheduler.Core.Services;
 /// </summary>
 public sealed class SlackNotificationService
 {
+    private const string WarningColor = "warning";
+    private const string DangerColor = "danger";
+    private const string GoodColor = "good";
+
+    private static readonly JsonSerializerOptions SerializerOptions = new();
+
     private readonly HttpClient _httpClient;
     private readonly ILogger<SlackNotificationService> _logger;
 
@@ -40,30 +46,24 @@ public sealed class SlackNotificationService
             return;
         }
 
-        var color = execution.RetryAttempt < job.MaxRetries ? "warning" : "danger";
+        var color = execution.RetryAttempt < job.MaxRetries ? WarningColor : DangerColor;
         var message = new SlackMessage
         {
             Text = $"Job {job.Name} execution failed",
             Attachments = new[]
             {
-                new SlackAttachment
-                {
-                    Color = color,
-                    Title = $"{job.Name} - Execution Failed",
-                    Fields = new[]
-                    {
-                        new SlackField { Title = "Job", Value = job.Name, Short = true },
-                        new SlackField { Title = "Status", Value = "Failed", Short = true },
-                        new SlackField { Title = "Execution Time", Value = $"{execution.ExecutionTimeMs}ms", Short = true },
-                        new SlackField { Title = "Retry Attempt", Value = $"{execution.RetryAttempt}/{job.MaxRetries}", Short = true },
-                        new SlackField { Title = "Error", Value = execution.ErrorMessage ?? "No error details", Short = false }
-                    },
-                    Ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()
-                }
+                BuildJobAttachment(
+                    job,
+                    execution,
+                    color,
+                    $"{job.Name} - Execution Failed",
+                    "Failed",
+                    new SlackField { Title = "Retry Attempt", Value = $"{execution.RetryAttempt}/{job.MaxRetries}", Short = true },
+                    new SlackField { Title = "Error", Value = execution.ErrorMessage ?? "No error details", Short = false })
             }
         };
 
-        await SendSlackMessageAsync(message, webhookUrl);
+        await SendSlackMessageAsync(message, webhookUrl, job.Name);
         _logger.LogInformation("Job failure notification sent successfully for Job {JobName}", job.Name);
     }
 
@@ -86,23 +86,17 @@ public sealed class SlackNotificationService
             Text = $"Job {job.Name} executed successfully",
             Attachments = new[]
             {
-                new SlackAttachment
-                {
-                    Color = "good",
-                    Title = $"{job.Name} - Execution Successful",
-                    Fields = new[]
-                    {
-                        new SlackField { Title = "Job", Value = job.Name, Short = true },
-                        new SlackField { Title = "Status", Value = "Completed", Short = true },
-                        new SlackField { Title = "Execution Time", Value = $"{execution.ExecutionTimeMs}ms", Short = true },
-                        new SlackField { Title = "Success Rate", Value = $"{job.GetSuccessRate():F1}%", Short = true }
-                    },
-                    Ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()
-                }
+                BuildJobAttachment(
+                    job,
+                    execution,
+                    GoodColor,
+                    $"{job.Name} - Execution Successful",
+                    "Completed",
+                    new SlackField { Title = "Success Rate", Value = $"{job.GetSuccessRate():F1}%", Short = true })
             }
         };
 
-        await SendSlackMessageAsync(message, webhookUrl);
+        await SendSlackMessageAsync(message, webhookUrl, job.Name);
         _logger.LogInformation("Job success notification sent successfully for Job {JobName}", job.Name);
     }
 
@@ -121,8 +115,8 @@ public sealed class SlackNotificationService
 
         var color = severity switch
         {
-            "Critical" => "danger",
-            "Warning" => "warning",
+            "Critical" => DangerColor,
+            "Warning" => WarningColor,
             _ => "#808080"
         };
 
@@ -145,20 +139,43 @@ public sealed class SlackNotificationService
             }
         };
 
-        await SendSlackMessageAsync(slackMessage, webhookUrl);
+        await SendSlackMessageAsync(slackMessage, webhookUrl, title);
         _logger.LogInformation("Scheduler alert sent successfully: {Title}", title);
     }
 
-    private async Task SendSlackMessageAsync(SlackMessage message, string webhookUrl)
+    private static SlackAttachment BuildJobAttachment(
+        Job job,
+        JobExecution execution,
+        string color,
+        string title,
+        string status,
+        params SlackField[] extraFields)
+    {
+        var fields = new SlackField[3 + extraFields.Length];
+        fields[0] = new SlackField { Title = "Job", Value = job.Name, Short = true };
+        fields[1] = new SlackField { Title = "Status", Value = status, Short = true };
+        fields[2] = new SlackField { Title = "Execution Time", Value = $"{execution.ExecutionTimeMs}ms", Short = true };
+        extraFields.CopyTo(fields, 3);
+
+        return new SlackAttachment
+        {
+            Color = color,
+            Title = title,
+            Fields = fields,
+            Ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()
+        };
+    }
+
+    private async Task SendSlackMessageAsync(SlackMessage message, string webhookUrl, string context)
     {
         try
         {
-            var json = JsonSerializer.Serialize(message);
+            var json = JsonSerializer.Serialize(message, SerializerOptions);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
             {
-                var response = await _httpClient.PostAsync(webhookUrl, content, cts.Token);
+                using var response = await _httpClient.PostAsync(webhookUrl, content, cts.Token);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -166,7 +183,10 @@ public sealed class SlackNotificationService
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to send Slack notification: {StatusCode}", response.StatusCode);
+                    _logger.LogError(
+                        "Failed to send Slack notification with status code {StatusCode} for {Context}",
+                        response.StatusCode,
+                        context);
                 }
             }
         }
