@@ -26,6 +26,8 @@ public class CronExpressionService
     private static readonly ConcurrentDictionary<string, CrontabSchedule> _scheduleCache =
         new(StringComparer.Ordinal);
 
+    private const int MaxCacheSize = 1000;
+
     private readonly ILogger<CronExpressionService>? _logger;
 
     /// <summary>
@@ -80,6 +82,12 @@ public class CronExpressionService
         {
             _logger?.LogError(ex, "Cron expression '{Expression}' parsing failed", cronExpression);
             throw new CronExpressionException(cronExpression, "Failed to parse expression", ex);
+        }
+
+        if (_scheduleCache.Count >= MaxCacheSize)
+        {
+            _logger?.LogDebug("Cron expression cache is full (limit {Limit}), skipping cache for '{Expression}'", MaxCacheSize, cronExpression);
+            return parsed;
         }
 
         // GetOrAdd(key, value) is thread-safe: returns the winner if two threads race.
