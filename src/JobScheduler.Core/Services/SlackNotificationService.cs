@@ -36,8 +36,12 @@ public sealed class SlackNotificationService
     /// Sends job execution failure notification to Slack.
     /// Includes error message and retry information.
     /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="job"/> or <paramref name="execution"/> is <see langword="null"/>.</exception>
     public async Task SendJobFailureNotificationAsync(Job job, JobExecution execution, string webhookUrl)
     {
+        ArgumentNullException.ThrowIfNull(job);
+        ArgumentNullException.ThrowIfNull(execution);
+
         _logger.LogInformation("Sending job failure notification for Job {JobName} (ExecutionId: {ExecutionId}, Attempt: {Attempt}/{MaxRetries})", job.Name, execution.Id, execution.RetryAttempt, job.MaxRetries);
 
         if (string.IsNullOrEmpty(webhookUrl))
@@ -71,8 +75,12 @@ public sealed class SlackNotificationService
     /// Sends job execution success notification to Slack.
     /// Includes execution time and performance metrics.
     /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="job"/> or <paramref name="execution"/> is <see langword="null"/>.</exception>
     public async Task SendJobSuccessNotificationAsync(Job job, JobExecution execution, string webhookUrl)
     {
+        ArgumentNullException.ThrowIfNull(job);
+        ArgumentNullException.ThrowIfNull(execution);
+
         _logger.LogInformation("Sending job success notification for Job {JobName} (ExecutionId: {ExecutionId}, ExecutionTime: {ExecutionTimeMs}ms)", job.Name, execution.Id, execution.ExecutionTimeMs);
 
         if (string.IsNullOrEmpty(webhookUrl))
@@ -103,8 +111,12 @@ public sealed class SlackNotificationService
     /// <summary>
     /// Sends alert for critical scheduler events.
     /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="title"/> or <paramref name="message"/> is <see langword="null"/>, empty, or consists only of white-space characters.</exception>
     public async Task SendSchedulerAlertAsync(string title, string message, string severity, string webhookUrl)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+
         _logger.LogInformation("Sending scheduler alert: {Title} with severity {Severity}", title, severity);
 
         if (string.IsNullOrEmpty(webhookUrl))
