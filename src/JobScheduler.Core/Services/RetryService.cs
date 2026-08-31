@@ -75,11 +75,22 @@ public class RetryService
     /// </summary>
     public virtual DateTime CalculateNextRetryTime(Job job, JobExecution failedExecution)
     {
-        if (job is null || failedExecution is null)
+        if (job is null)
             throw new ArgumentNullException(nameof(job));
+        if (failedExecution is null)
+            throw new ArgumentNullException(nameof(failedExecution));
 
         var delaySeconds = CalculateBackoffDelay(job, failedExecution.AttemptNumber);
-        var nextRetryTime = failedExecution.CompletedAt!.Value.AddSeconds(delaySeconds);
+        var retryBaseTime = failedExecution.CompletedAt;
+        if (retryBaseTime is null)
+        {
+            retryBaseTime = DateTime.UtcNow;
+            _logger?.LogWarning(
+                "Job {JobId} execution {ExecutionId} has no completion time; using current UTC time to schedule retry",
+                job.Id, failedExecution.Id);
+        }
+
+        var nextRetryTime = retryBaseTime.Value.AddSeconds(delaySeconds);
 
         _logger?.LogDebug("Job {JobId} scheduled for retry at {RetryTime} (delay: {DelaySeconds}s, attempt: {Attempt})",
             job.Id, nextRetryTime, delaySeconds, failedExecution.AttemptNumber + 1);
@@ -109,16 +120,11 @@ public class RetryService
         // yet) and attempt 1 both use the initial backoff, so the exponent is clamped at zero to
         // avoid a fractional multiplier that would shrink the delay below the configured base.
         var exponent = Math.Max(0, attemptNumber - 1);
-        var delay = (int)(baseDelay * Math.Pow(2, exponent));
-
-        // Fix: Ensure minimum delay is 1 second after calculation to prevent immediate retries.
-        if (delay <= 0)
-        {
-            delay = 1;
-        }
+        var calculatedDelay = baseDelay * Math.Pow(2, exponent);
 
         // Cap at job's timeout seconds to prevent unreasonable delays, also ensuring it's at least 1.
-        return Math.Max(1, Math.Min(delay, job.ExecutionTimeoutSeconds));
+        var maximumDelay = Math.Max(1, job.ExecutionTimeoutSeconds);
+        return (int)Math.Clamp(calculatedDelay, 1d, maximumDelay);
     }
 
     /// <summary>
