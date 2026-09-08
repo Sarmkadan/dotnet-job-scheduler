@@ -1169,3 +1169,40 @@ Cleanup with custom retention period:
 curl -X DELETE "http://localhost:5000/api/Executions/cleanup" \
   --data-urlencode "olderThanDays=30"
 ```
+
+## JobsController REST API
+
+The `JobsController` manages scheduled jobs under the `/api/Jobs` route.
+
+| Action | Verb and route | Parameters or request body | Declared status codes |
+| --- | --- | --- | --- |
+| `CreateJob` | `POST /api/Jobs` | JSON `CreateJobRequest` body | `201 Created`, `400 Bad Request` |
+| `GetJob` | `GET /api/Jobs/{id}` | `id` (Guid) | `200 OK`, `404 Not Found` |
+| `ListJobs` | `GET /api/Jobs` | Optional query parameters: `status`, `pageNumber` (default `1`), and `pageSize` (default `10`) | `200 OK` |
+| `UpdateJob` | `PUT /api/Jobs/{id}` | `id` (Guid) and JSON `CreateJobRequest` body | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| `DeleteJob` | `DELETE /api/Jobs/{id}` | `id` (Guid) | `204 No Content`, `404 Not Found` |
+| `SuspendJob` | `POST /api/Jobs/{id}/suspend` | `id` (Guid) and optional JSON `SuspendJobRequest` body containing `reason` | `200 OK`, `404 Not Found` |
+| `ResumeJob` | `POST /api/Jobs/{id}/resume` | `id` (Guid) | `200 OK`, `404 Not Found` |
+| `TriggerJobExecution` | `POST /api/Jobs/{id}/execute` | `id` (Guid) | `200 OK`, `404 Not Found`, `409 Conflict` |
+| `GetJobExecutionHistory` | `GET /api/Jobs/{id}/history` | `id` (Guid) and optional `limit` query parameter (default `20`) | `200 OK`, `404 Not Found` |
+
+Create a job with a `CreateJobRequest` body:
+
+```bash
+curl -X POST "http://localhost:5000/api/Jobs" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Nightly report",
+    "description": "Generate the nightly reporting dataset",
+    "cronExpression": "0 2 * * *",
+    "timeZoneId": "UTC",
+    "handlerType": "JobScheduler.Handlers.NightlyReportHandler",
+    "handlerParameters": "{\"reportType\":\"summary\"}",
+    "priority": 1,
+    "maxConcurrentExecutions": 1,
+    "maxRetries": 3,
+    "retryBackoffSeconds": 60,
+    "executionTimeoutSeconds": 300,
+    "isActive": true
+  }'
+```
