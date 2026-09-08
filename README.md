@@ -435,6 +435,46 @@ await publisher.PublishAsync(new JobCreatedEvent
 // Disposing subscription (automatically at the end of this scope) unsubscribes it.
 ```
 
+## Health endpoints
+
+The HealthController provides the following endpoints:
+
+- `GET /api/health/live` - Liveness probe. Returns 200 if the service is running.
+- `GET /api/health/ready` - Readiness probe. Returns 200 if the service is ready to handle requests (database connected), 503 otherwise.
+- `GET /api/health/status` - Detailed health status. Returns 200 with a HealthStatusResponse object containing:
+    - Timestamp: Current UTC timestamp
+    - Version: Application version (hardcoded to "1.1.0")
+    - Status: Overall status ("OK" or "Degraded")
+    - Database: Database status (Available, LastChecked, ErrorMessage)
+    - Jobs: Job statistics (TotalCount, ActiveCount)
+    - Executions: Execution statistics (TotalCount, SuccessRate)
+    - Memory: Memory usage (UsageMb, Threshold)
+- `GET /api/health/diagnostics` - Detailed diagnostics. Returns 200 with a DiagnosticsResponse object containing:
+    - Timestamp: Current UTC timestamp
+    - MachineName: Machine name
+    - ProcessorCount: Number of processors
+    - RuntimeVersion: .NET runtime version
+    - Memory: Memory diagnostics (TotalMemoryMb, ManagedHeapSizeMb, Gen0Collections, Gen1Collections, Gen2Collections)
+    - SystemStatistics: System statistics (TotalJobs, ActiveJobs, TotalExecutions, AverageSuccessRate, AverageExecutionTimeMs)
+    - RecentErrors: List of recent error log entries (Message, Count, LastOccurred)
+
+Example Kubernetes liveness and readiness probe configuration:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /api/health/live
+    port: 80
+  initialDelaySeconds: 30
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /api/health/ready
+    port: 80
+  initialDelaySeconds: 5
+  periodSeconds: 10
+```
+
 ## Distributed locking
 
 `DistributedJobLockService` in `src/JobScheduler.Core/Services` provides
