@@ -615,3 +615,95 @@ catch (CyclicDependencyException ex)
 // Remove the relationship when the report no longer requires the import.
 await dependencies.RemoveDependencyAsync(reportJob.Id, importJob.Id);
 ```
+
+## ConcurrencyManager
+
+`ConcurrencyManager` enforces global and per-job execution limits using the
+current execution state from an `IExecutionRepository`. It also maintains local
+in-memory counters that callers can update as executions start and finish.
+
+Construct it with an execution repository to use
+`SchedulerConstants.DefaultMaxConcurrentJobs` as the global limit and no
+logger. The other constructor accepts an explicit `maxGlobalConcurrency` and
+an optional `ILogger<ConcurrencyManager>`; its global-limit argument also
+defaults to `SchedulerConstants.DefaultMaxConcurrentJobs`.
+
+- `CanExecuteAsync(job)` returns `false` when the repository's global running
+  count has reached the configured global limit, when a job marked
+  `DisallowConcurrentExecution` already has a running instance, or when the
+  job's `MaxConcurrentExecutions` limit has been reached. Otherwise it returns
+  `true`.
+- `EnsureCanExecuteAsync(job)` performs the same check and throws a
+  `ConcurrencyException` when execution is not allowed.
+- `IncrementConcurrencyCount(jobId)` and
+  `DecrementConcurrencyCount(jobId)` update the local per-job and global
+  counters. Counts are prevented from going below zero.
+- `GetJobConcurrencyCount(jobId)` returns the cached count for one job, or zero
+  if the job has no cached count. `GetGlobalConcurrencyCount()` returns the
+  local global count.
+- `SynchronizeWithDatabaseAsync()` rebuilds the per-job cache from running
+  executions in the repository and replaces the local global count with the
+  repository's authoritative concurrent-running count. Call it during startup
+  and periodically when other scheduler nodes can start executions.
+- `GetConcurrencyStats()` returns a dictionary containing `GlobalRunning`,
+  `GlobalLimit`, `JobsWithExecutions`, and `TotalCachedJobs`.
+
+The admission methods query persisted execution state; incrementing and
+decrementing the local counters does not itself create or update an execution
+record in the repository.
+
+**Usage example**
+
+```csharp
+using System.Collections.Generic;
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Exceptions;
+using JobScheduler.Core.Services;
+
+// Assume executionRepository is the application's configured repository.
+IExecutionRepository executionRepository = /* resolve from dependency injection */;
+
+// Uses SchedulerConstants.DefaultMaxConcurrentJobs as the global limit.
+var concurrency = new ConcurrencyManager(executionRepository);
+
+// An explicit limit and optional ILogger<ConcurrencyManager> can also be supplied:
+// var concurrency = new ConcurrencyManager(executionRepository, 20, logger);
+
+var job = new Job
+{
+    Name = "Import orders",
+    CronExpression = "*/5 * * * *",
+    HandlerType = "ImportOrdersJobHandler",
+    MaxConcurrentExecutions = 2
+};
+
+await concurrency.SynchronizeWithDatabaseAsync();
+
+if (await concurrency.CanExecuteAsync(job))
+{
+    bool incremented = false;
+    try
+    {
+        // Rechecks the limits and throws ConcurrencyException if capacity was lost.
+        await concurrency.EnsureCanExecuteAsync(job);
+        concurrency.IncrementConcurrencyCount(job.Id);
+        incremented = true;
+
+        // Run the job and persist its execution state here.
+    }
+    catch (ConcurrencyException ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+    finally
+    {
+        if (incremented)
+            concurrency.DecrementConcurrencyCount(job.Id);
+    }
+}
+
+int jobCount = concurrency.GetJobConcurrencyCount(job.Id);
+int globalCount = concurrency.GetGlobalConcurrencyCount();
+Dictionary<string, int> stats = concurrency.GetConcurrencyStats();
+```
