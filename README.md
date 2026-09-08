@@ -528,3 +528,90 @@ IReadOnlyList<DistributedJobLock> activeLocks =
     await nodeBLocks.GetActiveLocksAsync();
 int expiredLocksRemoved = await nodeBLocks.CleanExpiredLocksAsync();
 ```
+
+## JobDependencyService
+
+`JobDependencyService` manages prerequisite relationships between jobs while
+preserving a directed acyclic graph (DAG). It can be constructed with a
+`JobSchedulerContext` (and an optional `ILogger<JobDependencyService>`) or
+resolved as `IJobDependencyService` after registering the scheduler services.
+
+- `AddDependencyAsync(jobId, dependsOnJobId, createdBy)` records that `jobId`
+  must run after `dependsOnJobId`. Both jobs must already exist. Adding the same
+  relationship again is harmless, while self-dependencies are rejected with a
+  `JobValidationException`.
+- `RemoveDependencyAsync(jobId, dependsOnJobId)` removes that relationship. It
+  is a no-op when the relationship does not exist.
+- `GetTopologicalOrderAsync()` returns all jobs in execution order, with every
+  prerequisite before the jobs that depend on it. If persisted data contains a
+  cycle, only the jobs that can be ordered are returned and a warning is logged.
+- `ValidateGraphAsync()` checks the complete persisted graph and returns a
+  `DependencyGraphValidationResult`. Its `IsValid` property indicates whether
+  the graph is a DAG, `CycleNodes` contains the job IDs in a detected cycle, and
+  `Message` provides a human-readable summary.
+
+`AddDependencyAsync` throws `CyclicDependencyException` when the proposed
+relationship would create a cycle. The exception derives from
+`JobSchedulerException`, has the error code `CYCLIC_DEPENDENCY_DETECTED`, and
+exposes the attempted dependent and prerequisite IDs through `JobId` and
+`DependsOnJobId`.
+
+The following example creates two jobs and makes the report job wait for the
+import job:
+
+```csharp
+using JobScheduler.Core.Data;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Exceptions;
+using JobScheduler.Core.Services;
+
+// Assume context is a configured JobSchedulerContext for the application.
+var importJob = new Job
+{
+    Name = "Import orders",
+    CronExpression = "0 * * * *",
+    HandlerType = "ImportOrdersJobHandler"
+};
+var reportJob = new Job
+{
+    Name = "Build sales report",
+    CronExpression = "5 * * * *",
+    HandlerType = "BuildSalesReportJobHandler"
+};
+
+context.Jobs.AddRange(importJob, reportJob);
+await context.SaveChangesAsync();
+
+IJobDependencyService dependencies = new JobDependencyService(context);
+
+// reportJob is the dependent; importJob is its prerequisite.
+await dependencies.AddDependencyAsync(
+    reportJob.Id,
+    importJob.Id,
+    createdBy: "sales-pipeline");
+
+DependencyGraphValidationResult validation =
+    await dependencies.ValidateGraphAsync();
+
+if (!validation.IsValid)
+{
+    Console.WriteLine(validation.Message);
+}
+
+IReadOnlyList<Job> executionOrder =
+    await dependencies.GetTopologicalOrderAsync();
+// importJob appears before reportJob in executionOrder.
+
+try
+{
+    // Reversing an existing edge would close a cycle and throw.
+    await dependencies.AddDependencyAsync(importJob.Id, reportJob.Id);
+}
+catch (CyclicDependencyException ex)
+{
+    Console.WriteLine($"Rejected dependency {ex.JobId} -> {ex.DependsOnJobId}");
+}
+
+// Remove the relationship when the report no longer requires the import.
+await dependencies.RemoveDependencyAsync(reportJob.Id, importJob.Id);
+```
