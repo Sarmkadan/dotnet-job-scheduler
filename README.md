@@ -925,3 +925,82 @@ curl --get "http://localhost:5000/api/History/jobs/12345678-1234-1234-1234-12345
   --data-urlencode "pageNumber=1" \
   --data-urlencode "pageSize=20"
 ```
+
+## PipelinesController REST API
+
+The `PipelinesController` exposes endpoints for managing job pipelines under the `/api/Pipelines` route.
+
+| Action | Route | Description |
+| --- | --- | --- |
+| `CreatePipeline` | `POST /api/Pipelines` | Creates a new pipeline from an ordered list of job IDs. |
+| `GetPipeline` | `GET /api/Pipelines/{id:guid}` | Returns a specific pipeline by ID with all steps and job details. |
+| `ListPipelines` | `GET /api/Pipelines` | Returns all pipelines ordered by creation date (newest first). |
+| `DeletePipeline` | `DELETE /api/Pipelines/{id:guid}` | Deletes a pipeline and removes its inter-step dependency edges. |
+| `GetPipelineStatus` | `GET /api/Pipelines/{id:guid}/status` | Returns the current execution status of each step in the pipeline. |
+
+### Request Models
+
+#### CreatePipelineRequest
+- `Name` (string, required): Human-readable name for the pipeline (max 256 chars).
+- `Description` (string, optional): Optional description of the pipeline's purpose.
+- `Steps` (List<PipelineStepRequest>, required): Ordered list of job IDs that form the pipeline.
+
+#### PipelineStepRequest
+- `JobId` (Guid, required): The job to execute at this step.
+- `StopOnFailure` (bool, optional): When true the pipeline stops if this step fails. Defaults to true.
+
+### Response Models
+
+#### PipelineResponse
+- `Id` (Guid): The pipeline identifier.
+- `Name` (string): Human-readable name for the pipeline.
+- `Description` (string): Description of the pipeline's purpose.
+- `IsActive` (bool): Whether the pipeline is active.
+- `CreatedAt` (DateTime): The date and time the pipeline was created.
+- `CreatedBy` (string?): The user who created the pipeline.
+- `Steps` (List<PipelineStepResponse>): The steps in the pipeline.
+
+#### PipelineStepResponse
+- `StepId` (Guid): The step identifier.
+- `JobId` (Guid): The job identifier for this step.
+- `JobName` (string?): The name of the job (if available).
+- `StepOrder` (int): The order of the step in the pipeline (0-based).
+- `StopOnFailure` (bool): Whether the pipeline stops if this step fails.
+
+#### PipelineStatusResponse
+- `PipelineId` (Guid): The pipeline identifier.
+- `PipelineName` (string): The name of the pipeline.
+- `StepStatuses` (List<PipelineStepStatus>): The status of each step in the pipeline.
+
+#### PipelineStepStatus
+- `StepOrder` (int): The order of the step in the pipeline.
+- `JobId` (Guid): The job identifier for this step.
+- `JobName` (string?): The name of the job (if available).
+- `Status` (string): The current status of the step (e.g., "Pending", "Running", "Success", "Failed").
+- `LastExecutedAt` (DateTime?): The date and time the step was last executed.
+- `IsReady` (bool): Whether the step is ready to run (i.e., all previous steps have succeeded).
+
+### Curl Example
+
+Create a pipeline with two steps:
+
+```bash
+curl -X POST "http://localhost:5000/api/Pipelines" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "Name": "Data Processing Pipeline",
+    "Description": "Processes incoming data and generates a report",
+    "Steps": [
+      {
+        "JobId": "11111111-1111-1111-1111-111111111111",
+        "StopOnFailure": true
+      },
+      {
+        "JobId": "22222222-2222-2222-2222-222222222222",
+        "StopOnFailure": true
+      }
+    ]
+  }'
+```
+
+Note: Replace the JobId values with actual job IDs from your system.
