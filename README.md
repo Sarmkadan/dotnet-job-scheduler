@@ -880,3 +880,48 @@ All endpoints use `GET` and return `200 OK` with the response described below.
   `MemoryUsageMb` (`long`), `ProcessorUtilization` (`double`), `Warnings`
   (`List<HealthWarning>`), and `IsHealthy` (`bool`).
 - `HealthWarning`: `Severity` (`string`) and `Message` (`string`).
+
+## HistoryController REST API
+
+`HistoryController` exposes read-only execution history and aggregate statistics
+under the `/api/History` route. All endpoints use `GET`.
+
+| Action | Route | Query parameters | Response |
+| --- | --- | --- | --- |
+| `GetJobHistory` | `/api/History/jobs/{jobId}` | `status` (optional `ExecutionStatus`), `from` and `to` (optional `DateTime` bounds), `pageNumber` (default `1`), `pageSize` (default `20`) | `200 OK` with `PagedResult<ExecutionResponse>`; `404 Not Found` when the job does not exist |
+| `GetJobSummary` | `/api/History/jobs/{jobId}/summary` | `from` and `to` (optional `DateTime` bounds) | `200 OK` with `JobExecutionSummary`; `404 Not Found` when the job does not exist |
+| `GetSystemHistory` | `/api/History` | `status` (optional `ExecutionStatus`), `from` and `to` (optional `DateTime` bounds), `pageNumber` (default `1`), `pageSize` (default `20`) | `200 OK` with `PagedResult<ExecutionResponse>` |
+| `GetSystemSummary` | `/api/History/summary` | `from` and `to` (optional `DateTime` bounds) | `200 OK` with `JobExecutionSummary` |
+
+`jobId` must be a GUID. Date filters are supplied as date-time query-string
+values; ISO 8601 values are recommended. `status` accepts an `ExecutionStatus`
+value such as `Running`, `Success`, `Failed`, `Cancelled`, `TimedOut`, or
+`Skipped`.
+
+### Response shapes
+
+- `PagedResult<ExecutionResponse>` contains `Items` (`IReadOnlyList<ExecutionResponse>`),
+  `TotalCount` (`int`), `PageNumber` (`int`, 1-based), `PageSize` (`int`),
+  `TotalPages` (`int`), `HasPreviousPage` (`bool`), and `HasNextPage` (`bool`).
+- Each `ExecutionResponse` contains `Id` (`Guid`), `JobId` (`Guid`), `Status`
+  (`string`), `StartedAt` (`DateTime`), `CompletedAt` (`DateTime?`),
+  `DurationMilliseconds` (`long`), `AttemptNumber` (`int`), `ExecutionTimeMs`
+  (`long`), `RetryAttempt` (`int`), `ErrorMessage` (`string?`), `ExecutorName`
+  (`string`), `IsRetryable` (`bool`), and `CreatedAt` (`DateTime`).
+- `JobExecutionSummary` contains `JobId` (`Guid?`; null for a system summary),
+  `JobName` (`string?`), `TotalExecutions` (`int`), `SuccessCount` (`int`),
+  `FailureCount` (`int`), `TimedOutCount` (`int`), `CancelledCount` (`int`),
+  `SuccessRate` (`double`, percentage from 0 to 100), `AverageDurationMs`
+  (`long`), `MinDurationMs` (`long`), `MaxDurationMs` (`long`),
+  `LastExecutedAt` (`DateTime?`), and `LastStatus` (`ExecutionStatus?`).
+
+### Curl example
+
+```bash
+curl --get "http://localhost:5000/api/History/jobs/12345678-1234-1234-1234-123456789012" \
+  --data-urlencode "status=Success" \
+  --data-urlencode "from=2025-01-01T00:00:00Z" \
+  --data-urlencode "to=2025-01-31T23:59:59Z" \
+  --data-urlencode "pageNumber=1" \
+  --data-urlencode "pageSize=20"
+```
