@@ -306,3 +306,58 @@ var ex3 = new JobNotFoundException(jobId, inner);
 ex1.JobId = Guid.NewGuid();
 // ex1.JobId now equals the new GUID
 ```
+
+## CSV export
+
+`CsvExportFormatter` provides CSV serialization for jobs, executions, and execution
+statistics, as well as parsing for job CSV data:
+
+- `ExportJobsToCsv(IEnumerable<Job>)` writes one row per job, including scheduling,
+  retry, execution, and success-rate information.
+- `ExportExecutionsToCsv(IEnumerable<JobExecution>)` writes execution identifiers,
+  status, timestamps, duration, error and retry details, and output.
+- `ExportStatisticsToCsv(Dictionary<Guid, (int Total, int Successful, long AvgTime)>)`
+  writes aggregate totals, successful execution counts, calculated success rates, and
+  average execution times for each job.
+- `ParseJobsCsv(string)` skips the header and converts valid data rows from the job
+  export format into `JobCsvRow` instances. Rows with fewer than 14 fields are ignored.
+
+The header written by `ExportJobsToCsv` contains these columns, in order:
+
+| CSV column | `JobCsvRow` property |
+| --- | --- |
+| `ID` | `Id` |
+| `Name` | `Name` |
+| `Description` | `Description` |
+| `CronExpression` | `CronExpression` |
+| `Priority` | `Priority` |
+| `Status` | `Status` |
+| `Active` | `IsActive` |
+| `HandlerType` | `HandlerType` |
+| `MaxRetries` | `MaxRetries` |
+| `ExecutionTimeout` | `ExecutionTimeoutSeconds` |
+| `NextExecution` | `NextExecution` |
+| `LastExecution` | `LastExecution` |
+| `TotalExecutions` | `TotalExecutions` |
+| `SuccessRate` | `SuccessRate` |
+
+Export jobs to a file with `File.WriteAllText`:
+
+```csharp
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Formatters;
+
+var jobs = new List<Job>
+{
+    new()
+    {
+        Name = "Daily report",
+        Description = "Generates the daily report",
+        CronExpression = "0 8 * * *",
+        HandlerType = "DailyReportHandler"
+    }
+};
+
+var csv = CsvExportFormatter.ExportJobsToCsv(jobs);
+File.WriteAllText("jobs.csv", csv);
+```
