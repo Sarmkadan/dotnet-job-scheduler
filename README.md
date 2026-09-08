@@ -1004,3 +1004,168 @@ curl -X POST "http://localhost:5000/api/Pipelines" \
 ```
 
 Note: Replace the JobId values with actual job IDs from your system.
+
+## ExecutionsController REST API
+
+The `ExecutionsController` provides access to job execution history, logs, and detailed execution metrics under the `/api/Executions` route.
+
+| Action | Route | Description |
+| --- | --- | --- |
+| `GetJobExecutions` | `GET /api/Executions/job/{jobId}` | Retrieves paginated execution history for a specific job. |
+| `GetExecution` | `GET /api/Executions/{id}` | Retrieves a single execution by ID with complete details. |
+| `GetJobStatistics` | `GET /api/Executions/job/{jobId}/stats` | Gets execution statistics for a specific job including success rates and performance metrics. |
+| `GetRecentFailures` | `GET /api/Executions/recent-failures` | Retrieves recent failed executions across all jobs for quick failure tracking. |
+| `GetJobPerformance` | `GET /api/Executions/job/{jobId}/performance` | Retrieves execution performance analysis including slowest and fastest runs. |
+| `CleanupOldExecutions` | `DELETE /api/Executions/cleanup` | Clears old execution records based on retention policy. |
+
+### Request Parameters
+
+#### GetJobExecutions
+- `jobId` (Guid, required): The unique identifier of the job.
+- `pageNumber` (int, optional, default=1): The page number for pagination.
+- `pageSize` (int, optional, default=20): The number of items per page.
+
+#### GetExecution
+- `id` (Guid, required): The unique identifier of the execution.
+
+#### GetJobStatistics
+- `jobId` (Guid, required): The unique identifier of the job.
+
+#### GetRecentFailures
+- `days` (int, optional, default=7): Number of days to look back for failures.
+- `limit` (int, optional, default=50): Maximum number of failures to return.
+
+#### GetJobPerformance
+- `jobId` (Guid, required): The unique identifier of the job.
+
+#### CleanupOldExecutions
+- `olderThanDays` (int, optional, default=90): Delete executions older than this many days.
+
+### Response Types
+
+#### GetJobExecutions
+- Returns `200 OK` with `PaginatedResponse<ExecutionResponse>` containing:
+  - `Data` (List<ExecutionResponse>): List of execution responses
+  - `TotalCount` (int): Total number of executions
+  - `PageNumber` (int): Current page number
+  - `PageSize` (int): Page size
+- Returns `404 Not Found` if job not found
+- Returns `500 Internal Server Error` on failure
+
+#### GetExecution
+- Returns `200 OK` with `ExecutionDetailsResponse` containing:
+  - `Id` (Guid): Execution ID
+  - `JobId` (Guid): Job ID
+  - `JobName` (string): Name of the job
+  - `Status` (string): Execution status
+  - `StartedAt` (DateTime?): Start timestamp
+  - `CompletedAt` (DateTime?): Completion timestamp
+  - `ExecutionTimeMs` (long): Execution time in milliseconds
+  - `ErrorMessage` (string?): Error message if failed
+  - `RetryAttempt` (int): Current retry attempt
+  - `MaxRetries` (int): Maximum retry attempts allowed
+  - `Output` (string?): Execution output/logs
+- Returns `404 Not Found` if execution not found
+- Returns `500 Internal Server Error` on failure
+
+#### GetJobStatistics
+- Returns `200 OK` with `ExecutionStatsResponse` containing:
+  - `JobId` (Guid): Job ID
+  - `TotalExecutions` (int): Total number of executions
+  - `SuccessfulExecutions` (int): Number of successful executions
+  - `FailedExecutions` (int): Number of failed executions
+  - `SuccessRate` (double): Success rate percentage
+  - `AverageExecutionTimeMs` (long): Average execution time
+  - `MinExecutionTimeMs` (long): Minimum execution time
+  - `MaxExecutionTimeMs` (long): Maximum execution time
+  - `LastExecutionAt` (DateTime?): Timestamp of last execution
+- Returns `404 Not Found` if job not found
+- Returns `500 Internal Server Error` on failure
+
+#### GetRecentFailures
+- Returns `200 OK` with `List<ExecutionResponse>` containing:
+  - `Id` (Guid): Execution ID
+  - `JobId` (Guid): Job ID
+  - `Status` (string): Execution status
+  - `StartedAt` (DateTime?): Start timestamp
+  - `CompletedAt` (DateTime?): Completion timestamp
+  - `ExecutionTimeMs` (long): Execution time in milliseconds
+  - `ErrorMessage` (string?): Error message if failed
+  - `RetryAttempt` (int): Retry attempt count
+- Returns `500 Internal Server Error` on failure
+
+#### GetJobPerformance
+- Returns `200 OK` with `PerformanceAnalysisResponse` containing:
+  - `JobId` (Guid): Job ID
+  - `AverageExecutionTimeMs` (long): Average execution time
+  - `MedianExecutionTimeMs` (long): Median execution time
+  - `P95ExecutionTimeMs` (long): 95th percentile execution time
+  - `P99ExecutionTimeMs` (long): 99th percentile execution time
+  - `SlowestExecutionTimeMs` (long): Slowest execution time
+  - `FastestExecutionTimeMs` (long): Fastest execution time
+  - `SlowestExecutionAt` (DateTime?): Timestamp of slowest execution
+  - `FastestExecutionAt` (DateTime?): Timestamp of fastest execution
+- Returns `404 Not Found` if job not found
+- Returns `500 Internal Server Error` on failure
+
+#### CleanupOldExecutions
+- Returns `200 OK` with `CleanupResponse` containing:
+  - `DeletedCount` (int): Number of records deleted
+  - `CutoffDate` (DateTime): Date used as cutoff for deletion
+  - `Message` (string): Status message
+- Returns `500 Internal Server Error` on failure
+
+### Curl Examples
+
+Get paginated executions for a job:
+
+```bash
+curl --get "http://localhost:5000/api/Executions/job/12345678-1234-1234-1234-123456789012" \
+  --data-urlencode "pageNumber=1" \
+  --data-urlencode "pageSize=20"
+```
+
+Get a specific execution by ID:
+
+```bash
+curl --get "http://localhost:5000/api/Executions/11111111-1111-1111-1111-111111111111"
+```
+
+Get job statistics:
+
+```bash
+curl --get "http://localhost:5000/api/Executions/job/12345678-1234-1234-1234-123456789012/stats"
+```
+
+Get recent failures (last 7 days, limit 50):
+
+```bash
+curl --get "http://localhost:5000/api/Executions/recent-failures"
+```
+
+Get recent failures with custom parameters:
+
+```bash
+curl --get "http://localhost:5000/api/Executions/recent-failures" \
+  --data-urlencode "days=30" \
+  --data-urlencode "limit=100"
+```
+
+Get job performance analysis:
+
+```bash
+curl --get "http://localhost:5000/api/Executions/job/12345678-1234-1234-1234-123456789012/performance"
+```
+
+Cleanup old executions (older than 90 days):
+
+```bash
+curl -X DELETE "http://localhost:5000/api/Executions/cleanup"
+```
+
+Cleanup with custom retention period:
+
+```bash
+curl -X DELETE "http://localhost:5000/api/Executions/cleanup" \
+  --data-urlencode "olderThanDays=30"
+```
