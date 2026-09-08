@@ -839,3 +839,44 @@ TimeSpan preview = retries.CalculateRetryDelay(
 RetryStatistics statistics = await retries.GetRetryStatisticsAsync(job.Id);
 Console.WriteLine($"Failure rate: {statistics.RecentFailureRate:F1}%");
 ```
+
+## DashboardController REST API
+
+`DashboardController` exposes monitoring data under the `/api/Dashboard` route.
+All endpoints use `GET` and return `200 OK` with the response described below.
+
+| Action | Route | Response |
+| --- | --- | --- |
+| `GetOverview` | `/api/Dashboard/overview` | `DashboardOverview` |
+| `GetQueueStatus` | `/api/Dashboard/queue-status` | `QueueStatusResponse` |
+| `GetPriorityDistribution` | `/api/Dashboard/priority-distribution` | `PriorityDistributionResponse` |
+| `GetPerformanceTimeline` | `/api/Dashboard/performance-timeline?hours={hours}` | A list of `PerformanceTimelinePoint` objects. `hours` is optional and defaults to `24`. |
+| `GetSlowestJobs` | `/api/Dashboard/slowest-jobs` | A list of `SlowestJobResponse` objects for the ten slowest jobs. |
+| `GetMostFailingJobs` | `/api/Dashboard/most-failing-jobs` | A list of `FailingJobResponse` objects for the ten most frequently failing jobs. |
+| `GetHealthReport` | `/api/Dashboard/health-report` | `HealthReportResponse` |
+
+### Response DTO fields
+
+- `DashboardOverview`: `TotalJobs` (`int`), `ActiveJobs` (`int`),
+  `RunningExecutions` (`int`), `FailedJobsLast24Hours` (`int`),
+  `AverageSuccessRate` (`double`), `TotalExecutions` (`int`),
+  `SuccessfulExecutions` (`int`), `AverageExecutionTimeMs` (`long`), and
+  `LastUpdatedAt` (`DateTime`).
+- `QueueStatusResponse`: `PendingJobs` (`int`), `RunningJobs` (`int`),
+  `FailedJobs` (`int`), `CompletedJobs` (`int`), `SuspendedJobs` (`int`),
+  `TotalQueued` (`int`), `QueueUtilization` (`double`), and
+  `EstimatedTimeToEmpty` (`TimeSpan?`).
+- `PriorityDistributionResponse`: `CriticalJobs` (`int`), `HighJobs` (`int`),
+  `NormalJobs` (`int`), `LowJobs` (`int`), and `TotalJobs` (`int`).
+- `PerformanceTimelinePoint`: `Timestamp` (`DateTime`), `ExecutionCount` (`int`),
+  `SuccessCount` (`int`), `FailureCount` (`int`), and
+  `AverageExecutionTimeMs` (`long`).
+- `SlowestJobResponse`: `JobId` (`Guid`), `JobName` (`string`),
+  `AverageExecutionTimeMs` (`long`), `MaxExecutionTimeMs` (`long`), and
+  `ExecutionCount` (`int`).
+- `FailingJobResponse`: `JobId` (`Guid`), `JobName` (`string`),
+  `FailureRate` (`double`), `FailedCount` (`int`), and `SuccessRate` (`double`).
+- `HealthReportResponse`: `Timestamp` (`DateTime`), `DatabaseConnected` (`bool`),
+  `MemoryUsageMb` (`long`), `ProcessorUtilization` (`double`), `Warnings`
+  (`List<HealthWarning>`), and `IsHealthy` (`bool`).
+- `HealthWarning`: `Severity` (`string`) and `Message` (`string`).
