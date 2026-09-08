@@ -361,3 +361,76 @@ var jobs = new List<Job>
 var csv = CsvExportFormatter.ExportJobsToCsv(jobs);
 File.WriteAllText("jobs.csv", csv);
 ```
+
+## EventPublisher
+
+`EventPublisher` is the in-memory implementation of `IEventPublisher` in
+`src/JobScheduler.Core/Events`. It provides type-safe, asynchronous pub/sub for
+scheduler lifecycle events. Published events are queued on a bounded channel and
+subscriber handlers run in the background; handler failures are logged without
+preventing the other handlers from running.
+
+The main APIs are:
+
+- `PublishAsync<TEvent>(TEvent eventData)` queues an `ISchedulerEvent` for all
+  subscribers registered for that exact event type. The returned task represents
+  queueing the event, not completion of every subscriber.
+- `Subscribe<TEvent>(Func<TEvent, Task> handler)` registers an asynchronous handler
+  and returns an `IDisposable` subscription token. Dispose the token to stop receiving
+  that event type.
+- `Unsubscribe<TEvent>(object subscriptionToken)` explicitly removes the subscription
+  represented by a token returned from `Subscribe<TEvent>`.
+- `WaitForEventAsync<TEvent>(TimeSpan timeout)` completes when the next event of the
+  requested type is published. This is useful for tests and coordination. In the
+  current implementation, the `timeout` argument is accepted but is not enforced, so
+  callers that require a deadline should apply their own cancellation or timeout.
+- `GetActiveEventTypes()` returns the fully qualified names of event types that
+  currently have subscribers.
+- `GetSubscriberCount<TEvent>()` returns the number of handlers registered for an
+  event type.
+- `ClearSubscriptions<TEvent>()` removes every handler registered for one event type.
+  `ClearAllSubscriptions()` is also available to remove all event subscriptions.
+
+`PublishAsync`, `Subscribe`, `Unsubscribe`, and `WaitForEventAsync` are declared by
+`IEventPublisher`. The inspection and clearing APIs are exposed by the concrete
+`EventPublisher` class.
+
+All events implement `ISchedulerEvent`, which supplies `EventId`, `JobId`, optional
+`ExecutionId`, `OccurredAtUtc`, and the string `EventType` discriminator.
+`IEventPublisher.cs` declares `SchedulerEventBase` and these concrete event types:
+
+- `JobCreatedEvent`
+- `JobExecutionStartedEvent`
+- `JobExecutionCompletedEvent`
+- `JobExecutionFailedEvent`
+- `JobExecutionExhaustedEvent`
+- `JobExecutionTimedOutEvent`
+- `JobExecutionInterruptedEvent`
+- `JobSuspendedEvent`
+- `JobResumedEvent`
+- `JobDeletedEvent`
+- `SchedulerErrorEvent`
+
+Subscribe and publish an event as follows:
+
+```csharp
+using JobScheduler.Core.Events;
+using Microsoft.Extensions.Logging.Abstractions;
+
+using var publisher = new EventPublisher(NullLogger<EventPublisher>.Instance);
+
+using var subscription = publisher.Subscribe<JobCreatedEvent>(createdEvent =>
+{
+    Console.WriteLine($"Created job: {createdEvent.JobName} ({createdEvent.JobId})");
+    return Task.CompletedTask;
+});
+
+await publisher.PublishAsync(new JobCreatedEvent
+{
+    JobId = Guid.NewGuid(),
+    JobName = "Daily report",
+    CreatedBy = "scheduler"
+});
+
+// Disposing subscription (automatically at the end of this scope) unsubscribes it.
+```
