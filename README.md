@@ -707,3 +707,95 @@ int jobCount = concurrency.GetJobConcurrencyCount(job.Id);
 int globalCount = concurrency.GetGlobalConcurrencyCount();
 Dictionary<string, int> stats = concurrency.GetConcurrencyStats();
 ```
+
+## RetryService
+
+`RetryService` evaluates failed executions, calculates retry timing, creates the
+next execution record, and reports retry activity from an `IExecutionRepository`.
+
+- `ShouldRetryAsync(job, execution)` returns `false` when either argument is
+  `null`, when `execution.AttemptNumber` is greater than `job.MaxRetries`, or
+  when `execution.IsRetryable` is `false`. Otherwise it returns `true`.
+- `CalculateNextRetryTime(job, failedExecution)` adds the delay from
+  `CalculateBackoffDelay` to `failedExecution.CompletedAt`. If `CompletedAt` is
+  `null`, it uses the current UTC time. A `null` argument causes an
+  `ArgumentNullException`.
+- `CalculateBackoffDelay(job, attemptNumber)` calculates exponential backoff as
+  `RetryBackoffSeconds * 2^(attemptNumber - 1)`. Attempts 0 and 1 both use the
+  base delay. A base delay of zero or less becomes one second, and the result is
+  clamped from one second through `max(1, ExecutionTimeoutSeconds)`. A `null`
+  job or negative attempt number causes an exception.
+- `CreateRetryExecution(job, failedExecution)` creates a new running execution
+  with a new ID, the job ID, the current UTC start time, the failed execution's
+  executor name, `IsRetryable` set to `true`, and its attempt number incremented
+  by one. It throws `ArgumentNullException` if either argument is `null`.
+- `IsRetryBudgetExceededAsync(jobId, retryBudgetCount, timeWindowMinutes)`
+  queries executions between the current UTC time minus the window and the
+  current UTC time. It returns `true` only when the number of failed executions
+  for the specified job is greater than the budget. The defaults are five
+  failures in five minutes.
+- `GetRetryStatisticsAsync(jobId)` reports total executions, failed executions,
+  total retries (the sum of `AttemptNumber - 1` for failures), average retries
+  per failure, the latest failure completion time, and the percentage of
+  executions started within the last hour that failed. Counts and rates that
+  have no matching failures or recent executions are zero; the last failure
+  time is `null` when there are no failures.
+- `CalculateRetryDelay(attemptNumber, strategy, baseDelaySeconds)` returns a
+  `TimeSpan` using a zero-based attempt index. `Exponential` uses
+  `baseDelaySeconds * 2^attemptNumber`, `Linear` uses
+  `baseDelaySeconds * (attemptNumber + 1)`, and `Fixed` always uses the base
+  delay. An unrecognized enum value also uses the base delay. The default base
+  delay is five seconds.
+
+`JobRetryBackoffStrategy` has these values:
+
+- `Exponential`: doubles the delay for each successive attempt.
+- `Linear`: adds one base-delay unit for each successive attempt.
+- `Fixed`: keeps the delay equal to the base delay.
+
+**Usage example**
+
+```csharp
+using System;
+using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+
+// Assume both repositories are configured application services.
+IJobRepository jobRepository = /* resolve from dependency injection */;
+IExecutionRepository executionRepository = /* resolve from dependency injection */;
+var retries = new RetryService(jobRepository, executionRepository);
+
+var job = new Job
+{
+    MaxRetries = 3,
+    RetryBackoffSeconds = 5,
+    ExecutionTimeoutSeconds = 60
+};
+
+var failedExecution = new JobExecution
+{
+    JobId = job.Id,
+    Status = JobScheduler.Core.Constants.ExecutionStatus.Failed,
+    CompletedAt = DateTime.UtcNow,
+    AttemptNumber = 1,
+    ExecutorName = "worker-1",
+    IsRetryable = true
+};
+
+if (await retries.ShouldRetryAsync(job, failedExecution) &&
+    !await retries.IsRetryBudgetExceededAsync(job.Id))
+{
+    DateTime retryAt = retries.CalculateNextRetryTime(job, failedExecution);
+    JobExecution nextExecution = retries.CreateRetryExecution(job, failedExecution);
+    Console.WriteLine($"Attempt {nextExecution.AttemptNumber} at {retryAt:O}");
+}
+
+TimeSpan preview = retries.CalculateRetryDelay(
+    attemptNumber: 2,
+    strategy: JobRetryBackoffStrategy.Exponential,
+    baseDelaySeconds: 5); // 20 seconds
+
+RetryStatistics statistics = await retries.GetRetryStatisticsAsync(job.Id);
+Console.WriteLine($"Failure rate: {statistics.RecentFailureRate:F1}%");
+```
