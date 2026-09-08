@@ -434,3 +434,97 @@ await publisher.PublishAsync(new JobCreatedEvent
 
 // Disposing subscription (automatically at the end of this scope) unsubscribes it.
 ```
+
+## Distributed locking
+
+`DistributedJobLockService` in `src/JobScheduler.Core/Services` provides
+database-backed, per-job locking for scheduler deployments with multiple running
+instances. Every instance must use the same scheduler database and a unique,
+stable instance ID. A unique row for each job and EF Core write concurrency ensure
+that only one instance can acquire a valid lock; after a lock expires, another
+instance can take it over.
+
+The service exposes these operations:
+
+- `TryAcquireLockAsync(jobId, holderInstanceId, lockDuration)` creates a lock when
+  none exists, renews it when the same instance already owns it, or takes over an
+  expired lock. It returns `false` when another instance owns a non-expired lock or
+  wins a concurrent acquisition race. The holder ID must not be blank and the
+  duration must be positive.
+- `ReleaseLockAsync(jobId, holderInstanceId)` removes the lock only when it belongs
+  to the calling instance. A missing lock or a different holder is a no-op.
+- `IsLockedAsync(jobId)` returns `true` only when the job has a non-expired lock.
+- `RenewLockAsync(jobId, holderInstanceId, lockDuration)` extends a non-expired lock
+  owned by the calling instance and returns whether renewal succeeded.
+- `GetActiveLocksAsync()` returns all non-expired locks, ordered by acquisition time.
+- `CleanExpiredLocksAsync()` removes expired rows and returns the number removed.
+  Run it periodically to prevent old lock records from accumulating.
+
+`DistributedJobLock` stores the persisted lock state:
+
+| Field | Meaning |
+| --- | --- |
+| `Id` | Unique lock-row identifier, initialized to a new GUID. |
+| `JobId` | Identifier of the job protected by the lock. |
+| `HolderInstanceId` | Identifier of the scheduler instance that owns the lock. |
+| `AcquiredAt` | UTC time at which the current holder acquired the lock. |
+| `ExpiresAt` | UTC time at which the lock becomes eligible for takeover. |
+
+The entity's `IsExpired(DateTime? utcNow = null)` helper tests `ExpiresAt` against
+the supplied UTC time, or against `DateTime.UtcNow` when no time is supplied.
+
+The following example represents the same job being considered by two scheduler
+instances. In an application, each instance should create its own scoped
+`JobSchedulerContext`; both contexts must connect to the same database.
+
+```csharp
+using JobScheduler.Core.Data;
+using JobScheduler.Core.Services;
+using Microsoft.EntityFrameworkCore;
+
+var jobId = Guid.Parse("12345678-1234-1234-1234-123456789012");
+var lockDuration = TimeSpan.FromMinutes(2);
+
+var options = new DbContextOptionsBuilder<JobSchedulerContext>()
+    .UseSqlServer(sharedConnectionString)
+    .Options;
+
+await using var nodeAContext = new JobSchedulerContext(options);
+await using var nodeBContext = new JobSchedulerContext(options);
+
+var nodeALocks = new DistributedJobLockService(nodeAContext);
+var nodeBLocks = new DistributedJobLockService(nodeBContext);
+
+if (await nodeALocks.TryAcquireLockAsync(jobId, "scheduler-node-a", lockDuration))
+{
+    try
+    {
+        // A competing instance receives false while node A's lock is valid.
+        bool nodeBAcquired = await nodeBLocks.TryAcquireLockAsync(
+            jobId,
+            "scheduler-node-b",
+            lockDuration);
+
+        // Renew before expiry when the protected work can run for longer.
+        bool renewed = await nodeALocks.RenewLockAsync(
+            jobId,
+            "scheduler-node-a",
+            lockDuration);
+
+        // Execute the job only while this instance owns a valid lock.
+        if (renewed)
+        {
+            await ExecuteJobAsync(jobId);
+        }
+    }
+    finally
+    {
+        await nodeALocks.ReleaseLockAsync(jobId, "scheduler-node-a");
+    }
+}
+
+bool currentlyLocked = await nodeBLocks.IsLockedAsync(jobId);
+IReadOnlyList<DistributedJobLock> activeLocks =
+    await nodeBLocks.GetActiveLocksAsync();
+int expiredLocksRemoved = await nodeBLocks.CleanExpiredLocksAsync();
+```
