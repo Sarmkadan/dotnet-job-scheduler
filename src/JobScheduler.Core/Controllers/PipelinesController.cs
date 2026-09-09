@@ -24,10 +24,19 @@ public sealed class PipelinesController : ControllerBase
     private readonly JobPipelineService _pipelineService;
     private readonly ILogger<PipelinesController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PipelinesController"/> class.
+    /// </summary>
+    /// <param name="pipelineService">The pipeline service.</param>
+    /// <param name="logger">The logger.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="pipelineService"/> or <paramref name="logger"/> is <see langword="null"/>.</exception>
     public PipelinesController(JobPipelineService pipelineService, ILogger<PipelinesController> logger)
     {
-        _pipelineService = pipelineService ?? throw new ArgumentNullException(nameof(pipelineService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(pipelineService);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _pipelineService = pipelineService;
+        _logger = logger;
     }
 
     /// <summary>
