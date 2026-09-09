@@ -63,4 +63,10 @@ public sealed class ExecutionResponse
             _ => "Unknown"
         };
     }
+
+    /// <summary>
+    /// Returns a string representation of the ExecutionResponse object.
+    /// </summary>
+    /// <returns>A string with the object's property values.</returns>
+    public override string ToString() => $"ExecutionResponse {{ Id = {Id}, JobId = {JobId}, Status = {Status}, StartedAt = {StartedAt}, CompletedAt = {CompletedAt}, DurationMilliseconds = {DurationMilliseconds}, AttemptNumber = {AttemptNumber}, ErrorMessage = {ErrorMessage} }}";
 }
