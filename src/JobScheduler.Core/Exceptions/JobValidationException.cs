@@ -46,4 +46,20 @@ public sealed class JobValidationException : JobSchedulerException
         : base(message, "JOB_VALIDATION_ERROR", innerException)
     {
     }
+
+    /// <summary>
+    /// Returns a string representation of the exception, including the type name, PropertyName, ErrorCode, and Message.
+    /// If there is an inner exception, appends the base class ToString representation.
+    /// </summary>
+    /// <returns>A string representation of the exception.</returns>
+    public override string ToString()
+    {
+        string propertyName = PropertyName ?? "<none>";
+        string result = $"{GetType().Name}: PropertyName={propertyName}, ErrorCode={ErrorCode}, Message={Message}";
+        if (InnerException != null)
+        {
+            result += " -> " + base.ToString();
+        }
+        return result;
+    }
 }
