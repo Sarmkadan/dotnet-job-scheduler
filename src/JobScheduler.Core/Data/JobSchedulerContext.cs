@@ -16,17 +16,51 @@ namespace JobScheduler.Core.Data;
 /// </summary>
 public sealed class JobSchedulerContext : DbContext
 {
-    public JobSchedulerContext(DbContextOptions<JobSchedulerContext> options) : base(options) { }
+    /// <summary>
+/// Initializes a new instance of the <see cref="JobSchedulerContext"/> class.
+/// </summary>
+/// <param name="options">The options for configuring the context.</param>
+public JobSchedulerContext(DbContextOptions<JobSchedulerContext> options) : base(options) { }
 
+    /// <summary>
+    /// Gets or sets the DbSet for Job entities.
+    /// </summary>
     public DbSet<Job> Jobs { get; set; } = null!;
+    /// <summary>
+    /// Gets or sets the DbSet for JobExecution entities.
+    /// </summary>
     public DbSet<JobExecution> JobExecutions { get; set; } = null!;
+    /// <summary>
+    /// Gets or sets the DbSet for JobScheduleHistory entities.
+    /// </summary>
     public DbSet<JobScheduleHistory> JobScheduleHistories { get; set; } = null!;
+    /// <summary>
+    /// Gets or sets the DbSet for RetryPolicy entities.
+    /// </summary>
     public DbSet<RetryPolicy> RetryPolicies { get; set; } = null!;
+    /// <summary>
+    /// Gets or sets the DbSet for ExecutionMetrics entities.
+    /// </summary>
     public DbSet<ExecutionMetrics> ExecutionMetrics { get; set; } = null!;
+    /// <summary>
+    /// Gets or sets the DbSet for JobDependency entities.
+    /// </summary>
     public DbSet<JobDependency> JobDependencies { get; set; } = null!;
+    /// <summary>
+    /// Gets or sets the DbSet for SchedulerLeaderLock entities.
+    /// </summary>
     public DbSet<SchedulerLeaderLock> SchedulerLeaderLocks { get; set; } = null!;
+    /// <summary>
+    /// Gets or sets the DbSet for JobPipeline entities.
+    /// </summary>
     public DbSet<JobPipeline> JobPipelines { get; set; } = null!;
+    /// <summary>
+    /// Gets or sets the DbSet for JobPipelineStep entities.
+    /// </summary>
     public DbSet<JobPipelineStep> JobPipelineSteps { get; set; } = null!;
+    /// <summary>
+    /// Gets or sets the DbSet for DistributedJobLock entities.
+    /// </summary>
     public DbSet<DistributedJobLock> DistributedJobLocks { get; set; } = null!;
 
     public override string ToString()
@@ -34,7 +68,11 @@ public sealed class JobSchedulerContext : DbContext
         return $"{nameof(JobSchedulerContext)} {{ Jobs = {Jobs}, JobExecutions = {JobExecutions}, JobScheduleHistories = {JobScheduleHistories}, RetryPolicies = {RetryPolicies}, ExecutionMetrics = {ExecutionMetrics}, JobDependencies = {JobDependencies} }}";
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    /// <summary>
+/// Configures the schema needed for the job scheduler entities and relationships.
+/// </summary>
+/// <param name="modelBuilder">The builder used to construct the model for the context.</param>
+protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
@@ -169,13 +207,15 @@ public sealed class JobSchedulerContext : DbContext
     }
 
     /// <summary>
-    /// Saves all changes to the database asynchronously.
-    /// </summary>
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        UpdateAuditFields();
-        return await base.SaveChangesAsync(cancellationToken);
-    }
+/// Saves all changes to the database asynchronously.
+/// </summary>
+/// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
+/// <returns>The number of state entries written to the database.</returns>
+public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+{
+    UpdateAuditFields();
+    return await base.SaveChangesAsync(cancellationToken);
+}
 
     /// <summary>
     /// Updates audit fields (CreatedAt, UpdatedAt) before saving.
