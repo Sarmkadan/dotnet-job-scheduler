@@ -17,6 +17,41 @@ namespace JobScheduler.Core.Utilities;
 public static class JobHelper
 {
     /// <summary>
+    /// The failure-rate percentage above which the reliability score is reduced.
+    /// </summary>
+    private const int HighFailureRatePercent = 20;
+
+    /// <summary>
+    /// The success-rate percentage below which a job may require review.
+    /// </summary>
+    private const int LowSuccessRatePercent = 50;
+
+    /// <summary>
+    /// The minimum execution count that must be exceeded before recommending review.
+    /// </summary>
+    private const int MinExecutionsForRecommendation = 5;
+
+    /// <summary>
+    /// The minimum timeout in seconds considered reasonable for job execution.
+    /// </summary>
+    private const int MinReasonableTimeoutSeconds = 10;
+
+    /// <summary>
+    /// The number of milliseconds in one second.
+    /// </summary>
+    private const int MillisecondsPerSecond = 1000;
+
+    /// <summary>
+    /// The number of seconds in one minute.
+    /// </summary>
+    private const int SecondsPerMinute = 60;
+
+    /// <summary>
+    /// The number of minutes in one hour.
+    /// </summary>
+    private const int MinutesPerHour = 60;
+
+    /// <summary>
     /// Serializes job handler parameters to JSON.
     /// </summary>
     public static string SerializeParameters(object? parameters)
@@ -129,8 +164,8 @@ public static class JobHelper
 
         // Adjust for recent failures
         var failureRate = 100 - successRate;
-        if (failureRate > 20)
-            score -= (int)(failureRate - 20);
+        if (failureRate > HighFailureRatePercent)
+            score -= (int)(failureRate - HighFailureRatePercent);
 
         return Math.Max(0, Math.Min(100, score));
     }
@@ -144,13 +179,14 @@ public static class JobHelper
         if (job.Status == JobStatus.FailedPermanently)
             return "Review job configuration and error details. Fix and reactivate if needed.";
 
-        if (job.GetSuccessRate() < 50 && job.TotalExecutions > 5)
+        if (job.GetSuccessRate() < LowSuccessRatePercent &&
+            job.TotalExecutions > MinExecutionsForRecommendation)
             return "Success rate is low. Review handler implementation and parameters.";
 
         if (job.Status == JobStatus.Failed)
             return $"Job is failing. Check logs and consider suspending until root cause is addressed.";
 
-        if (job.ExecutionTimeoutSeconds < 10)
+        if (job.ExecutionTimeoutSeconds < MinReasonableTimeoutSeconds)
             return "Execution timeout is very short. Consider increasing if jobs are timing out unexpectedly.";
 
         return "Job is operating normally.";
@@ -164,18 +200,18 @@ public static class JobHelper
         if (milliseconds < 0)
             return "Invalid";
 
-        if (milliseconds < 1000)
+        if (milliseconds < MillisecondsPerSecond)
             return $"{milliseconds}ms";
 
-        var seconds = milliseconds / 1000.0;
-        if (seconds < 60)
+        var seconds = milliseconds / (double)MillisecondsPerSecond;
+        if (seconds < SecondsPerMinute)
             return $"{seconds:F2}s";
 
-        var minutes = seconds / 60;
-        if (minutes < 60)
+        var minutes = seconds / SecondsPerMinute;
+        if (minutes < MinutesPerHour)
             return $"{minutes:F2}m";
 
-        var hours = minutes / 60;
+        var hours = minutes / MinutesPerHour;
         return $"{hours:F2}h";
     }
 
@@ -191,7 +227,8 @@ public static class JobHelper
         if (job.Status == JobStatus.Failed && job.TotalExecutions > 10)
             return true;
 
-        if (job.GetSuccessRate() < 50 && job.TotalExecutions > 5)
+        if (job.GetSuccessRate() < LowSuccessRatePercent &&
+            job.TotalExecutions > MinExecutionsForRecommendation)
             return true;
 
         return false;
