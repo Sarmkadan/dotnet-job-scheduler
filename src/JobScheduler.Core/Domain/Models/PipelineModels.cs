@@ -22,6 +22,11 @@ public sealed class CreatePipelineRequest
     /// Jobs are executed in the order provided; each job waits for the previous to succeed.
     /// </summary>
     public List<PipelineStepRequest> Steps { get; set; } = new();
+
+    public override string ToString()
+    {
+        return $"{GetType().Name} {{ Name = {Name}, Description = {Description}, StepsCount = {Steps.Count} }}";
+    }
 }
 
 /// <summary>
@@ -37,6 +42,11 @@ public sealed class PipelineStepRequest
     /// Defaults to true.
     /// </summary>
     public bool StopOnFailure { get; set; } = true;
+
+    public override string ToString()
+    {
+        return $"{GetType().Name} {{ JobId = {JobId}, StopOnFailure = {StopOnFailure} }}";
+    }
 }
 
 /// <summary>
@@ -51,6 +61,11 @@ public sealed class PipelineResponse
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
     public List<PipelineStepResponse> Steps { get; set; } = new();
+
+    public override string ToString()
+    {
+        return $"{GetType().Name} {{ Id = {Id}, Name = {Name}, Description = {Description}, IsActive = {IsActive}, CreatedAt = {CreatedAt}, CreatedBy = {CreatedBy}, StepsCount = {Steps.Count} }}";
+    }
 }
 
 /// <summary>
@@ -63,6 +78,11 @@ public sealed class PipelineStepResponse
     public string? JobName { get; set; }
     public int StepOrder { get; set; }
     public bool StopOnFailure { get; set; }
+
+    public override string ToString()
+    {
+        return $"{GetType().Name} {{ StepId = {StepId}, JobId = {JobId}, JobName = {JobName}, StepOrder = {StepOrder}, StopOnFailure = {StopOnFailure} }}";
+    }
 }
 
 /// <summary>
@@ -73,6 +93,11 @@ public sealed class PipelineStatusResponse
     public Guid PipelineId { get; set; }
     public string PipelineName { get; set; } = string.Empty;
     public List<PipelineStepStatus> StepStatuses { get; set; } = new();
+
+    public override string ToString()
+    {
+        return $"{GetType().Name} {{ PipelineId = {PipelineId}, PipelineName = {PipelineName}, StepStatusesCount = {StepStatuses.Count} }}";
+    }
 }
 
 /// <summary>
@@ -86,4 +111,9 @@ public sealed class PipelineStepStatus
     public string Status { get; set; } = string.Empty;
     public DateTime? LastExecutedAt { get; set; }
     public bool IsReady { get; set; }
+
+    public override string ToString()
+    {
+        return $"{GetType().Name} {{ StepOrder = {StepOrder}, JobId = {JobId}, JobName = {JobName}, Status = {Status}, LastExecutedAt = {LastExecutedAt}, IsReady = {IsReady} }}";
+    }
 }
