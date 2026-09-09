@@ -17,9 +17,28 @@ namespace JobScheduler.Core.Services;
 /// </summary>
 public sealed class AuditLogger
 {
+    /// <summary>
+    /// The maximum number of audit logs retained in memory.
+    /// </summary>
+    private const int MaxLogsRetained = 50000;
+
+    /// <summary>
+    /// The minimum HTTP status code representing a server error.
+    /// </summary>
+    private const int ServerErrorStatusCode = 500;
+
+    /// <summary>
+    /// The minimum HTTP status code representing a client error.
+    /// </summary>
+    private const int ClientErrorStatusCode = 400;
+
+    /// <summary>
+    /// The minimum HTTP status code representing a redirect.
+    /// </summary>
+    private const int RedirectStatusCode = 300;
+
     private readonly ILogger<AuditLogger> _logger;
     private readonly ConcurrentQueue<AuditLogEntry> _auditLogs;
-    private readonly int _maxLogsRetained = 50000;
 
     public AuditLogger(ILogger<AuditLogger> logger)
     {
@@ -233,7 +252,7 @@ public sealed class AuditLogger
 
     private void TrimOldLogs()
     {
-        while (_auditLogs.Count > _maxLogsRetained)
+        while (_auditLogs.Count > MaxLogsRetained)
         {
             _auditLogs.TryDequeue(out _);
         }
@@ -243,9 +262,9 @@ public sealed class AuditLogger
     {
         return statusCode switch
         {
-            >= 500 => AuditSeverity.Error,
-            >= 400 => AuditSeverity.Warning,
-            >= 300 => AuditSeverity.Info,
+            >= ServerErrorStatusCode => AuditSeverity.Error,
+            >= ClientErrorStatusCode => AuditSeverity.Warning,
+            >= RedirectStatusCode => AuditSeverity.Info,
             _ => AuditSeverity.Debug
         };
     }
