@@ -21,6 +21,11 @@ namespace JobScheduler.Core;
 /// </summary>
 public sealed class Program
 {
+    /// <summary>
+    /// Entry point of the application.
+    /// </summary>
+    /// <param name="args">Command line arguments.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public static async Task Main(string[] args)
     {
         var host = CreateHostBuilder(args).Build();
@@ -80,12 +85,23 @@ public sealed class SchedulerHostedService : BackgroundService
     private readonly ILogger<SchedulerHostedService> _logger;
     private readonly TimeSpan _gracefulShutdownTimeout = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    /// Initializes a new instance of the SchedulerHostedService class.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
+    /// <param name="logger">The logger instance for logging scheduler events.</param>
     public SchedulerHostedService(IServiceProvider serviceProvider, ILogger<SchedulerHostedService> logger)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Executes the background service's main polling loop.
+    /// Continuously processes due jobs and retries at configured intervals until cancellation is requested.
+    /// </summary>
+    /// <param name="stoppingToken">Cancellation token to signal shutdown.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Scheduler hosted service started");
@@ -135,6 +151,8 @@ public sealed class SchedulerHostedService : BackgroundService
     /// Performs graceful shutdown by allowing in-flight jobs to complete within a bounded time window.
     /// Any jobs still running after the grace period are marked as interrupted.
     /// </summary>
+    /// <param name="stoppingToken">Cancellation token to signal shutdown.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     private async Task GracefulShutdownAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Graceful shutdown initiated - allowing in-flight jobs to complete within {Timeout} seconds",
