@@ -21,6 +21,12 @@ public sealed class ExecutionStatisticsService
     private readonly IJobRepository _jobRepository;
     private readonly ILogger<ExecutionStatisticsService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExecutionStatisticsService"/> class.
+    /// </summary>
+    /// <param name="executionRepository">The execution repository.</param>
+    /// <param name="jobRepository">The job repository.</param>
+    /// <param name="logger">The logger.</param>
     public ExecutionStatisticsService(
         IExecutionRepository executionRepository,
         IJobRepository jobRepository,
@@ -35,6 +41,8 @@ public sealed class ExecutionStatisticsService
     /// Gets comprehensive execution statistics for a specific job.
     /// Includes success rates, execution time metrics, and trends.
     /// </summary>
+    /// <param name="jobId">The job identifier.</param>
+    /// <returns>Execution statistics for the job, or null if the job is not found.</returns>
     public async Task<ExecutionStatsResponse?> GetJobExecutionStatsAsync(Guid jobId)
     {
         try
@@ -82,6 +90,8 @@ public sealed class ExecutionStatisticsService
     /// <summary>
     /// Analyzes performance characteristics including percentiles and anomaly detection.
     /// </summary>
+    /// <param name="jobId">The job identifier.</param>
+    /// <returns>Performance analysis for the job, or null if no executions are found.</returns>
     public async Task<PerformanceAnalysisResponse?> GetJobPerformanceAnalysisAsync(Guid jobId)
     {
         try
@@ -126,6 +136,9 @@ public sealed class ExecutionStatisticsService
     /// Generates a trend report showing performance changes over time.
     /// Useful for identifying performance degradation.
     /// </summary>
+    /// <param name="jobId">The job identifier.</param>
+    /// <param name="days">The number of days to look back for trend data (default is 7).</param>
+    /// <returns>A list of performance trend points.</returns>
     public async Task<List<PerformanceTrendPoint>> GetPerformanceTrendAsync(Guid jobId, int days = 7)
     {
         try
@@ -160,6 +173,8 @@ public sealed class ExecutionStatisticsService
     /// Detects anomalous execution times using standard deviation.
     /// Helps identify performance issues or resource constraints.
     /// </summary>
+    /// <param name="jobId">The job identifier.</param>
+    /// <returns>A list of execution anomaly reports.</returns>
     public async Task<List<ExecutionAnomalyReport>> DetectExecutionAnomaliesAsync(Guid jobId)
     {
         try
@@ -201,6 +216,12 @@ public sealed class ExecutionStatisticsService
         }
     }
 
+    /// <summary>
+    /// Calculates the value at the specified percentile in a list of values.
+    /// </summary>
+    /// <param name="values">The list of values.</param>
+    /// <param name="percentile">The percentile to calculate (0-100).</param>
+    /// <returns>The value at the specified percentile.</returns>
     private long GetPercentile(List<long> values, int percentile)
     {
         if (values.Count == 0)
@@ -218,21 +239,69 @@ public sealed class ExecutionStatisticsService
     }
 }
 
+/// <summary>
+/// Represents a data point in a performance trend report.
+/// </summary>
 public sealed class PerformanceTrendPoint
 {
+    /// <summary>
+    /// Gets or sets the date for this trend point.
+    /// </summary>
     public DateTime Date { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of executions on this date.
+    /// </summary>
     public int ExecutionCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average execution time in milliseconds for this date.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the success rate percentage for this date.
+    /// </summary>
     public double SuccessRate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum execution time in milliseconds for this date.
+    /// </summary>
     public long MaxExecutionTimeMs { get; set; }
 }
 
+/// <summary>
+/// Represents an execution anomaly detected in job performance analysis.
+/// </summary>
 public sealed class ExecutionAnomalyReport
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the execution.
+    /// </summary>
     public Guid ExecutionId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timestamp when the execution occurred.
+    /// </summary>
     public DateTime? Timestamp { get; set; }
+
+    /// <summary>
+    /// Gets or sets the actual execution time in milliseconds.
+    /// </summary>
     public long ExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the expected execution time in milliseconds.
+    /// </summary>
     public long ExpectedTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the deviation factor (how many standard deviations from the mean).
+    /// </summary>
     public double DeviationFactor { get; set; }
+
+    /// <summary>
+    /// Gets or sets the type of anomaly (SlowExecution or FastExecution).
+    /// </summary>
     public string AnomalyType { get; set; } = string.Empty;
 }
