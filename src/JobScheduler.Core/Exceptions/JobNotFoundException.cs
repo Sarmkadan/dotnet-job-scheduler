@@ -49,4 +49,18 @@ public sealed class JobNotFoundException : JobSchedulerException
     {
         JobId = jobId;
     }
+
+    /// <summary>
+    /// Returns a string representation of the exception, including the type name, JobId, ErrorCode, and Message.
+    /// If there is an inner exception, appends the base class ToString representation.
+    /// </summary>
+    /// <returns>A string representation of the exception.</returns>
+    public override string ToString()
+    {
+        var result = $"{GetType().Name}: JobId={JobId}, ErrorCode={ErrorCode}, Message={Message}";
+
+        return InnerException is null
+            ? result
+            : $"{result} -> {base.ToString()}";
+    }
 }
