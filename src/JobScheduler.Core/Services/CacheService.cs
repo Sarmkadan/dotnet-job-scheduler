@@ -26,6 +26,11 @@ public sealed class CacheService : IDisposable
     private readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(5);
     private readonly object _cleanupLock = new object();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CacheService"/> class.
+    /// </summary>
+    /// <param name="cache">The memory cache used to store entries.</param>
+    /// <param name="logger">The logger used to record cache activity.</param>
     public CacheService(IMemoryCache cache, ILogger<CacheService> logger)
     {
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
@@ -41,6 +46,9 @@ public sealed class CacheService : IDisposable
             _cleanupInterval);
     }
 
+    /// <summary>
+    /// Releases the cleanup timer used by the cache service.
+    /// </summary>
     public void Dispose()
     {
         _cleanupTimer?.Dispose();
@@ -50,6 +58,9 @@ public sealed class CacheService : IDisposable
     /// Gets value from cache if exists and is not expired.
     /// Returns null if not found or expired.
     /// </summary>
+    /// <typeparam name="T">The reference type of the cached value.</typeparam>
+    /// <param name="key">The key of the cache entry.</param>
+    /// <returns>A task whose result is the cached value, or <see langword="null"/> when no matching value is available.</returns>
     public async Task<T?> GetAsync<T>(string key) where T : class
     {
         try
@@ -79,6 +90,11 @@ public sealed class CacheService : IDisposable
     /// Sets value in cache with expiration time.
     /// WHY: Expiration prevents stale data and unbounded cache growth.
     /// </summary>
+    /// <typeparam name="T">The reference type of the value to cache.</typeparam>
+    /// <param name="key">The key of the cache entry.</param>
+    /// <param name="value">The value to cache.</param>
+    /// <param name="expiration">The absolute expiration interval, or <see langword="null"/> to use the default interval.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null) where T : class
     {
         try
@@ -109,6 +125,8 @@ public sealed class CacheService : IDisposable
     /// <summary>
     /// Removes specific key from cache.
     /// </summary>
+    /// <param name="key">The key of the cache entry to remove.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task RemoveAsync(string key)
     {
         try
@@ -127,6 +145,8 @@ public sealed class CacheService : IDisposable
     /// Clears all cache entries matching a pattern.
     /// Useful for invalidating related cache entries (e.g., all job stats).
     /// </summary>
+    /// <param name="keyPattern">The text that matching cache keys contain.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task InvalidatePatternAsync(string keyPattern)
     {
         try
@@ -152,6 +172,11 @@ public sealed class CacheService : IDisposable
     /// Gets value from cache or fetches using provided factory function.
     /// Common pattern for lazy cache population.
     /// </summary>
+    /// <typeparam name="T">The reference type of the cached value.</typeparam>
+    /// <param name="key">The key of the cache entry.</param>
+    /// <param name="factory">The function used to obtain a value when the cache does not contain one.</param>
+    /// <param name="expiration">The absolute expiration interval, or <see langword="null"/> to use the default interval.</param>
+    /// <returns>A task whose result is the cached or created value, or <see langword="null"/> when no value is available.</returns>
     public async Task<T?> GetOrSetAsync<T>(string key, Func<Task<T?>> factory, TimeSpan? expiration = null) where T : class
     {
         var cached = await GetAsync<T>(key);
@@ -178,6 +203,7 @@ public sealed class CacheService : IDisposable
     /// Clears entire cache.
     /// Used during scheduler shutdown or maintenance.
     /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task ClearAllAsync()
     {
         try
@@ -201,6 +227,7 @@ public sealed class CacheService : IDisposable
     /// This proactive cleanup prevents memory leaks from unbounded cache growth.
     /// Bounded sweep: limits to 1000 keys per call to avoid blocking.
     /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task RemoveExpiredEntriesAsync()
     {
         try
@@ -249,6 +276,7 @@ public sealed class CacheService : IDisposable
     /// <summary>
     /// Gets cache statistics for monitoring.
     /// </summary>
+    /// <returns>The current cache statistics.</returns>
     public CacheStatistics GetStatistics()
     {
         return new CacheStatistics
@@ -258,6 +286,10 @@ public sealed class CacheService : IDisposable
         };
     }
 
+    /// <summary>
+    /// Returns a string that represents the cache service statistics.
+    /// </summary>
+    /// <returns>A string containing the total key count and statistics timestamp.</returns>
     public override string ToString()
     {
         var stats = GetStatistics();
@@ -271,20 +303,86 @@ public sealed class CacheService : IDisposable
 /// </summary>
 public static class CacheKeyGenerator
 {
+    /// <summary>
+    /// Creates a cache key for a job identifier.
+    /// </summary>
+    /// <param name="jobId">The job identifier.</param>
+    /// <returns>The cache key for the job.</returns>
     public static string JobKey(Guid jobId) => $"job:{jobId}";
+
+    /// <summary>
+    /// Creates a cache key for a job name.
+    /// </summary>
+    /// <param name="jobName">The job name.</param>
+    /// <returns>The cache key for the named job.</returns>
     public static string JobKey(string jobName) => $"job:name:{jobName}";
+
+    /// <summary>
+    /// Creates a cache key for a page of job executions.
+    /// </summary>
+    /// <param name="jobId">The job identifier.</param>
+    /// <param name="pageNumber">The page number.</param>
+    /// <returns>The cache key for the requested job executions page.</returns>
     public static string JobExecutionsKey(Guid jobId, int pageNumber = 1) => $"job:{jobId}:executions:page:{pageNumber}";
+
+    /// <summary>
+    /// Creates a cache key for job statistics.
+    /// </summary>
+    /// <param name="jobId">The job identifier.</param>
+    /// <returns>The cache key for the job statistics.</returns>
     public static string JobStatsKey(Guid jobId) => $"job:{jobId}:stats";
+
+    /// <summary>
+    /// Gets the cache key for all jobs.
+    /// </summary>
+    /// <returns>The cache key for all jobs.</returns>
     public static string AllJobsKey() => "jobs:all";
+
+    /// <summary>
+    /// Creates a cache key for jobs with a specified status.
+    /// </summary>
+    /// <param name="status">The job status.</param>
+    /// <returns>The cache key for jobs with the specified status.</returns>
     public static string JobsByStatusKey(string status) => $"jobs:status:{status}";
+
+    /// <summary>
+    /// Gets the cache key for system statistics.
+    /// </summary>
+    /// <returns>The cache key for system statistics.</returns>
     public static string SystemStatsKey() => "system:stats";
+
+    /// <summary>
+    /// Gets the cache key for the queue status.
+    /// </summary>
+    /// <returns>The cache key for the queue status.</returns>
     public static string QueueStatusKey() => "queue:status";
+
+    /// <summary>
+    /// Gets the cache key for the scheduler configuration.
+    /// </summary>
+    /// <returns>The cache key for the scheduler configuration.</returns>
     public static string SchedulerConfigKey() => "scheduler:config";
+
+    /// <summary>
+    /// Creates a cache key for an execution identifier.
+    /// </summary>
+    /// <param name="executionId">The execution identifier.</param>
+    /// <returns>The cache key for the execution.</returns>
     public static string ExecutionKey(Guid executionId) => $"execution:{executionId}";
 }
 
+/// <summary>
+/// Contains a snapshot of cache statistics.
+/// </summary>
 public sealed class CacheStatistics
 {
+    /// <summary>
+    /// Gets or sets the number of tracked cache keys.
+    /// </summary>
     public int TotalKeys { get; set; }
+
+    /// <summary>
+    /// Gets or sets the time at which the statistics were captured.
+    /// </summary>
     public DateTime Timestamp { get; set; }
 }
