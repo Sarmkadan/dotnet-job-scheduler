@@ -54,7 +54,11 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
     /// <inheritdoc />
     public bool IsLeader => _isLeader;
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Attempts to acquire leadership by creating or renewing a lease in the database.
+    /// </summary>
+    /// <param name="cancellationToken">Optional token to cancel the operation.</param>
+    /// <returns>True if leadership was acquired; otherwise, false.</returns>
     public async Task<bool> TryAcquireLeadershipAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -118,7 +122,10 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Releases leadership by expiring the lease in the database.
+    /// </summary>
+    /// <param name="cancellationToken">Optional token to cancel the operation.</param>
     public async Task ReleaseLeadershipAsync(CancellationToken cancellationToken = default)
     {
         if (!_isLeader)
@@ -162,11 +169,33 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
 /// </summary>
 public sealed class SchedulerLeaderLock
 {
+    /// <summary>
+    /// Default lock name used for leader election.
+    /// </summary>
     public const string DefaultLockName = "scheduler-leader";
 
+    /// <summary>
+    /// Gets or sets the unique identifier for the lock record.
+    /// </summary>
     public int Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the lock.
+    /// </summary>
     public string LockName { get; set; } = DefaultLockName;
+
+    /// <summary>
+    /// Gets or sets the instance ID of the current leader.
+    /// </summary>
     public string LeaderInstanceId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the date and time when the lease expires.
+    /// </summary>
     public DateTime LeaseExpiresAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the date and time when the lock was acquired.
+    /// </summary>
     public DateTime AcquiredAt { get; set; }
 }
