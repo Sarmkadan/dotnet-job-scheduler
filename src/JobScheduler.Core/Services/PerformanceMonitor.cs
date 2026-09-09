@@ -16,9 +16,23 @@ namespace JobScheduler.Core.Services;
 /// </summary>
 public sealed class PerformanceMonitor
 {
+    /// <summary>
+    /// The maximum number of performance metrics retained in memory.
+    /// </summary>
+    private const int MaxMetricsRetained = 10000;
+
+    /// <summary>
+    /// The interval in milliseconds used when sampling CPU utilization.
+    /// </summary>
+    private const int CpuSampleIntervalMs = 100;
+
+    /// <summary>
+    /// The factor used to convert a ratio to a percentage.
+    /// </summary>
+    private const double PercentFactor = 100;
+
     private readonly ILogger<PerformanceMonitor> _logger;
     private readonly ConcurrentQueue<PerformanceMetric> _metrics;
-    private readonly int _maxMetricsRetained = 10000; // Keep last 10000 metrics in memory
 
     public PerformanceMonitor(ILogger<PerformanceMonitor> logger)
     {
@@ -50,7 +64,7 @@ public sealed class PerformanceMonitor
         _metrics.Enqueue(metric);
 
         // Trim old metrics if queue grows too large
-        while (_metrics.Count > _maxMetricsRetained)
+        while (_metrics.Count > MaxMetricsRetained)
         {
             _metrics.TryDequeue(out _);
         }
@@ -104,7 +118,7 @@ public sealed class PerformanceMonitor
             return 100;
 
         var successCount = allMetrics.Count(m => m.Success);
-        return (double)successCount / allMetrics.Count * 100;
+        return (double)successCount / allMetrics.Count * PercentFactor;
     }
 
     /// <summary>
@@ -118,7 +132,7 @@ public sealed class PerformanceMonitor
             return 100;
 
         var successCount = jobMetrics.Count(m => m.Success);
-        return (double)successCount / jobMetrics.Count * 100;
+        return (double)successCount / jobMetrics.Count * PercentFactor;
     }
 
     /// <summary>
@@ -151,7 +165,7 @@ public sealed class PerformanceMonitor
             using (var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total"))
             {
                 cpuCounter.NextValue(); // First call returns 0
-                System.Threading.Thread.Sleep(100);
+                System.Threading.Thread.Sleep(CpuSampleIntervalMs);
                 var result = cpuCounter.NextValue();
                 _logger.LogInformation("CPU utilization measured at {CpuUtilization:P}", result);
                 return result;
