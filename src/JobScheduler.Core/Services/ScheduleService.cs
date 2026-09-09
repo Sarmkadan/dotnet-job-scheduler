@@ -27,14 +27,19 @@ public sealed class ScheduleService
     private readonly CronExpressionService _cronService;
     private readonly ILogger<ScheduleService> _logger;
 
+    /// <exception cref="ArgumentNullException">Thrown when an injected dependency is <see langword="null"/>.</exception>
     public ScheduleService(
         IJobRepository jobRepository,
         CronExpressionService cronService,
         ILogger<ScheduleService> logger)
     {
-        _jobRepository = jobRepository ?? throw new ArgumentNullException(nameof(jobRepository));
-        _cronService = cronService ?? throw new ArgumentNullException(nameof(cronService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(jobRepository);
+        ArgumentNullException.ThrowIfNull(cronService);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _jobRepository = jobRepository;
+        _cronService = cronService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -73,8 +78,11 @@ public sealed class ScheduleService
     /// <summary>
     /// Calculates the frequency of a cron expression in executions per day.
     /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="cronExpression"/> is <see langword="null"/>, empty, or consists only of white-space characters.</exception>
     public async Task<double> GetExecutionFrequencyPerDayAsync(string cronExpression)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cronExpression);
+
         try
         {
             var times = new List<DateTime>();
@@ -107,8 +115,11 @@ public sealed class ScheduleService
     /// Gets human-readable description of a cron expression.
     /// Example: "0 9 * * 1-5" -> "At 9:00 AM, Monday through Friday"
     /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="cronExpression"/> is <see langword="null"/>, empty, or consists only of white-space characters.</exception>
     public async Task<string> GetCronExpressionDescriptionAsync(string cronExpression)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cronExpression);
+
         try
         {
             if (string.IsNullOrWhiteSpace(cronExpression))
