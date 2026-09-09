@@ -34,14 +34,10 @@ public static class RetryServiceExtensions
 		JobExecution failedExecution,
 		string executorName)
 	{
-		if (retryService is null)
-			throw new ArgumentNullException(nameof(retryService));
-		if (job is null)
-			throw new ArgumentNullException(nameof(job));
-		if (failedExecution is null)
-			throw new ArgumentNullException(nameof(failedExecution));
-		if (string.IsNullOrWhiteSpace(executorName))
-			throw new ArgumentException("Executor name cannot be null or whitespace.", nameof(executorName));
+		ArgumentNullException.ThrowIfNull(retryService);
+		ArgumentNullException.ThrowIfNull(job);
+		ArgumentNullException.ThrowIfNull(failedExecution);
+		ArgumentException.ThrowIfNullOrWhiteSpace(executorName);
 
 		var retryExecution = retryService.CreateRetryExecution(job, failedExecution);
 		retryExecution.ExecutorName = executorName;
@@ -68,12 +64,9 @@ public static class RetryServiceExtensions
 		JobExecution failedExecution,
 		int minimumDelaySeconds = 5)
 	{
-		if (retryService is null)
-			throw new ArgumentNullException(nameof(retryService));
-		if (job is null)
-			throw new ArgumentNullException(nameof(job));
-		if (failedExecution is null)
-			throw new ArgumentNullException(nameof(failedExecution));
+		ArgumentNullException.ThrowIfNull(retryService);
+		ArgumentNullException.ThrowIfNull(job);
+		ArgumentNullException.ThrowIfNull(failedExecution);
 		if (minimumDelaySeconds < 1)
 			throw new ArgumentOutOfRangeException(nameof(minimumDelaySeconds), "Minimum delay must be at least 1 second.");
 
@@ -105,8 +98,7 @@ public static class RetryServiceExtensions
 		int retryBudgetCount = 5,
 		int timeWindowMinutes = 5)
 	{
-		if (retryService is null)
-			throw new ArgumentNullException(nameof(retryService));
+		ArgumentNullException.ThrowIfNull(retryService);
 		if (timeWindowMinutes < 1)
 			throw new ArgumentOutOfRangeException(nameof(timeWindowMinutes), "Time window must be at least 1 minute.");
 
@@ -131,10 +123,8 @@ public static class RetryServiceExtensions
 		string serverName,
 		Guid jobId)
 	{
-		if (retryService is null)
-			throw new ArgumentNullException(nameof(retryService));
-		if (string.IsNullOrWhiteSpace(serverName))
-			throw new ArgumentException("Server name cannot be null or whitespace.", nameof(serverName));
+		ArgumentNullException.ThrowIfNull(retryService);
+		ArgumentException.ThrowIfNullOrWhiteSpace(serverName);
 
 		return $"Job {jobId} - Retry attempt {attemptNumber} scheduled in {delay.TotalSeconds:F0}s on server '{serverName}'.";
 	}
