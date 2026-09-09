@@ -33,6 +33,7 @@ public sealed class JobSchedulerService
     private readonly ConcurrencyManager _concurrencyManager;
     private readonly ILogger<JobSchedulerService>? _logger;
 
+    /// <exception cref="ArgumentNullException">Thrown when a required dependency is null.</exception>
     public JobSchedulerService(
         IJobRepository jobRepository,
         IExecutionRepository executionRepository,
@@ -42,22 +43,29 @@ public sealed class JobSchedulerService
         ConcurrencyManager concurrencyManager,
         ILogger<JobSchedulerService>? logger = null)
     {
-        _jobRepository = jobRepository ?? throw new ArgumentNullException(nameof(jobRepository));
-        _executionRepository = executionRepository ?? throw new ArgumentNullException(nameof(executionRepository));
-        _executorService = executorService ?? throw new ArgumentNullException(nameof(executorService));
-        _cronService = cronService ?? throw new ArgumentNullException(nameof(cronService));
-        _retryService = retryService ?? throw new ArgumentNullException(nameof(retryService));
-        _concurrencyManager = concurrencyManager ?? throw new ArgumentNullException(nameof(concurrencyManager));
+        ArgumentNullException.ThrowIfNull(jobRepository);
+        ArgumentNullException.ThrowIfNull(executionRepository);
+        ArgumentNullException.ThrowIfNull(executorService);
+        ArgumentNullException.ThrowIfNull(cronService);
+        ArgumentNullException.ThrowIfNull(retryService);
+        ArgumentNullException.ThrowIfNull(concurrencyManager);
+
+        _jobRepository = jobRepository;
+        _executionRepository = executionRepository;
+        _executorService = executorService;
+        _cronService = cronService;
+        _retryService = retryService;
+        _concurrencyManager = concurrencyManager;
         _logger = logger;
     }
 
     /// <summary>
     /// Creates and schedules a new job.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is null.</exception>
     public async Task<Job> CreateJobAsync(Job job, string? createdBy = null)
     {
-        if (job is null)
-            throw new ArgumentNullException(nameof(job));
+        ArgumentNullException.ThrowIfNull(job);
 
         // Fix: Add validation for job.Name to prevent null, empty, or whitespace values.
         if (string.IsNullOrWhiteSpace(job.Name))
@@ -461,10 +469,10 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// Updates an existing job's configuration from a create/update request.
     /// Returns null if the job does not exist.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="request"/> is null.</exception>
     public async Task<Job?> UpdateJobAsync(Guid jobId, CreateJobRequest request, string? updatedBy = null)
     {
-        if (request is null)
-            throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
 
         var job = await _jobRepository.GetByIdAsync(jobId);
         if (job is null)
