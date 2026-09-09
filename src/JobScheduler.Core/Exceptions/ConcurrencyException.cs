@@ -38,4 +38,17 @@ public sealed class ConcurrencyException : JobSchedulerException
         CurrentConcurrentExecutions = currentCount;
         MaxAllowed = maxAllowed;
     }
+
+    /// <summary>
+    /// Returns a string representation of the exception, including the type name, concurrency details, error code, and message.
+    /// </summary>
+    /// <returns>A string representation of the exception.</returns>
+    public override string ToString()
+    {
+        var result = $"{GetType().Name}: JobId={JobId}, CurrentConcurrentExecutions={CurrentConcurrentExecutions}, MaxAllowed={MaxAllowed}, ErrorCode={ErrorCode}, Message={Message}";
+
+        return InnerException is null
+            ? result
+            : $"{result} -> {base.ToString()}";
+    }
 }
