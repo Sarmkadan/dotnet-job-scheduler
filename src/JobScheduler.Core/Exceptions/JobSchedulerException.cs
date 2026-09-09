@@ -58,4 +58,18 @@ public class JobSchedulerException : Exception
     {
         ErrorCode = errorCode;
     }
+
+    /// <summary>
+    /// Returns a string representation of the current exception.
+    /// </summary>
+    /// <returns>A string containing the exception type, error code when available, and message.</returns>
+    public override string ToString()
+    {
+        var errorCode = ErrorCode is null ? string.Empty : $" [{ErrorCode}]";
+        var result = $"{GetType().Name}{errorCode}: {Message}";
+
+        return InnerException is null
+            ? result
+            : $"{result}{Environment.NewLine}{base.ToString()}";
+    }
 }
