@@ -19,6 +19,26 @@ namespace JobScheduler.Core.Utilities;
 /// </summary>
 public static class ParseUtility
 {
+    /// <summary>
+    /// The number of bytes in a kilobyte.
+    /// </summary>
+    private const int BytesPerKilobyte = 1024;
+
+    /// <summary>
+    /// The number of milliseconds in a second.
+    /// </summary>
+    private const int MillisecondsPerSecond = 1000;
+
+    /// <summary>
+    /// The number of seconds in a minute.
+    /// </summary>
+    private const int SecondsPerMinute = 60;
+
+    /// <summary>
+    /// The number of minutes in an hour.
+    /// </summary>
+    private const int MinutesPerHour = 60;
+
     // Reuse options instance — constructing JsonSerializerOptions per call is expensive
     // because it triggers internal reflection metadata caching on every construction.
     private static readonly JsonSerializerOptions _defaultJsonOptions = new()
@@ -199,10 +219,10 @@ public static class ParseUtility
         double len = bytes;
         int order = 0;
 
-        while (len >= 1024 && order < sizes.Length - 1)
+        while (len >= BytesPerKilobyte && order < sizes.Length - 1)
         {
             order++;
-            len = len / 1024;
+            len = len / BytesPerKilobyte;
         }
 
         return string.Create(CultureInfo.InvariantCulture, $"{len:F2} {sizes[order]}");
@@ -213,19 +233,19 @@ public static class ParseUtility
     /// </summary>
     public static string FormatDuration(long milliseconds)
     {
-        if (milliseconds < 1000)
+        if (milliseconds < MillisecondsPerSecond)
             return $"{milliseconds}ms";
 
-        var seconds = milliseconds / 1000;
-        if (seconds < 60)
+        var seconds = milliseconds / MillisecondsPerSecond;
+        if (seconds < SecondsPerMinute)
             return $"{seconds}s";
 
-        var minutes = seconds / 60;
-        if (minutes < 60)
-            return $"{minutes}m {seconds % 60}s";
+        var minutes = seconds / SecondsPerMinute;
+        if (minutes < MinutesPerHour)
+            return $"{minutes}m {seconds % SecondsPerMinute}s";
 
-        var hours = minutes / 60;
-        return $"{hours}h {minutes % 60}m";
+        var hours = minutes / MinutesPerHour;
+        return $"{hours}h {minutes % MinutesPerHour}m";
     }
 
     /// <summary>
