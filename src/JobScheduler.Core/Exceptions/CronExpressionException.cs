@@ -46,4 +46,19 @@ public sealed class CronExpressionException : JobSchedulerException
     {
         CronExpression = cronExpression;
     }
+
+    /// <summary>
+    /// Returns a string representation of the exception, including the type name, cron expression, error code when available, and message.
+    /// If there is an inner exception, appends the base class string representation.
+    /// </summary>
+    /// <returns>A string representation of the exception.</returns>
+    public override string ToString()
+    {
+        var errorCode = ErrorCode is null ? string.Empty : $", ErrorCode={ErrorCode}";
+        var result = $"{GetType().Name}: CronExpression={CronExpression}{errorCode}, Message={Message}";
+
+        return InnerException is null
+            ? result
+            : $"{result} -> {base.ToString()}";
+    }
 }
