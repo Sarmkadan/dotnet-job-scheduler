@@ -26,33 +26,38 @@ public class RetryService
     /// <summary>
     /// Creates a retry service without a logger.
     /// </summary>
-    /// <exception cref="ArgumentNullException">A repository is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when jobRepository or executionRepository is null.</exception>
     public RetryService(IJobRepository jobRepository, IExecutionRepository executionRepository)
         : this(jobRepository, executionRepository, null)
     {
+        ArgumentNullException.ThrowIfNull(jobRepository);
+        ArgumentNullException.ThrowIfNull(executionRepository);
     }
 
     /// <summary>
     /// Creates a retry service.
     /// </summary>
-    /// <exception cref="ArgumentNullException">A repository is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when jobRepository or executionRepository is null.</exception>
     public RetryService(
         IJobRepository jobRepository,
         IExecutionRepository executionRepository,
         ILogger<RetryService>? logger)
     {
-        _jobRepository = jobRepository ?? throw new ArgumentNullException(nameof(jobRepository));
-        _executionRepository = executionRepository ?? throw new ArgumentNullException(nameof(executionRepository));
+        ArgumentNullException.ThrowIfNull(jobRepository);
+        ArgumentNullException.ThrowIfNull(executionRepository);
+        _jobRepository = jobRepository;
+        _executionRepository = executionRepository;
         _logger = logger;
     }
 
     /// <summary>
     /// Determines if a failed execution should be retried.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when job or execution is null.</exception>
     public virtual ValueTask<bool> ShouldRetryAsync(Job job, JobExecution execution)
     {
-        if (job is null || execution is null)
-            return ValueTask.FromResult(false);
+        ArgumentNullException.ThrowIfNull(job);
+        ArgumentNullException.ThrowIfNull(execution);
 
         if (execution.AttemptNumber > job.MaxRetries)
         {
@@ -73,12 +78,11 @@ public class RetryService
     /// <summary>
     /// Calculates the next retry time based on job's retry policy.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when job or failedExecution is null.</exception>
     public virtual DateTime CalculateNextRetryTime(Job job, JobExecution failedExecution)
     {
-        if (job is null)
-            throw new ArgumentNullException(nameof(job));
-        if (failedExecution is null)
-            throw new ArgumentNullException(nameof(failedExecution));
+        ArgumentNullException.ThrowIfNull(job);
+        ArgumentNullException.ThrowIfNull(failedExecution);
 
         var delaySeconds = CalculateBackoffDelay(job, failedExecution.AttemptNumber);
         var retryBaseTime = failedExecution.CompletedAt;
@@ -101,11 +105,11 @@ public class RetryService
     /// <summary>
     /// Calculates the backoff delay for a retry attempt.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when job is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual int CalculateBackoffDelay(Job job, int attemptNumber)
     {
-        // Fix: Ensure job and attemptNumber are valid inputs.
-        if (job is null) throw new ArgumentNullException(nameof(job));
+        ArgumentNullException.ThrowIfNull(job);
         if (attemptNumber < 0) throw new ArgumentOutOfRangeException(nameof(attemptNumber), "Attempt number cannot be negative.");
 
         int baseDelay = job.RetryBackoffSeconds;
@@ -130,10 +134,11 @@ public class RetryService
     /// <summary>
     /// Prepares a job execution for retry by incrementing attempt and resetting status.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when job or failedExecution is null.</exception>
     public virtual JobExecution CreateRetryExecution(Job job, JobExecution failedExecution)
     {
-        if (job is null || failedExecution is null)
-            throw new ArgumentNullException(nameof(job));
+        ArgumentNullException.ThrowIfNull(job);
+        ArgumentNullException.ThrowIfNull(failedExecution);
 
         var retryExecution = new JobExecution
         {
@@ -248,8 +253,10 @@ public class RetryService
     /// <summary>
     /// Formats a human-readable retry message for logging or notifications.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when serverName is null.</exception>
     public virtual string FormatRetryMessage(int attemptNumber, TimeSpan delay, string serverName)
     {
+        ArgumentNullException.ThrowIfNull(serverName);
         return $"Retry attempt {attemptNumber} scheduled in {delay.TotalSeconds:F0}s on server '{serverName}'.";
     }
 }
