@@ -214,6 +214,17 @@ public sealed class ValidationResult
         Message = message;
     }
 
+    /// <summary>
+    /// Returns a string representation of the validation result.
+    /// </summary>
+    /// <returns>
+    /// "Valid" if the validation is successful; otherwise, "Invalid: {Message}".
+    /// </returns>
+    public override string ToString()
+    {
+        return IsValid ? "Valid" : $"Invalid: {Message}";
+    }
+
     public void ThrowIfInvalid()
     {
         if (!IsValid)
