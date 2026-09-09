@@ -86,6 +86,17 @@ public sealed class SystemTimeProvider : ITimeProvider
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         return TimeZoneInfo.FindSystemTimeZoneById(id);
     }
+
+    /// <summary>
+    /// Returns a string representation of the current SystemTimeProvider.
+    /// </summary>
+    /// <returns>
+    /// A string in the format: SystemTimeProvider { UtcNow = <UtcNow in 'O' format>, TimeZone = <local time zone id> }
+    /// </returns>
+    public override string ToString()
+    {
+        return $"SystemTimeProvider {{ UtcNow = {UtcNow:O}, TimeZone = {TimeZoneInfo.Local.Id} }}";
+    }
 }
 
 /// <summary>
@@ -164,5 +175,16 @@ public sealed class TestTimeProvider : ITimeProvider
         return _testTimeZone.Id.Equals(id, StringComparison.OrdinalIgnoreCase)
             ? _testTimeZone
             : TimeZoneInfo.FindSystemTimeZoneById(id);
+    }
+
+    /// <summary>
+    /// Returns a string representation of the current TestTimeProvider.
+    /// </summary>
+    /// <returns>
+    /// A string in the format: TestTimeProvider { UtcNow = <UtcNow in 'O' format>, TimeZone = <time zone id> }
+    /// </returns>
+    public override string ToString()
+    {
+        return $"TestTimeProvider {{ UtcNow = {UtcNow:O}, TimeZone = {_testTimeZone.Id} }}";
     }
 }
