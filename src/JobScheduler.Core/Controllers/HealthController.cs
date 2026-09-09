@@ -18,6 +18,21 @@ namespace JobScheduler.Core.Controllers;
 [Route("api/[controller]")]
 public sealed class HealthController : ControllerBase
 {
+    /// <summary>
+    /// Memory usage threshold, in megabytes, before health is considered degraded.
+    /// </summary>
+    private const int MemoryThresholdMb = 2048;
+
+    /// <summary>
+    /// Number of hours to look back when retrieving recent diagnostic errors.
+    /// </summary>
+    private const int DiagnosticsLookbackHours = 24;
+
+    /// <summary>
+    /// Maximum number of recent failed executions to include in diagnostics.
+    /// </summary>
+    private const int RecentErrorsLimit = 10;
+
     private readonly JobSchedulerService _schedulerService;
     private readonly ILogger<HealthController> _logger;
 
@@ -124,7 +139,7 @@ public sealed class HealthController : ControllerBase
 
             // Check memory
             response.Memory.UsageMb = GC.GetTotalMemory(false) / 1024 / 1024;
-            response.Memory.Threshold = 2048; // 2GB
+            response.Memory.Threshold = MemoryThresholdMb; // 2GB
 
             if (response.Memory.UsageMb > response.Memory.Threshold)
                 response.Status = "Degraded";
@@ -198,7 +213,7 @@ public sealed class HealthController : ControllerBase
         try
         {
             var failures = await _schedulerService.GetRecentFailedExecutionsAsync(
-                DateTime.UtcNow.AddHours(-24), 10);
+                DateTime.UtcNow.AddHours(-DiagnosticsLookbackHours), RecentErrorsLimit);
 
             return failures
                 .Where(f => !string.IsNullOrEmpty(f.ErrorMessage))
