@@ -103,9 +103,11 @@ public sealed class JobDependencyService : IJobDependencyService
     /// </summary>
     /// <param name="context">The EF Core database context.</param>
     /// <param name="logger">Optional structured logger.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is null.</exception>
     public JobDependencyService(JobSchedulerContext context, ILogger<JobDependencyService>? logger = null)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(context);
+        _context = context;
         _logger = logger;
     }
 
