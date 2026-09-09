@@ -22,16 +22,20 @@ public sealed class ExternalApiClient
 
     public ExternalApiClient(HttpClient httpClient, ILogger<ExternalApiClient> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(logger);
+        _httpClient = httpClient;
+        _logger = logger;
     }
 
     /// <summary>
     /// Makes a GET request to an external API.
     /// Includes timeout and error handling.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
     public async Task<ApiResponse<T>> GetAsync<T>(string url, string? authToken = null, int timeoutSeconds = 30) where T : class
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -71,11 +75,15 @@ public sealed class ExternalApiClient
     /// <summary>
     /// Makes a POST request to an external API with JSON body.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is null.</exception>
     public async Task<ApiResponse<TResponse>> PostAsync<TRequest, TResponse>(
         string url, TRequest data, string? authToken = null, int timeoutSeconds = 30)
         where TRequest : class
         where TResponse : class
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
+        ArgumentNullException.ThrowIfNull(data);
         try
         {
             var json = JsonSerializer.Serialize(data);
@@ -120,11 +128,15 @@ public sealed class ExternalApiClient
     /// <summary>
     /// Makes a PUT request to an external API.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is null.</exception>
     public async Task<ApiResponse<TResponse>> PutAsync<TRequest, TResponse>(
         string url, TRequest data, string? authToken = null, int timeoutSeconds = 30)
         where TRequest : class
         where TResponse : class
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
+        ArgumentNullException.ThrowIfNull(data);
         try
         {
             var json = JsonSerializer.Serialize(data);
@@ -167,8 +179,10 @@ public sealed class ExternalApiClient
     /// <summary>
     /// Makes a DELETE request to an external API.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
     public async Task<ApiResponse<bool>> DeleteAsync(string url, string? authToken = null, int timeoutSeconds = 30)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Delete, url);
@@ -207,9 +221,11 @@ public sealed class ExternalApiClient
     /// Makes a request with automatic retry on transient failures.
     /// WHY: Network failures are often temporary; retries improve reliability.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
     public async Task<ApiResponse<T>> GetWithRetryAsync<T>(
         string url, int maxRetries = 3, string? authToken = null) where T : class
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
         for (int attempt = 0; attempt < maxRetries; attempt++)
         {
             var response = await GetAsync<T>(url, authToken);
@@ -231,8 +247,10 @@ public sealed class ExternalApiClient
     /// Checks if an external API endpoint is reachable.
     /// Useful for health checks and connectivity monitoring.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
     public async Task<bool> IsApiAvailableAsync(string url)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
         try
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
