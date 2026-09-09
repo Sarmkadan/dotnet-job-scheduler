@@ -18,6 +18,26 @@ namespace JobScheduler.Core.Services;
 /// </summary>
 public sealed class WebhookNotificationService
 {
+    /// <summary>
+    /// Initial delay in milliseconds before retrying a webhook delivery.
+    /// </summary>
+    private const int InitialBackoffMs = 1000;
+
+    /// <summary>
+    /// Maximum delay in milliseconds between webhook delivery attempts.
+    /// </summary>
+    private const int MaxBackoffMs = 30000;
+
+    /// <summary>
+    /// Maximum duration allowed for a webhook request.
+    /// </summary>
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Duration for which webhook configuration is retained in the cache.
+    /// </summary>
+    private static readonly TimeSpan WebhookConfigTtl = TimeSpan.FromDays(365);
+
     private readonly HttpClient _httpClient;
     private readonly ILogger<WebhookNotificationService> _logger;
     private readonly CacheService _cacheService;
@@ -62,7 +82,7 @@ public sealed class WebhookNotificationService
     {
         var json = JsonSerializer.Serialize(payload);
         var attempt = 0;
-        var backoffMs = 1000; // Start with 1 second
+        var backoffMs = InitialBackoffMs;
 
         while (attempt < maxRetries)
         {
@@ -78,7 +98,7 @@ public sealed class WebhookNotificationService
                     content.Headers.Add("X-Signature-Algorithm", "HMAC-SHA256");
                 }
 
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                using (var cts = new CancellationTokenSource(RequestTimeout))
                 {
                     var response = await _httpClient.PostAsync(url, content, cts.Token);
 
@@ -106,7 +126,7 @@ public sealed class WebhookNotificationService
             if (attempt < maxRetries)
             {
                 await Task.Delay(backoffMs);
-                backoffMs = Math.Min(backoffMs * 2, 30000); // Cap at 30 seconds
+                backoffMs = Math.Min(backoffMs * 2, MaxBackoffMs);
             }
         }
 
@@ -136,7 +156,7 @@ public sealed class WebhookNotificationService
         };
 
         var key = $"webhook:job:{jobId}";
-        await _cacheService.SetAsync(key, config, TimeSpan.FromDays(365));
+        await _cacheService.SetAsync(key, config, WebhookConfigTtl);
 
         _logger.LogInformation("Webhook registered for job {JobId}: {Url}", jobId, webhookUrl);
     }
@@ -186,7 +206,7 @@ public sealed class WebhookNotificationService
 
         try
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+            using (var cts = new CancellationTokenSource(RequestTimeout))
             {
                 var response = await _httpClient.PostAsync(webhookUrl, content, cts.Token);
 
