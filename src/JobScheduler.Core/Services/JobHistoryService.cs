@@ -294,7 +294,7 @@ public sealed class PagedResult<T>
     /// Returns a string representation of the PagedResult.
     /// </summary>
     /// <returns>
-    /// A string in the format: PagedResult<TypeName> { PageNumber = ..., PageSize = ..., TotalCount = ..., TotalPages = ..., Items = <Items.Count> }
+    /// A string in the format: PagedResult&lt;TypeName&gt; { PageNumber = ..., PageSize = ..., TotalCount = ..., TotalPages = ..., Items = &lt;Items.Count&gt; }
     /// </returns>
     public override string ToString()
     {
