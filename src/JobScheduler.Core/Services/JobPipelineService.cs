@@ -28,13 +28,18 @@ public sealed class JobPipelineService
     /// <summary>
     /// Initializes a new instance of <see cref="JobPipelineService"/>.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when any dependency is <see langword="null"/>.</exception>
     public JobPipelineService(
         JobSchedulerContext context,
         IJobDependencyService dependencyService,
         ILogger<JobPipelineService>? logger = null)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _dependencyService = dependencyService ?? throw new ArgumentNullException(nameof(dependencyService));
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(dependencyService);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _context = context;
+        _dependencyService = dependencyService;
         _logger = logger;
     }
 
@@ -46,6 +51,7 @@ public sealed class JobPipelineService
     /// <param name="request">Pipeline creation parameters.</param>
     /// <param name="createdBy">Optional identity of the actor creating this pipeline.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="request"/> or <paramref name="createdBy"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">Thrown when the request has fewer than 2 steps or an empty name.</exception>
     /// <exception cref="JobNotFoundException">Thrown when any referenced job does not exist.</exception>
     public async Task<JobPipeline> CreatePipelineAsync(
@@ -53,6 +59,9 @@ public sealed class JobPipelineService
         string? createdBy = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(createdBy);
+
         _logger?.LogInformation(
             "CreatePipelineAsync called with Name={Name}, StepCount={StepCount}, CreatedBy={CreatedBy}",
             request.Name, request.Steps.Count, createdBy);
@@ -294,8 +303,12 @@ public sealed class JobPipelineService
     /// <summary>
     /// Maps a <see cref="JobPipeline"/> entity to a <see cref="PipelineResponse"/> API model.
     /// </summary>
-    public static PipelineResponse MapToResponse(JobPipeline pipeline) =>
-        new()
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="pipeline"/> is <see langword="null"/>.</exception>
+    public static PipelineResponse MapToResponse(JobPipeline pipeline)
+    {
+        ArgumentNullException.ThrowIfNull(pipeline);
+
+        return new()
         {
             Id = pipeline.Id,
             Name = pipeline.Name,
@@ -315,4 +328,5 @@ public sealed class JobPipelineService
                 })
                 .ToList()
         };
+    }
 }
