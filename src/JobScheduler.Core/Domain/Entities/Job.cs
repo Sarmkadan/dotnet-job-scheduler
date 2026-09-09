@@ -15,12 +15,24 @@ namespace JobScheduler.Core.Domain.Entities;
 /// </summary>
 public class Job
 {
+    /// <summary>
+    /// Unique identifier for the job.
+    /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    /// <summary>
+    /// Name of the job.
+    /// </summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Description of the job.
+    /// </summary>
     public string Description { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Cron expression that defines the job's schedule.
+    /// </summary>
     public string CronExpression { get; set; } = string.Empty;
 
     /// <summary>
@@ -31,18 +43,36 @@ public class Job
     /// </summary>
     public string? TimeZoneId { get; set; }
 
+    /// <summary>
+    /// Priority level of the job.
+    /// </summary>
     public JobPriority Priority { get; set; } = JobPriority.Normal;
 
+    /// <summary>
+    /// Current status of the job.
+    /// </summary>
     public JobStatus Status { get; set; } = JobStatus.Pending;
 
+    /// <summary>
+    /// Type of the handler that will execute this job.
+    /// </summary>
     public string HandlerType { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Parameters to pass to the job handler.
+    /// </summary>
     public string? HandlerParameters { get; set; }
 
     public bool IsActive { get; set; } = true;
 
-public MisfirePolicy MisfirePolicy { get; set; } = MisfirePolicy.SkipToNext;
+    /// <summary>
+    /// Policy to handle misfire situations when a job execution is missed.
+    /// </summary>
+    public MisfirePolicy MisfirePolicy { get; set; } = MisfirePolicy.SkipToNext;
 
+    /// <summary>
+    /// Maximum number of concurrent executions allowed for this job.
+    /// </summary>
     public int MaxConcurrentExecutions { get; set; } = 1;
 
         /// <summary>
@@ -52,40 +82,86 @@ public MisfirePolicy MisfirePolicy { get; set; } = MisfirePolicy.SkipToNext;
         /// </summary>
         public bool DisallowConcurrentExecution { get; set; } = false;
 
+    /// <summary>
+    /// Maximum number of retry attempts for failed job executions.
+    /// </summary>
     public int MaxRetries { get; set; } = SchedulerConstants.DefaultMaxRetries;
 
+    /// <summary>
+    /// Backoff time in seconds between retry attempts.
+    /// </summary>
     public int RetryBackoffSeconds { get; set; } = SchedulerConstants.DefaultRetryBackoffSeconds;
 
+    /// <summary>
+    /// Maximum execution time in seconds before the job is considered timed out.
+    /// </summary>
     public int ExecutionTimeoutSeconds { get; set; } = SchedulerConstants.DefaultExecutionTimeoutSeconds;
 
+    /// <summary>
+    /// Date and time when the job was created.
+    /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Date and time when the job was last updated.
+    /// </summary>
     public DateTime? UpdatedAt { get; set; }
 
+    /// <summary>
+    /// Date and time when the job was last executed.
+    /// </summary>
     public DateTime? LastExecutedAt { get; set; }
 
+    /// <summary>
+    /// Date and time when the job is scheduled to execute next.
+    /// </summary>
     public DateTime? NextExecutionAt { get; set; }
 
+    /// <summary>
+    /// Total number of times the job has been executed.
+    /// </summary>
     public int TotalExecutions { get; set; }
 
+    /// <summary>
+    /// Number of times the job has executed successfully.
+    /// </summary>
     public int SuccessfulExecutions { get; set; }
 
+    /// <summary>
+    /// Number of times the job has failed execution.
+    /// </summary>
     public int FailedExecutions { get; set; }
 
+    /// <summary>
+    /// User who created the job.
+    /// </summary>
     public string? CreatedBy { get; set; }
 
+    /// <summary>
+    /// User who last updated the job.
+    /// </summary>
     public string? UpdatedBy { get; set; }
 
+    /// <summary>
+    /// Collection of job execution records.
+    /// </summary>
     public virtual List<JobExecution> Executions { get; set; } = new();
 
+    /// <summary>
+    /// Collection of job schedule history records.
+    /// </summary>
     public virtual List<JobScheduleHistory> ScheduleHistories { get; set; } = new();
 
-/// <summary>
-/// Retry policy configuration for this job. Controls retry behavior on execution failures.
-/// </summary>
-public virtual RetryPolicy? RetryPolicy { get; set; }
+    /// <summary>
+    /// Retry policy configuration for this job. Controls retry behavior on execution failures.
+    /// </summary>
+    public virtual RetryPolicy? RetryPolicy { get; set; }
 
-    public override string ToString() => $"Job {{ Id = {Id}, Name = {Name}, Description = {Description}, CronExpression = {CronExpression}, TimeZoneId = {TimeZoneId}, Priority = {Priority} }}";
+    /// <summary>
+/// Returns a string representation of the job.
+/// </summary>
+/// <returns>A string representation of the job.</returns>
+public override string ToString() => $"Job {{ Id = {Id}, Name = {Name}, Description = {Description}, CronExpression = {CronExpression}, TimeZoneId = {TimeZoneId}, Priority = {Priority} }}";
 
     /// <summary>
     /// Validates the job configuration before scheduling.
@@ -119,6 +195,10 @@ public virtual RetryPolicy? RetryPolicy { get; set; }
         return true;
     }
 
+    /// <summary>
+    /// Updates the job's execution metrics after an execution attempt.
+    /// </summary>
+    /// <param name="success">Whether the job execution was successful.</param>
     public void UpdateExecutionMetrics(bool success)
     {
         TotalExecutions++;
@@ -130,11 +210,19 @@ public virtual RetryPolicy? RetryPolicy { get; set; }
             FailedExecutions++;
     }
 
+    /// <summary>
+    /// Calculates the success rate of the job as a percentage.
+    /// </summary>
+    /// <returns>The success rate percentage (0-100). Returns 0 if no executions have occurred.</returns>
     public double GetSuccessRate()
     {
         return TotalExecutions == 0 ? 0 : (double)SuccessfulExecutions / TotalExecutions * 100;
     }
 
+    /// <summary>
+    /// Marks the job as updated with the current timestamp.
+    /// </summary>
+    /// <param name="updatedBy">The user who updated the job (optional).</param>
     public void MarkAsUpdated(string? updatedBy = null)
     {
         UpdatedAt = DateTime.UtcNow;
@@ -163,6 +251,7 @@ public virtual RetryPolicy? RetryPolicy { get; set; }
 /// <summary>
 /// Gets the effective retry policy for this job, falling back to default values if not configured.
 /// </summary>
+/// <returns>The effective retry policy to use for this job.</returns>
 public RetryPolicy GetEffectiveRetryPolicy()
 {
     if (RetryPolicy != null && RetryPolicy.IsValid())
