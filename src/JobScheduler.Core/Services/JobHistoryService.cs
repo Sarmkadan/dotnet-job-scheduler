@@ -289,4 +289,15 @@ public sealed class PagedResult<T>
         PageNumber = pageNumber;
         PageSize = pageSize;
     }
+
+    /// <summary>
+    /// Returns a string representation of the PagedResult.
+    /// </summary>
+    /// <returns>
+    /// A string in the format: PagedResult<TypeName> { PageNumber = ..., PageSize = ..., TotalCount = ..., TotalPages = ..., Items = <Items.Count> }
+    /// </returns>
+    public override string ToString()
+    {
+        return $"PagedResult<{typeof(T).Name}> {{ PageNumber = {PageNumber}, PageSize = {PageSize}, TotalCount = {TotalCount}, TotalPages = {TotalPages}, Items = {Items.Count} }}";
+    }
 }
