@@ -53,4 +53,17 @@ public sealed class CyclicDependencyException : JobSchedulerException
         JobId = jobId;
         DependsOnJobId = dependsOnJobId;
     }
+
+    /// <summary>
+    /// Returns a string representation of the exception, including the type name, job IDs, error code, and message.
+    /// </summary>
+    /// <returns>A string representation of the exception.</returns>
+    public override string ToString()
+    {
+        var result = $"{GetType().Name}: JobId={JobId}, DependsOnJobId={DependsOnJobId}, ErrorCode={ErrorCode}, Message={Message}";
+
+        return InnerException is null
+            ? result
+            : $"{result} -> {base.ToString()}";
+    }
 }
