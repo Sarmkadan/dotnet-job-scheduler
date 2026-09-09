@@ -63,6 +63,7 @@ public class JobExecution
     /// <summary>Approximate CPU usage recorded during this execution, as a percentage (0-100).</summary>
     public double CpuUsagePercent { get; set; }
 
+    /// <summary>The job associated with this execution.</summary>
     public virtual Job Job { get; set; } = null!;
 
     /// <summary>
