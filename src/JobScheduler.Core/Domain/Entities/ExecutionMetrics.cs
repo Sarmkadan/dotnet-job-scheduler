@@ -14,6 +14,26 @@ namespace JobScheduler.Core.Domain.Entities;
 /// </summary>
 public sealed class ExecutionMetrics
 {
+    /// <summary>
+    /// Maximum average duration, in milliseconds, classified as excellent.
+    /// </summary>
+    private const long ExcellentThresholdMs = 100;
+
+    /// <summary>
+    /// Maximum average duration, in milliseconds, classified as good.
+    /// </summary>
+    private const long GoodThresholdMs = 500;
+
+    /// <summary>
+    /// Maximum average duration, in milliseconds, classified as acceptable.
+    /// </summary>
+    private const long AcceptableThresholdMs = 2000;
+
+    /// <summary>
+    /// Maximum average duration, in milliseconds, classified as slow.
+    /// </summary>
+    private const long SlowThresholdMs = 5000;
+
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public Guid JobId { get; set; }
@@ -100,10 +120,10 @@ public sealed class ExecutionMetrics
     {
         return AverageDurationMs switch
         {
-            < 100 => "Excellent",
-            < 500 => "Good",
-            < 2000 => "Acceptable",
-            < 5000 => "Slow",
+            < ExcellentThresholdMs => "Excellent",
+            < GoodThresholdMs => "Good",
+            < AcceptableThresholdMs => "Acceptable",
+            < SlowThresholdMs => "Slow",
             _ => "Very Slow"
         };
     }
