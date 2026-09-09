@@ -43,9 +43,11 @@ public sealed class EventPublisher : IEventPublisher, IDisposable
     /// </summary>
     public int ChannelCapacity { get; } = 1000;
 
+    /// <exception cref="ArgumentNullException">logger is null</exception>
     public EventPublisher(ILogger<EventPublisher> logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
+        _logger = logger;
 
         // Create bounded channel for fire-and-forget publishing
         _publishChannel = Channel.CreateBounded<PublishRequest>(new BoundedChannelOptions(ChannelCapacity)
@@ -267,8 +269,7 @@ public sealed class EventPublisher : IEventPublisher, IDisposable
     /// <exception cref="ArgumentNullException">eventData is null</exception>
     public async Task PublishAsync<TEvent>(TEvent eventData) where TEvent : ISchedulerEvent
     {
-        if (eventData is null)
-            throw new ArgumentNullException(nameof(eventData));
+        ArgumentNullException.ThrowIfNull(eventData);
 
         var eventType = typeof(TEvent).FullName ?? typeof(TEvent).Name;
 
@@ -321,12 +322,12 @@ public sealed class EventPublisher : IEventPublisher, IDisposable
     /// Subscribes handler to events of specific type.
     /// Returns subscription token for unsubscription.
     /// </summary>
+    /// <param name="handler">The event handler to subscribe</param>
+    /// <exception cref="ArgumentNullException">handler is null</exception>
     public IDisposable Subscribe<TEvent>(Func<TEvent, Task> handler) where TEvent : ISchedulerEvent
     {
+        ArgumentNullException.ThrowIfNull(handler);
         var eventType = typeof(TEvent).FullName ?? typeof(TEvent).Name;
-
-        if (handler is null)
-            throw new ArgumentNullException(nameof(handler));
 
         _subscribers.AddOrUpdate(eventType,
             new List<Delegate> { handler },
@@ -345,8 +346,11 @@ public sealed class EventPublisher : IEventPublisher, IDisposable
     /// <summary>
     /// Unsubscribes handler from events.
     /// </summary>
+    /// <param name="subscriptionToken">The subscription token to unsubscribe</param>
+    /// <exception cref="ArgumentNullException">subscriptionToken is null</exception>
     public void Unsubscribe<TEvent>(object subscriptionToken) where TEvent : ISchedulerEvent
     {
+        ArgumentNullException.ThrowIfNull(subscriptionToken);
         if (subscriptionToken is not SubscriptionToken token)
             return;
 
