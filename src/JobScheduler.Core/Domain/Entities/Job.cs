@@ -63,6 +63,9 @@ public class Job
     /// </summary>
     public string? HandlerParameters { get; set; }
 
+    /// <summary>
+    /// Indicates whether the job is currently active and eligible for scheduling.
+    /// </summary>
     public bool IsActive { get; set; } = true;
 
     /// <summary>
@@ -158,15 +161,15 @@ public class Job
     public virtual RetryPolicy? RetryPolicy { get; set; }
 
     /// <summary>
-/// Returns a string representation of the job.
-/// </summary>
-/// <returns>A string representation of the job.</returns>
-public override string ToString() => $"Job {{ Id = {Id}, Name = {Name}, Description = {Description}, CronExpression = {CronExpression}, TimeZoneId = {TimeZoneId}, Priority = {Priority} }}";
+    /// Returns a string representation of the job.
+    /// </summary>
+    /// <returns>A string representation of the job.</returns>
+    public override string ToString() => $"Job {{ Id = {Id}, Name = {Name}, Description = {Description}, CronExpression = {CronExpression}, TimeZoneId = {TimeZoneId}, Priority = {Priority} }}";
 
     /// <summary>
     /// Validates the job configuration before scheduling.
-    /// Throws ValidationException if validation fails.
     /// </summary>
+    /// <returns>True if the job configuration is valid for scheduling; otherwise, false.</returns>
     public bool IsValidForScheduling()
     {
         if (string.IsNullOrWhiteSpace(Name) || Name.Length > SchedulerConstants.MaxJobNameLength)
@@ -248,31 +251,31 @@ public override string ToString() => $"Job {{ Id = {Id}, Name = {Name}, Descript
                    currentConcurrentCount < MaxConcurrentExecutions;
         }
 
-/// <summary>
-/// Gets the effective retry policy for this job, falling back to default values if not configured.
-/// </summary>
-/// <returns>The effective retry policy to use for this job.</returns>
-public RetryPolicy GetEffectiveRetryPolicy()
-{
-    if (RetryPolicy != null && RetryPolicy.IsValid())
+    /// <summary>
+    /// Gets the effective retry policy for this job, falling back to default values if not configured.
+    /// </summary>
+    /// <returns>The effective retry policy to use for this job.</returns>
+    public RetryPolicy GetEffectiveRetryPolicy()
     {
-        return RetryPolicy;
-    }
+        if (RetryPolicy != null && RetryPolicy.IsValid())
+        {
+            return RetryPolicy;
+        }
 
-    // Return a default policy based on job's simple retry properties
-    return new RetryPolicy
-    {
-        JobId = Id,
-        MaxRetries = MaxRetries,
-        InitialBackoffSeconds = RetryBackoffSeconds,
-        MaxBackoffSeconds = SchedulerConstants.DefaultMaxRetryBackoffSeconds,
-        Strategy = BackoffStrategy.Exponential,
-        BackoffMultiplier = SchedulerConstants.RetryBackoffMultiplier,
-        RetryOnTimeout = true,
-        RetryOnCancellation = false,
-        RetryableExceptions = null
-    };
-}
+        // Return a default policy based on job's simple retry properties
+        return new RetryPolicy
+        {
+            JobId = Id,
+            MaxRetries = MaxRetries,
+            InitialBackoffSeconds = RetryBackoffSeconds,
+            MaxBackoffSeconds = SchedulerConstants.DefaultMaxRetryBackoffSeconds,
+            Strategy = BackoffStrategy.Exponential,
+            BackoffMultiplier = SchedulerConstants.RetryBackoffMultiplier,
+            RetryOnTimeout = true,
+            RetryOnCancellation = false,
+            RetryableExceptions = null
+        };
+    }
 
     /// <summary>
     /// Returns an effective priority score that incorporates an aging bonus so that
@@ -281,6 +284,9 @@ public RetryPolicy GetEffectiveRetryPolicy()
     /// overdue raises the effective score by one priority level.  The bonus is capped
     /// so that a Low job can reach at most the Critical tier.
     /// </summary>
+    /// <param name="now">The current date and time.</param>
+    /// <param name="agingRateMinutesPerLevel">The number of minutes overdue required to increase the priority score by one level.</param>
+    /// <returns>The calculated effective priority score.</returns>
     public double CalculateEffectivePriority(DateTime now, double agingRateMinutesPerLevel = 5.0)
     {
         var overdueMinutes = NextExecutionAt.HasValue
