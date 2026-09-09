@@ -25,10 +25,19 @@ public sealed class JobsController : ControllerBase
     private readonly JobSchedulerService _schedulerService;
     private readonly ILogger<JobsController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JobsController"/> class.
+    /// </summary>
+    /// <param name="schedulerService">The job scheduler service.</param>
+    /// <param name="logger">The logger.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="schedulerService"/> is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="logger"/> is null.</exception>
     public JobsController(JobSchedulerService schedulerService, ILogger<JobsController> logger)
     {
-        _schedulerService = schedulerService ?? throw new ArgumentNullException(nameof(schedulerService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(schedulerService);
+        ArgumentNullException.ThrowIfNull(logger);
+        _schedulerService = schedulerService;
+        _logger = logger;
     }
 
     /// <summary>
