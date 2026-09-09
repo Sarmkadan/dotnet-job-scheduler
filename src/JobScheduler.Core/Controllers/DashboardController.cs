@@ -18,6 +18,26 @@ namespace JobScheduler.Core.Controllers;
 [Route("api/[controller]")]
 public sealed class DashboardController : ControllerBase
 {
+    /// <summary>
+    /// The default number of hours included in the performance timeline.
+    /// </summary>
+    private const int DefaultTimelineHours = 24;
+
+    /// <summary>
+    /// The number of jobs included in top-job dashboard lists.
+    /// </summary>
+    private const int TopJobsCount = 10;
+
+    /// <summary>
+    /// The failed-job count above which a health warning is generated.
+    /// </summary>
+    private const int FailedJobsWarningThreshold = 100;
+
+    /// <summary>
+    /// The average execution time in milliseconds above which a health warning is generated.
+    /// </summary>
+    private const int AverageExecutionTimeWarningThresholdMs = 5000;
+
     private readonly JobSchedulerService _schedulerService;
     private readonly PerformanceMonitor _performanceMonitor;
     private readonly ILogger<DashboardController> _logger;
@@ -134,7 +154,7 @@ public sealed class DashboardController : ControllerBase
     [HttpGet("performance-timeline")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<List<PerformanceTimelinePoint>>> GetPerformanceTimeline(
-        [FromQuery] int hours = 24)
+        [FromQuery] int hours = DefaultTimelineHours)
     {
         try
         {
@@ -159,7 +179,7 @@ public sealed class DashboardController : ControllerBase
     {
         try
         {
-            var slowest = await _schedulerService.GetSlowestJobsAsync(10);
+            var slowest = await _schedulerService.GetSlowestJobsAsync(TopJobsCount);
 
             var responses = slowest.Select(j => new SlowestJobResponse
             {
@@ -189,7 +209,7 @@ public sealed class DashboardController : ControllerBase
     {
         try
         {
-            var failing = await _schedulerService.GetMostFailingJobsAsync(10);
+            var failing = await _schedulerService.GetMostFailingJobsAsync(TopJobsCount);
 
             var responses = failing.Select(j => new FailingJobResponse
             {
@@ -261,7 +281,7 @@ public sealed class DashboardController : ControllerBase
         var warnings = new List<HealthWarning>();
         var status = await _schedulerService.GetQueueStatusAsync();
 
-        if (status.FailedCount > 100)
+        if (status.FailedCount > FailedJobsWarningThreshold)
             warnings.Add(new HealthWarning
             {
                 Severity = "Warning",
@@ -269,7 +289,7 @@ public sealed class DashboardController : ControllerBase
             });
 
         var avgTime = _performanceMonitor.GetAverageExecutionTimeMs();
-        if (avgTime > 5000)
+        if (avgTime > AverageExecutionTimeWarningThresholdMs)
             warnings.Add(new HealthWarning
             {
                 Severity = "Warning",
