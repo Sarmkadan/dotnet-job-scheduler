@@ -21,6 +21,13 @@ public sealed class ExecutionStatisticsService
     private readonly IJobRepository _jobRepository;
     private readonly ILogger<ExecutionStatisticsService> _logger;
 
+    // Constants for execution statistics calculations
+    private const int MedianPercentile = 50;
+    private const int P95Percentile = 95;
+    private const int P99Percentile = 99;
+    private const int PercentMultiplier = 100;
+    private const string CompletedStatusName = "Completed";
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ExecutionStatisticsService"/> class.
     /// </summary>
@@ -64,7 +71,7 @@ public sealed class ExecutionStatisticsService
                 };
             }
 
-            var successful = executions.Count(e => e.Status.ToString() == "Completed");
+            var successful = executions.Count(e => e.Status.ToString() == CompletedStatusName);
             var times = executions.Select(e => e.ExecutionTimeMs).OrderBy(t => t).ToList();
 
             return new ExecutionStatsResponse
@@ -73,7 +80,7 @@ public sealed class ExecutionStatisticsService
                 TotalExecutions = executions.Count,
                 SuccessfulExecutions = successful,
                 FailedExecutions = executions.Count - successful,
-                SuccessRate = (double)successful / executions.Count * 100,
+                SuccessRate = (double)successful / executions.Count * PercentMultiplier,
                 AverageExecutionTimeMs = (long)times.Average(),
                 MinExecutionTimeMs = times.FirstOrDefault(),
                 MaxExecutionTimeMs = times.LastOrDefault(),
@@ -109,9 +116,9 @@ public sealed class ExecutionStatisticsService
             {
                 JobId = jobId,
                 AverageExecutionTimeMs = (long)times.Average(),
-                MedianExecutionTimeMs = GetPercentile(times, 50),
-                P95ExecutionTimeMs = GetPercentile(times, 95),
-                P99ExecutionTimeMs = GetPercentile(times, 99),
+                MedianExecutionTimeMs = GetPercentile(times, MedianPercentile),
+                P95ExecutionTimeMs = GetPercentile(times, P95Percentile),
+                P99ExecutionTimeMs = GetPercentile(times, P99Percentile),
                 SlowestExecutionTimeMs = times.Max(),
                 FastestExecutionTimeMs = times.Min()
             };
@@ -155,7 +162,7 @@ public sealed class ExecutionStatisticsService
                     Date = g.Key,
                     ExecutionCount = g.Count(),
                     AverageExecutionTimeMs = (long)g.Average(e => e.ExecutionTimeMs),
-                    SuccessRate = (double)g.Count(e => e.Status.ToString() == "Completed") / g.Count() * 100,
+                    SuccessRate = (double)g.Count(e => e.Status.ToString() == CompletedStatusName) / g.Count() * PercentMultiplier,
                     MaxExecutionTimeMs = g.Max(e => e.ExecutionTimeMs)
                 })
                 .ToList();
