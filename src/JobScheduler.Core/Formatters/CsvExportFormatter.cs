@@ -19,6 +19,35 @@ namespace JobScheduler.Core.Formatters;
 public sealed class CsvExportFormatter
 {
     /// <summary>
+    /// Expected number of fields in a CSV row for job data.
+    /// </summary>
+    private const int ExpectedFieldCount = 14;
+
+    /// <summary>
+    /// Index of the NextExecution field in a CSV row.
+    /// </summary>
+    private const int NextExecutionIndex = 10;
+
+    /// <summary>
+    /// Index of the LastExecution field in a CSV row.
+    /// </summary>
+    private const int LastExecutionIndex = 11;
+
+    /// <summary>
+    /// Index of the TotalExecutions field in a CSV row.
+    /// </summary>
+    private const int TotalExecutionsIndex = 12;
+
+    /// <summary>
+    /// Index of the SuccessRate field in a CSV row.
+    /// </summary>
+    private const int SuccessRateIndex = 13;
+
+    /// <summary>
+    /// Multiplier for converting a ratio to a percentage.
+    /// </summary>
+    private const int PercentMultiplier = 100;
+    /// <summary>
     /// Exports jobs to CSV format.
     /// </summary>
     /// <param namejobs">The collection of jobs to export.</param>
@@ -119,7 +148,7 @@ public sealed class CsvExportFormatter
         foreach (var kvp in stats)
         {
             var (total, successful, avgTime) = kvp.Value;
-            var successRate = total == 0 ? 0 : (double)successful / total * 100;
+            var successRate = total == 0 ? 0 : (double)successful / total * PercentMultiplier;
 
             var row = new[]
             {
@@ -155,7 +184,7 @@ public sealed class CsvExportFormatter
         for (int i = 1; i < lines.Length; i++)
         {
             var fields = ParseUtility.ParseCsvLine(lines[i]);
-            if (fields.Count < 14)
+            if (fields.Count < ExpectedFieldCount)
                 continue;
 
             var job = new JobCsvRow
@@ -170,10 +199,10 @@ public sealed class CsvExportFormatter
                 HandlerType = fields[7],
                 MaxRetries = ParseUtility.ParseInt(fields[8]),
                 ExecutionTimeoutSeconds = ParseUtility.ParseInt(fields[9]),
-                NextExecution = fields[10],
-                LastExecution = fields[11],
-                TotalExecutions = ParseUtility.ParseInt(fields[12]),
-                SuccessRate = ParseUtility.ParseDouble(fields[13])
+                NextExecution = fields[NextExecutionIndex],
+                LastExecution = fields[LastExecutionIndex],
+                TotalExecutions = ParseUtility.ParseInt(fields[TotalExecutionsIndex]),
+                SuccessRate = ParseUtility.ParseDouble(fields[SuccessRateIndex])
             };
 
             jobs.Add(job);
