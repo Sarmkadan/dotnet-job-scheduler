@@ -23,6 +23,12 @@ public sealed class ExecutionsController : ControllerBase
     private readonly ExecutionStatisticsService _statisticsService;
     private readonly ILogger<ExecutionsController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExecutionsController"/> class.
+    /// </summary>
+    /// <param name="schedulerService">The job scheduler service.</param>
+    /// <param name="statisticsService">The execution statistics service.</param>
+    /// <param name="logger">The logger.</param>
     public ExecutionsController(
         JobSchedulerService schedulerService,
         ExecutionStatisticsService statisticsService,
@@ -37,6 +43,10 @@ public sealed class ExecutionsController : ControllerBase
     /// Retrieves paginated execution history for a specific job.
     /// Includes execution status, duration, and error details.
     /// </summary>
+    /// <param name="jobId">The unique identifier of the job.</param>
+    /// <param name="pageNumber">The page number to retrieve (starting from 1).</param>
+    /// <param name="pageSize">The number of items per page.</param>
+    /// <returns>A paginated list of executions for the specified job.</returns>
     [HttpGet("job/{jobId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -86,6 +96,8 @@ public sealed class ExecutionsController : ControllerBase
     /// Retrieves a single execution by ID with complete details.
     /// Useful for detailed failure analysis and debugging.
     /// </summary>
+    /// <param name="id">The unique identifier of the execution.</param>
+    /// <returns>The execution details if found; otherwise, not found.</returns>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -128,6 +140,8 @@ public sealed class ExecutionsController : ControllerBase
     /// Gets execution statistics for a specific job including success rates and performance metrics.
     /// Returns aggregated data across all executions.
     /// </summary>
+    /// <param name="jobId">The unique identifier of the job.</param>
+    /// <returns>The execution statistics for the specified job.</returns>
     [HttpGet("job/{jobId:guid}/stats")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -155,6 +169,9 @@ public sealed class ExecutionsController : ControllerBase
     /// Retrieves recent failed executions across all jobs for quick failure tracking.
     /// Useful for monitoring and alerting purposes.
     /// </summary>
+    /// <param name="days">The number of days to look back for failures.</param>
+    /// <param name="limit">The maximum number of failures to return.</param>
+    /// <returns>A list of recent failed executions.</returns>
     [HttpGet("recent-failures")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<List<ExecutionResponse>>> GetRecentFailures(
@@ -191,6 +208,8 @@ public sealed class ExecutionsController : ControllerBase
     /// Retrieves execution performance analysis including slowest and fastest runs.
     /// Helps identify performance bottlenecks and optimization opportunities.
     /// </summary>
+    /// <param name="jobId">The unique identifier of the job.</param>
+    /// <returns>The performance analysis for the specified job.</returns>
     [HttpGet("job/{jobId:guid}/performance")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -218,6 +237,8 @@ public sealed class ExecutionsController : ControllerBase
     /// Clears old execution records based on retention policy.
     /// Helps maintain database performance by removing stale data.
     /// </summary>
+    /// <param name="olderThanDays">The number of days old executions must be to be deleted.</param>
+    /// <returns>A response indicating the cleanup operation results.</returns>
     [HttpDelete("cleanup")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<CleanupResponse>> CleanupOldExecutions(
@@ -246,20 +267,66 @@ public sealed class ExecutionsController : ControllerBase
     }
 }
 
-public sealed class ExecutionDetailsResponse
-{
-    public Guid Id { get; set; }
-    public Guid JobId { get; set; }
-    public string JobName { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public DateTime? StartedAt { get; set; }
-    public DateTime? CompletedAt { get; set; }
-    public long ExecutionTimeMs { get; set; }
-    public string? ErrorMessage { get; set; }
-    public int RetryAttempt { get; set; }
-    public int MaxRetries { get; set; }
-    public string? Output { get; set; }
-}
+/// <summary>
+    /// Contains detailed information about a specific job execution.
+    /// </summary>
+    public sealed class ExecutionDetailsResponse
+    {
+        /// <summary>
+        /// Gets or sets the unique identifier of the execution.
+        /// </summary>
+        public Guid Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the identifier of the job that was executed.
+        /// </summary>
+        public Guid JobId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the name of the job that was executed.
+        /// </summary>
+        public string JobName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the status of the execution (e.g., Success, Failed, Running).
+        /// </summary>
+        public string Status { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the date and time when the execution started.
+        /// </summary>
+        public DateTime? StartedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the date and time when the execution completed.
+        /// </summary>
+        public DateTime? CompletedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the execution time in milliseconds.
+        /// </summary>
+        public long ExecutionTimeMs { get; set; }
+
+        /// <summary>
+        /// Gets or sets the error message if the execution failed.
+        /// </summary>
+        public string? ErrorMessage { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of retry attempts made for this execution.
+        /// </summary>
+        public int RetryAttempt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum number of retry attempts allowed for the job.
+        /// </summary>
+        public int MaxRetries { get; set; }
+
+        /// <summary>
+        /// Gets or sets the output generated by the execution.
+        /// </summary>
+        public string? Output { get; set; }
+    }
 
 public sealed class ExecutionStatsResponse
 {
