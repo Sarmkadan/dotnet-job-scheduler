@@ -20,6 +20,36 @@ public sealed class ExternalApiClient
     private readonly HttpClient _httpClient;
     private readonly ILogger<ExternalApiClient> _logger;
 
+    /// <summary>
+    /// Default timeout in seconds for HTTP requests.
+    /// </summary>
+    public const int DefaultTimeoutSeconds = 30;
+
+    /// <summary>
+    /// Default timeout in seconds for API availability checks.
+    /// </summary>
+    private const int AvailabilityTimeoutSeconds = 5;
+
+    /// <summary>
+    /// Bearer token scheme for authorization headers.
+    /// </summary>
+    private const string BearerScheme = "Bearer";
+
+    /// <summary>
+    /// JSON content type for HTTP requests.
+    /// </summary>
+    private const string JsonContentType = "application/json";
+
+    /// <summary>
+    /// Default error message for request timeouts.
+    /// </summary>
+    private const string RequestTimeoutMessage = "Request timeout";
+
+    /// <summary>
+    /// Default error message when max retries are exceeded.
+    /// </summary>
+    private const string MaxRetriesExceededMessage = "Max retries exceeded";
+
     public ExternalApiClient(HttpClient httpClient, ILogger<ExternalApiClient> logger)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
@@ -33,7 +63,7 @@ public sealed class ExternalApiClient
     /// Includes timeout and error handling.
     /// </summary>
     /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
-    public async Task<ApiResponse<T>> GetAsync<T>(string url, string? authToken = null, int timeoutSeconds = 30) where T : class
+    public async Task<ApiResponse<T>> GetAsync<T>(string url, string? authToken = null, int timeoutSeconds = DefaultTimeoutSeconds) where T : class
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
         try
@@ -41,7 +71,7 @@ public sealed class ExternalApiClient
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
 
             if (!string.IsNullOrEmpty(authToken))
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                request.Headers.Authorization = new AuthenticationHeaderValue(BearerScheme, authToken);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
@@ -63,7 +93,7 @@ public sealed class ExternalApiClient
         catch (OperationCanceledException)
         {
             _logger.LogWarning("GET request timed out to {Url}", url);
-            return new ApiResponse<T>(null, false, "Request timeout");
+            return new ApiResponse<T>(null, false, RequestTimeoutMessage);
         }
         catch (Exception ex)
         {
@@ -78,7 +108,7 @@ public sealed class ExternalApiClient
     /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is null.</exception>
     public async Task<ApiResponse<TResponse>> PostAsync<TRequest, TResponse>(
-        string url, TRequest data, string? authToken = null, int timeoutSeconds = 30)
+        string url, TRequest data, string? authToken = null, int timeoutSeconds = DefaultTimeoutSeconds)
         where TRequest : class
         where TResponse : class
     {
@@ -87,12 +117,12 @@ public sealed class ExternalApiClient
         try
         {
             var json = JsonSerializer.Serialize(data);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var content = new StringContent(json, System.Text.Encoding.UTF8, JsonContentType);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
 
             if (!string.IsNullOrEmpty(authToken))
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                request.Headers.Authorization = new AuthenticationHeaderValue(BearerScheme, authToken);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
@@ -116,7 +146,7 @@ public sealed class ExternalApiClient
         catch (OperationCanceledException)
         {
             _logger.LogWarning("POST request timed out to {Url}", url);
-            return new ApiResponse<TResponse>(null, false, "Request timeout");
+            return new ApiResponse<TResponse>(null, false, RequestTimeoutMessage);
         }
         catch (Exception ex)
         {
@@ -131,7 +161,7 @@ public sealed class ExternalApiClient
     /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is null.</exception>
     public async Task<ApiResponse<TResponse>> PutAsync<TRequest, TResponse>(
-        string url, TRequest data, string? authToken = null, int timeoutSeconds = 30)
+        string url, TRequest data, string? authToken = null, int timeoutSeconds = DefaultTimeoutSeconds)
         where TRequest : class
         where TResponse : class
     {
@@ -140,12 +170,12 @@ public sealed class ExternalApiClient
         try
         {
             var json = JsonSerializer.Serialize(data);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var content = new StringContent(json, System.Text.Encoding.UTF8, JsonContentType);
 
             using var request = new HttpRequestMessage(HttpMethod.Put, url) { Content = content };
 
             if (!string.IsNullOrEmpty(authToken))
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                request.Headers.Authorization = new AuthenticationHeaderValue(BearerScheme, authToken);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
@@ -167,7 +197,7 @@ public sealed class ExternalApiClient
         catch (OperationCanceledException)
         {
             _logger.LogWarning("PUT request timed out to {Url}", url);
-            return new ApiResponse<TResponse>(null, false, "Request timeout");
+            return new ApiResponse<TResponse>(null, false, RequestTimeoutMessage);
         }
         catch (Exception ex)
         {
@@ -180,7 +210,7 @@ public sealed class ExternalApiClient
     /// Makes a DELETE request to an external API.
     /// </summary>
     /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
-    public async Task<ApiResponse<bool>> DeleteAsync(string url, string? authToken = null, int timeoutSeconds = 30)
+    public async Task<ApiResponse<bool>> DeleteAsync(string url, string? authToken = null, int timeoutSeconds = DefaultTimeoutSeconds)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
         try
@@ -188,7 +218,7 @@ public sealed class ExternalApiClient
             using var request = new HttpRequestMessage(HttpMethod.Delete, url);
 
             if (!string.IsNullOrEmpty(authToken))
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                request.Headers.Authorization = new AuthenticationHeaderValue(BearerScheme, authToken);
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
@@ -240,7 +270,7 @@ public sealed class ExternalApiClient
             }
         }
 
-        return new ApiResponse<T>(null, false, "Max retries exceeded");
+        return new ApiResponse<T>(null, false, MaxRetriesExceededMessage);
     }
 
     /// <summary>
@@ -253,7 +283,7 @@ public sealed class ExternalApiClient
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
         try
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(AvailabilityTimeoutSeconds)))
             {
                 var response = await _httpClient.GetAsync(url, cts.Token);
                 return response.IsSuccessStatusCode;
