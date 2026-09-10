@@ -53,8 +53,14 @@ public sealed class WebhookNotificationService
     /// Sends webhook notification for job execution event.
     /// Includes retry logic and delivery status tracking.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="execution"/> is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
     public async Task SendExecutionNotificationAsync(Job job, JobExecution execution, WebhookConfig config)
     {
+        ArgumentNullException.ThrowIfNull(job);
+        ArgumentNullException.ThrowIfNull(execution);
+        ArgumentNullException.ThrowIfNull(config);
         if (config is null || string.IsNullOrEmpty(config.WebhookUrl))
             return;
 
@@ -185,8 +191,14 @@ public sealed class WebhookNotificationService
     /// Tests webhook connectivity and response.
     /// Used for configuration validation.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="webhookUrl"/> is null, empty, or invalid.</exception>
     public async Task<WebhookTestResult> TestWebhookAsync(string webhookUrl, string? secret = null)
     {
+        if (string.IsNullOrEmpty(webhookUrl))
+            throw new ArgumentException("Webhook URL is required", nameof(webhookUrl));
+
+        if (!Uri.TryCreate(webhookUrl, UriKind.Absolute, out var uri) || (uri.Scheme != "http" && uri.Scheme != "https"))
+            throw new ArgumentException("Invalid webhook URL format", nameof(webhookUrl));
         var testPayload = new WebhookPayload
         {
             EventType = "webhook.test",
