@@ -53,6 +53,7 @@ public interface IJobDependencyService
     /// <param name="dependsOnJobId">The prerequisite job.</param>
     /// <param name="createdBy">Optional actor identity for the audit trail.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     Task AddDependencyAsync(Guid jobId, Guid dependsOnJobId, string? createdBy = null,
         CancellationToken cancellationToken = default);
 
@@ -62,18 +63,25 @@ public interface IJobDependencyService
     /// <param name="jobId">The dependent job.</param>
     /// <param name="dependsOnJobId">The prerequisite job to remove.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     Task RemoveDependencyAsync(Guid jobId, Guid dependsOnJobId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the jobs that <paramref name="jobId"/> directly depends on (its prerequisites).
     /// </summary>
+    /// <param name="jobId">The dependent job.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     Task<IReadOnlyList<Job>> GetDependenciesAsync(Guid jobId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns jobs that directly depend on <paramref name="jobId"/> (its immediate successors).
     /// </summary>
+    /// <param name="jobId">The dependent job.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     Task<IReadOnlyList<Job>> GetDependentsAsync(Guid jobId,
         CancellationToken cancellationToken = default);
 
@@ -81,11 +89,15 @@ public interface IJobDependencyService
     /// Returns all jobs sorted in topological execution order so that each job appears
     /// only after all of its prerequisites. Jobs without dependencies come first.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     Task<IReadOnlyList<Job>> GetTopologicalOrderAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates the entire dependency graph for cycles and returns a detailed result.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     Task<DependencyGraphValidationResult> ValidateGraphAsync(CancellationToken cancellationToken = default);
 }
 
@@ -112,6 +124,7 @@ public sealed class JobDependencyService : IJobDependencyService
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     public async Task AddDependencyAsync(Guid jobId, Guid dependsOnJobId, string? createdBy = null,
         CancellationToken cancellationToken = default)
     {
@@ -151,6 +164,7 @@ public sealed class JobDependencyService : IJobDependencyService
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     public async Task RemoveDependencyAsync(Guid jobId, Guid dependsOnJobId,
         CancellationToken cancellationToken = default)
     {
@@ -166,6 +180,7 @@ public sealed class JobDependencyService : IJobDependencyService
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     public async Task<IReadOnlyList<Job>> GetDependenciesAsync(Guid jobId,
         CancellationToken cancellationToken = default)
     {
@@ -176,6 +191,7 @@ public sealed class JobDependencyService : IJobDependencyService
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     public async Task<IReadOnlyList<Job>> GetDependentsAsync(Guid jobId,
         CancellationToken cancellationToken = default)
     {
@@ -186,6 +202,7 @@ public sealed class JobDependencyService : IJobDependencyService
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     public async Task<IReadOnlyList<Job>> GetTopologicalOrderAsync(CancellationToken cancellationToken = default)
     {
         var allJobs = await _context.Jobs.ToListAsync(cancellationToken);
@@ -238,6 +255,7 @@ public sealed class JobDependencyService : IJobDependencyService
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when a required parameter is null.</exception>
     public async Task<DependencyGraphValidationResult> ValidateGraphAsync(CancellationToken cancellationToken = default)
     {
         var allJobIds = await _context.Jobs.Select(j => j.Id).ToListAsync(cancellationToken);
