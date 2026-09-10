@@ -15,6 +15,10 @@ namespace JobScheduler.Core.Services;
 /// </summary>
 public static class AuditLoggerValidation
 {
+    private const int MaxEventTypeLength = 100;
+    private const int MaxDetailsLength = 4000;
+    private const int MaxUserIdLength = 100;
+    private const int MaxEntityTypeLength = 50;
     /// <summary>
     /// Validates an <see cref="AuditLogEntry"/> instance for common issues.
     /// </summary>
@@ -37,9 +41,9 @@ public static class AuditLoggerValidation
         {
             problems.Add("EventType must not be null or whitespace.");
         }
-        else if (value.EventType.Length > 100)
+        else if (value.EventType.Length > MaxEventTypeLength)
         {
-            problems.Add("EventType must not exceed 100 characters.");
+            problems.Add($"EventType must not exceed {MaxEventTypeLength} characters.");
         }
 
         if (value.Timestamp == default)
@@ -64,9 +68,9 @@ public static class AuditLoggerValidation
         {
             problems.Add("Details must not be null or whitespace.");
         }
-        else if (value.Details.Length > 4000)
+        else if (value.Details.Length > MaxDetailsLength)
         {
-            problems.Add("Details must not exceed 4000 characters.");
+            problems.Add($"Details must not exceed {MaxDetailsLength} characters.");
         }
 
         // Method and Path are not part of AuditLogEntry - they belong to ApiCallAudit
@@ -79,9 +83,9 @@ public static class AuditLoggerValidation
             {
                 problems.Add("UserId must not be empty if specified.");
             }
-            else if (value.UserId.Length > 100)
+            else if (value.UserId.Length > MaxUserIdLength)
             {
-                problems.Add("UserId must not exceed 100 characters.");
+                problems.Add($"UserId must not exceed {MaxUserIdLength} characters.");
             }
         }
 
@@ -96,9 +100,9 @@ public static class AuditLoggerValidation
             {
                 problems.Add("EntityType must not be empty if specified.");
             }
-            else if (value.EntityType.Length > 50)
+            else if (value.EntityType.Length > MaxEntityTypeLength)
             {
-                problems.Add("EntityType must not exceed 50 characters.");
+                problems.Add($"EntityType must not exceed {MaxEntityTypeLength} characters.");
             }
         }
 
