@@ -49,14 +49,18 @@ public sealed class PerformanceMonitor
     /// Records execution time for a job.
     /// Metrics are stored in-memory for analysis.
     /// </summary>
+    /// <param name="jobId">The unique identifier of the job.</param>
+    /// <param name="jobName">The name of the job.</param>
+    /// <param name="elapsedMs">The elapsed execution time in milliseconds.</param>
+    /// <param name="success">Indicates whether the execution was successful.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="jobId"/> is empty.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="jobName"/> is null, empty, or consists only of white-space characters.</exception>
     public void RecordExecutionTime(Guid jobId, string jobName, long elapsedMs, bool success)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(jobName);
         if (jobId == Guid.Empty)
             throw new ArgumentException("Job ID must not be empty.", nameof(jobId));
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(jobName);
         _logger.LogInformation("RecordExecutionTime called with {JobId} and {JobName}", jobId, jobName);
         var metric = new PerformanceMetric
         {
@@ -83,6 +87,7 @@ public sealed class PerformanceMonitor
     /// <summary>
     /// Gets average execution time for a specific job.
     /// </summary>
+    /// <param name="jobId">The unique identifier of the job.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="jobId"/> is empty.</exception>
     public long GetAverageExecutionTime(Guid jobId)
     {
@@ -133,6 +138,7 @@ public sealed class PerformanceMonitor
     /// <summary>
     /// Gets success rate for a specific job.
     /// </summary>
+    /// <param name="jobId">The unique identifier of the job.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="jobId"/> is empty.</exception>
     public double GetSuccessRate(Guid jobId)
     {
@@ -151,6 +157,9 @@ public sealed class PerformanceMonitor
     /// Gets percentile execution time for a job.
     /// P99 is commonly used for SLA monitoring.
     /// </summary>
+    /// <param name="jobId">The unique identifier of the job.</param>
+    /// <param name="percentile">The percentile to calculate (0-100).</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="percentile"/> is out of range.</exception>
     public long GetPercentileExecutionTime(Guid jobId, double percentile)
     {
         _logger.LogInformation("GetPercentileExecutionTime called with {JobId} and {Percentile}", jobId, percentile);
@@ -205,6 +214,7 @@ public sealed class PerformanceMonitor
     /// Gets timeline of performance data aggregated by hour.
     /// Used for dashboard visualization.
     /// </summary>
+    /// <param name="from">The start date for the timeline.</param>
     public async Task<List<PerformanceTimelinePoint>> GetPerformanceTimelineAsync(DateTime from)
     {
         _logger.LogInformation("GetPerformanceTimelineAsync called with from {From}", from);
