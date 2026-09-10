@@ -60,9 +60,12 @@ public sealed class CacheService : IDisposable
     /// </summary>
     /// <typeparam name="T">The reference type of the cached value.</typeparam>
     /// <param name="key">The key of the cache entry.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="key"/> is null, empty, or consists only of white-space characters.</exception>
     /// <returns>A task whose result is the cached value, or <see langword="null"/> when no matching value is available.</returns>
     public async Task<T?> GetAsync<T>(string key) where T : class
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
         try
         {
             // TryGetValue returns false for expired entries, preventing check-then-use race
@@ -94,9 +97,14 @@ public sealed class CacheService : IDisposable
     /// <param name="key">The key of the cache entry.</param>
     /// <param name="value">The value to cache.</param>
     /// <param name="expiration">The absolute expiration interval, or <see langword="null"/> to use the default interval.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="key"/> is null, empty, or consists only of white-space characters.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null) where T : class
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(value);
+
         try
         {
             var cacheOptions = new MemoryCacheEntryOptions();
@@ -126,9 +134,12 @@ public sealed class CacheService : IDisposable
     /// Removes specific key from cache.
     /// </summary>
     /// <param name="key">The key of the cache entry to remove.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="key"/> is null, empty, or consists only of white-space characters.</exception>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task RemoveAsync(string key)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
         try
         {
             _cache.Remove(key);
@@ -146,9 +157,12 @@ public sealed class CacheService : IDisposable
     /// Useful for invalidating related cache entries (e.g., all job stats).
     /// </summary>
     /// <param name="keyPattern">The text that matching cache keys contain.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="keyPattern"/> is null, empty, or consists only of white-space characters.</exception>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task InvalidatePatternAsync(string keyPattern)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(keyPattern);
+
         try
         {
             var matchingKeys = _keys.Keys.Where(k => k.Contains(keyPattern)).ToList();
@@ -176,9 +190,14 @@ public sealed class CacheService : IDisposable
     /// <param name="key">The key of the cache entry.</param>
     /// <param name="factory">The function used to obtain a value when the cache does not contain one.</param>
     /// <param name="expiration">The absolute expiration interval, or <see langword="null"/> to use the default interval.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="key"/> is null, empty, or consists only of white-space characters.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="factory"/> is <see langword="null"/>.</exception>
     /// <returns>A task whose result is the cached or created value, or <see langword="null"/> when no value is available.</returns>
     public async Task<T?> GetOrSetAsync<T>(string key, Func<Task<T?>> factory, TimeSpan? expiration = null) where T : class
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(factory);
+
         var cached = await GetAsync<T>(key);
         if (cached is not null)
             return cached;
