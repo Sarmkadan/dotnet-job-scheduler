@@ -126,11 +126,12 @@ public sealed class SlackNotificationService
     /// <param name="message">The alert message.</param>
     /// <param name="severity">The alert severity (e.g., Critical, Warning).</param>
     /// <param name="webhookUrl">The Slack webhook URL.</param>
-    /// <exception cref="ArgumentException"><paramref name="title"/> or <paramref name="message"/> is <see langword="null"/>, empty, or consists only of white-space characters.</exception>
+    /// <exception cref="ArgumentException"><paramref name="title"/>, <paramref name="message"/>, or <paramref name="severity"/> is <see langword="null"/>, empty, or consists only of white-space characters.</exception>
     public async Task SendSchedulerAlertAsync(string title, string message, string severity, string webhookUrl)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        ArgumentException.ThrowIfNullOrWhiteSpace(severity);
 
         _logger.LogInformation("Sending scheduler alert: {Title} with severity {Severity}", title, severity);
 
