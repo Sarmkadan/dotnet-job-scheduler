@@ -221,17 +221,25 @@ dotnet format                        # Fix
 ## Documentation
 
 - **README.md**: Main project overview
+- **docs/README.md**: Documentation index (reference for all documentation files)
 - **docs/getting-started.md**: Quick start guide
 - **docs/architecture.md**: System architecture
 - **docs/api-reference.md**: API documentation
 - **docs/deployment.md**: Deployment instructions
 - **docs/faq.md**: Frequently asked questions
 
+### Documentation Conventions
+- Every public class should have a corresponding `docs/<ClassName>.md` file with detailed documentation
+- Every public class and method should include XML `<summary>` documentation
+- When adding features, update relevant documentation files in the `docs/` directory
+- Keep documentation examples and code snippets up-to-date with the latest code
+
 If adding a feature, update relevant documentation:
 - Add usage example to README
 - Document new APIs in `docs/api-reference.md`
 - Update architecture docs if changing core behavior
 - Add FAQ entries for common questions
+- Create or update class-specific documentation in `docs/` for new public classes
 
 ## Author Attribution
 
