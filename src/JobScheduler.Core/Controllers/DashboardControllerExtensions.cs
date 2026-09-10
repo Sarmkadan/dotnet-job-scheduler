@@ -12,6 +12,56 @@ namespace JobScheduler.Core.Controllers;
 public static class DashboardControllerExtensions
 {
     /// <summary>
+    /// Maximum penalty applied for failed jobs in the health score calculation.
+    /// </summary>
+    private const int MaxFailedJobsPenalty = 30;
+
+    /// <summary>
+    /// Penalty factor applied per failed job in the health score calculation.
+    /// </summary>
+    private const int FailedJobPenaltyFactor = 2;
+
+    /// <summary>
+    /// Penalty factor applied per system warning in the health score calculation.
+    /// </summary>
+    private const int WarningPenaltyFactor = 10;
+
+    /// <summary>
+    /// Maximum penalty applied for queue utilization in the health score calculation.
+    /// </summary>
+    private const int MaxQueueUtilizationPenalty = 20;
+
+    /// <summary>
+    /// Divisor used to calculate the queue utilization penalty in the health score calculation.
+    /// </summary>
+    private const int QueueUtilizationDivisor = 5;
+
+    /// <summary>
+    /// The maximum possible health score (0-100).
+    /// </summary>
+    private const int MaxHealthScore = 100;
+
+    /// <summary>
+    /// Threshold above which the system is considered healthy (for health status).
+    /// </summary>
+    private const int HealthyThreshold = 80;
+
+    /// <summary>
+    /// Threshold above which the system is considered degraded (for health status).
+    /// </summary>
+    private const int DegradedThreshold = 50;
+
+    /// <summary>
+    /// Threshold above which a job's failure impact is considered high.
+    /// </summary>
+    private const int HighImpactThreshold = 50;
+
+    /// <summary>
+    /// Threshold above which a job's failure impact is considered medium (and below which it is low).
+    /// </summary>
+    private const int MediumImpactThreshold = 20;
+
+    /// <summary>
     /// Calculates the system health score (0-100) based on current system metrics.
     /// A score below 70 indicates potential issues requiring attention.
     /// </summary>
@@ -52,12 +102,12 @@ public static class DashboardControllerExtensions
 
         // Calculate health score components
         var successRateScore = (int)Math.Round(overviewData.AverageSuccessRate * 100);
-        var failedJobsPenalty = Math.Min(30, queueData.FailedJobs * 2);
-        var systemWarningsPenalty = healthData.Warnings.Count * 10;
-        var queueUtilizationPenalty = (int)Math.Min(20, queueData.QueueUtilization / 5);
+        var failedJobsPenalty = Math.Min(MaxFailedJobsPenalty, queueData.FailedJobs * FailedJobPenaltyFactor);
+        var systemWarningsPenalty = healthData.Warnings.Count * WarningPenaltyFactor;
+        var queueUtilizationPenalty = (int)Math.Min(MaxQueueUtilizationPenalty, queueData.QueueUtilization / QueueUtilizationDivisor);
 
         var healthScore = successRateScore - failedJobsPenalty - systemWarningsPenalty - queueUtilizationPenalty;
-        healthScore = Math.Max(0, Math.Min(100, healthScore));
+        healthScore = Math.Max(0, Math.Min(MaxHealthScore, healthScore));
 
         return healthScore;
     }
@@ -83,10 +133,10 @@ public static class DashboardControllerExtensions
         if (healthResult.Value is not HealthReportResponse healthData)
             return ("Critical", "red");
 
-        if (healthData.IsHealthy && healthScore >= 80)
+        if (healthData.IsHealthy && healthScore >= HealthyThreshold)
             return ("Good", "green");
 
-        if (healthScore >= 50)
+        if (healthScore >= DegradedThreshold)
             return ("Warning", "yellow");
 
         return ("Critical", "red");
@@ -194,7 +244,7 @@ public static class DashboardControllerExtensions
                 SuccessRate = job.SuccessRate,
                 IsSlow = isSlow,
                 FailureImpactScore = failureImpact,
-                Status = failureImpact > 50 ? "High Impact" : failureImpact > 20 ? "Medium Impact" : "Low Impact"
+                Status = failureImpact > HighImpactThreshold ? "High Impact" : failureImpact > MediumImpactThreshold ? "Medium Impact" : "Low Impact"
             });
         }
 
