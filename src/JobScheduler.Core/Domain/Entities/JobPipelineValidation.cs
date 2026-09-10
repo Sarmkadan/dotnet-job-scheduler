@@ -16,6 +16,25 @@ namespace JobScheduler.Core.Domain.Entities;
 public static class JobPipelineValidation
 {
     /// <summary>
+    /// Maximum allowed length for a pipeline name.
+    /// </summary>
+    private const int MaxNameLength = 255;
+
+    /// <summary>
+    /// Maximum allowed length for a pipeline description.
+    /// </summary>
+    private const int MaxDescriptionLength = 1024;
+
+    /// <summary>
+    /// Maximum allowed length for the created by identifier.
+    /// </summary>
+    private const int MaxCreatedByLength = 128;
+
+    /// <summary>
+    /// Maximum allowed value for a pipeline step order.
+    /// </summary>
+    private const int MaxStepOrder = 9999;
+    /// <summary>
     /// Validates the specified <see cref="JobPipeline"/> instance and returns a list of human-readable problems.
     /// </summary>
     /// <param name="value">The pipeline instance to validate.</param>
@@ -32,15 +51,15 @@ public static class JobPipelineValidation
         {
             errors.Add("Pipeline name cannot be null, empty, or whitespace.");
         }
-        else if (value.Name.Length > 255)
+        else if (value.Name.Length > MaxNameLength)
         {
-            errors.Add("Pipeline name cannot exceed 255 characters.");
+            errors.Add($"Pipeline name cannot exceed {MaxNameLength} characters.");
         }
 
         // Validate Description
-        if (!string.IsNullOrEmpty(value.Description) && value.Description.Length > 1024)
+        if (!string.IsNullOrEmpty(value.Description) && value.Description.Length > MaxDescriptionLength)
         {
-            errors.Add("Pipeline description cannot exceed 1024 characters.");
+            errors.Add($"Pipeline description cannot exceed {MaxDescriptionLength} characters.");
         }
 
         // Validate IsActive (no specific constraints)
@@ -79,9 +98,9 @@ public static class JobPipelineValidation
             {
                 errors.Add("Pipeline created by identifier cannot be empty or whitespace when set.");
             }
-            else if (value.CreatedBy.Length > 128)
+            else if (value.CreatedBy.Length > MaxCreatedByLength)
             {
-                errors.Add("Pipeline created by identifier cannot exceed 128 characters.");
+                errors.Add($"Pipeline created by identifier cannot exceed {MaxCreatedByLength} characters.");
             }
         }
 
@@ -117,9 +136,9 @@ public static class JobPipelineValidation
                     errors.Add("Pipeline step JobId must be set to a non-default Guid value.");
                 }
 
-                if (step.StepOrder < 0 || step.StepOrder > 9999)
+                if (step.StepOrder < 0 || step.StepOrder > MaxStepOrder)
                 {
-                    errors.Add("Pipeline step StepOrder must be between 0 and 9999 inclusive.");
+                    errors.Add($"Pipeline step StepOrder must be between 0 and {MaxStepOrder} inclusive.");
                 }
             }
         }
