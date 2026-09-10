@@ -50,7 +50,7 @@ public sealed class CsvExportFormatter
     /// <summary>
     /// Exports jobs to CSV format.
     /// </summary>
-    /// <param namejobs">The collection of jobs to export.</param>
+    /// <param name="jobs">The collection of jobs to export.</param>
     /// <returns>A CSV string representing the jobs.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="jobs"/> is null.</exception>
     public static string ExportJobsToCsv(IEnumerable<Job> jobs)
@@ -171,10 +171,15 @@ public sealed class CsvExportFormatter
     /// </summary>
     /// <param name="csv">The CSV string to parse.</param>
     /// <returns>A list of JobCsvRow objects parsed from the CSV.</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="csv"/> is null or empty.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="csv"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="csv"/> is empty.</exception>
     public static List<JobCsvRow> ParseJobsCsv(string csv)
     {
-        ArgumentException.ThrowIfNullOrEmpty(csv);
+        ArgumentNullException.ThrowIfNull(csv);
+        if (csv.Length == 0)
+        {
+            throw new ArgumentException("Value cannot be null or empty.", nameof(csv));
+        }
         var lines = csv.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         if (lines.Length < 2)
             return new();
