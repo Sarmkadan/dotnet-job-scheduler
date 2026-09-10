@@ -21,12 +21,23 @@ public sealed class LoggingMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<LoggingMiddleware> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoggingMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">The next middleware in the pipeline.</param>
+    /// <param name="logger">The logger instance.</param>
     public LoggingMiddleware(RequestDelegate next, ILogger<LoggingMiddleware> logger)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Processes the HTTP request, logs the request and response, and invokes the next middleware.
+    /// </summary>
+    /// <param name="context">The HTTP context.</param>
+    /// <param name="auditLogger">The audit logger service.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task InvokeAsync(HttpContext context, AuditLogger auditLogger)
     {
         _logger.LogInformation("InvokeAsync started for {Method} {Path}", context.Request.Method, context.Request.Path);
@@ -76,6 +87,11 @@ public sealed class LoggingMiddleware
         }
     }
 
+    /// <summary>
+    /// Captures the request details from the HTTP context.
+    /// </summary>
+    /// <param name="context">The HTTP context.</param>
+    /// <returns>The request details.</returns>
     private async Task<RequestDetails> CaptureRequestAsync(HttpContext context)
     {
         var request = context.Request;
@@ -101,6 +117,11 @@ public sealed class LoggingMiddleware
         return details;
     }
 
+    /// <summary>
+    /// Captures the response details from the HTTP context.
+    /// </summary>
+    /// <param name="context">The HTTP context.</param>
+    /// <returns>The response details.</returns>
     private async Task<ResponseDetails> CaptureResponseAsync(HttpContext context)
     {
         var response = context.Response;
@@ -124,6 +145,13 @@ public sealed class LoggingMiddleware
         };
     }
 
+    /// <summary>
+    /// Logs the request and response details.
+    /// </summary>
+    /// <param name="request">The request details.</param>
+    /// <param name="response">The response details.</param>
+    /// <param name="elapsedMs">The elapsed time in milliseconds.</param>
+    /// <param name="context">The HTTP context.</param>
     private void LogRequestResponse(RequestDetails request, ResponseDetails response, long elapsedMs, HttpContext context)
     {
         var logLevel = response.StatusCode >= 500 ? LogLevel.Error :
@@ -139,6 +167,11 @@ public sealed class LoggingMiddleware
             context.User?.Identity?.Name ?? "Anonymous");
     }
 
+    /// <summary>
+    /// Extracts headers from the header dictionary, excluding sensitive ones.
+    /// </summary>
+    /// <param name="headers">The header dictionary.</param>
+    /// <returns>A dictionary of safe headers.</returns>
     private static Dictionary<string, string> ExtractSafeHeaders(IHeaderDictionary headers)
     {
         var safeHeaders = new Dictionary<string, string>();
@@ -155,6 +188,11 @@ public sealed class LoggingMiddleware
         return safeHeaders;
     }
 
+    /// <summary>
+    /// Determines whether the specified path is a health check endpoint.
+    /// </summary>
+    /// <param name="path">The request path.</param>
+    /// <returns>True if the path is a health check endpoint; otherwise, false.</returns>
     private static bool IsHealthCheckEndpoint(string path)
     {
         return path.Contains("/health", StringComparison.OrdinalIgnoreCase) ||
@@ -163,19 +201,59 @@ public sealed class LoggingMiddleware
     }
 }
 
+/// <summary>
+/// Contains details about an HTTP request.
+/// </summary>
 public sealed class RequestDetails
 {
+    /// <summary>
+    /// Gets or sets the HTTP method.
+    /// </summary>
     public string Method { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the request path.
+    /// </summary>
     public string Path { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the query string.
+    /// </summary>
     public string QueryString { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the request headers.
+    /// </summary>
     public Dictionary<string, string> Headers { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the request body.
+    /// </summary>
     public string? Body { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timestamp of the request.
+    /// </summary>
     public DateTime Timestamp { get; set; }
 }
 
+/// <summary>
+/// Contains details about an HTTP response.
+/// </summary>
 public sealed class ResponseDetails
 {
+    /// <summary>
+    /// Gets or sets the HTTP status code.
+    /// </summary>
     public int StatusCode { get; set; }
+
+    /// <summary>
+    /// Gets or sets the response headers.
+    /// </summary>
     public Dictionary<string, string> Headers { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the response body (truncated if too long).
+    /// </summary>
     public string? Body { get; set; }
 }
