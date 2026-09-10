@@ -1,4 +1,5 @@
 #nullable enable
+
 // =============================================================================
 // Author: Vladyslav Zaiets | https://sarmkadan.com
 // CTO & Software Architect
@@ -9,88 +10,77 @@ using System.Collections.Generic;
 using System.Linq;
 using JobScheduler.Core.Constants;
 
-namespace JobScheduler.Core.Domain.Models
+namespace JobScheduler.Core.Domain.Models;
+
+/// <summary>
+/// Extension methods for <see cref="ExecutionResponse"/>.
+/// </summary>
+public static class ExecutionResponseExtensions
 {
     /// <summary>
-    /// Extension methods for <see cref="ExecutionResponse"/>.
+    /// Determines whether the execution response indicates a successful execution.
     /// </summary>
-    public static class ExecutionResponseExtensions
+    /// <param name="response">The execution response to evaluate.</param>
+    /// <returns><c>true</c> if the status is <see cref="ExecutionStatus.Success"/>; otherwise, <c>false</c>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="response"/> is <c>null</c>.</exception>
+    public static bool IsSuccessful(this ExecutionResponse response)
     {
-        /// <summary>
-        /// Determines whether the execution was successful.
-        /// </summary>
-        /// <param name="r">The execution response.</param>
-        /// <returns>True if the execution status is Success; otherwise, false.</returns>
-        public static bool IsSuccessful(this ExecutionResponse r)
-        {
-            if (r is null)
-                throw new ArgumentNullException(nameof(r));
+        ArgumentNullException.ThrowIfNull(response);
+        return string.Equals(response.Status, ExecutionStatus.Success.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
 
-            return r.Status == nameof(ExecutionStatus.Success);
+    /// <summary>
+    /// Determines whether the execution response status is terminal.
+    /// </summary>
+    /// <param name="response">The execution response to evaluate.</param>
+    /// <returns><c>true</c> if the status is terminal; otherwise, <c>false</c>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="response"/> is <c>null</c>.</exception>
+    public static bool IsTerminal(this ExecutionResponse response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        if (!Enum.TryParse<ExecutionStatus>(response.Status, out var status))
+        {
+            return false;
         }
 
-        /// <summary>
-        /// Determines whether the execution is in a terminal state (completed, failed, cancelled, timed out, or skipped).
-        /// </summary>
-        /// <param name="r">The execution response.</param>
-        /// <returns>True if the execution is not running; otherwise, false.</returns>
-        public static bool IsTerminal(this ExecutionResponse r)
-        {
-            if (r is null)
-                throw new ArgumentNullException(nameof(r));
+        return status.IsTerminal();
+    }
 
-            return r.Status != nameof(ExecutionStatus.Running);
-        }
+    /// <summary>
+    /// Gets the duration of the execution as a <see cref="TimeSpan"/>.
+    /// </summary>
+    /// <param name="response">The execution response.</param>
+    /// <returns>A <see cref="TimeSpan"/> representing the duration.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="response"/> is <c>null</c>.</exception>
+    public static TimeSpan GetDuration(this ExecutionResponse response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        return TimeSpan.FromMilliseconds(response.DurationMilliseconds);
+    }
 
-        /// <summary>
-        /// Gets the duration of the execution as a <see cref="TimeSpan"/>.
-        /// </summary>
-        /// <param name="r">The execution response.</param>
-        /// <returns>A <see cref="TimeSpan"/> representing the duration.</returns>
-        public static TimeSpan GetDuration(this ExecutionResponse r)
-        {
-            if (r is null)
-                throw new ArgumentNullException(nameof(r));
+    /// <summary>
+    /// Determines whether the execution response represents a retry attempt.
+    /// </summary>
+    /// <param name="response">The execution response to evaluate.</param>
+    /// <returns><c>true</c> if <see cref="ExecutionResponse.RetryAttempt"/> is greater than zero; otherwise, <c>false</c>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="response"/> is <c>null</c>.</exception>
+    public static bool IsRetry(this ExecutionResponse response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        return response.RetryAttempt > 0;
+    }
 
-            return TimeSpan.FromMilliseconds(r.DurationMilliseconds);
-        }
-
-        /// <summary>
-        /// Determines whether the execution involved a retry attempt.
-        /// </summary>
-        /// <param name="r">The execution response.</param>
-        /// <returns>True if the retry attempt count is greater than zero; otherwise, false.</returns>
-        public static bool IsRetry(this ExecutionResponse r)
-        {
-            if (r is null)
-                throw new ArgumentNullException(nameof(r));
-
-            return r.RetryAttempt > 0;
-        }
-
-        /// <summary>
-        /// Summarizes a sequence of execution responses by status.
-        /// </summary>
-        /// <param name="responses">The sequence of execution responses.</param>
-        /// <returns>A dictionary mapping status strings to their counts.</returns>
-        public static Dictionary<string, int> Summarize(this IEnumerable<ExecutionResponse> responses)
-        {
-            if (responses is null)
-                throw new ArgumentNullException(nameof(responses));
-
-            var summary = new Dictionary<string, int>();
-            foreach (var response in responses)
-            {
-                if (response is null)
-                    continue;
-
-                if (summary.ContainsKey(response.Status))
-                    summary[response.Status]++;
-                else
-                    summary[response.Status] = 1;
-            }
-
-            return summary;
-        }
+    /// <summary>
+    /// Summarizes a collection of execution responses by status.
+    /// </summary>
+    /// <param name="responses">The collection of execution responses.</param>
+    /// <returns>A dictionary where the key is the status string and the value is the count of responses with that status.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="responses"/> is <c>null</c>.</exception>
+    public static IDictionary<string, int> Summarize(this IEnumerable<ExecutionResponse> responses)
+    {
+        ArgumentNullException.ThrowIfNull(responses);
+        return responses
+            .GroupBy(r => r.Status)
+            .ToDictionary(g => g.Key, g => g.Count());
     }
 }
