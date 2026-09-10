@@ -17,6 +17,14 @@ namespace JobScheduler.Core.Domain.Entities;
 /// </summary>
 public static class JobExecutionValidation
 {
+    private const int FutureTimeToleranceMinutes = 5;
+    private const int DurationToleranceMilliseconds = 1000;
+    private const int MaxAttemptNumber = 1000;
+    private const int MaxExecutorStringLength = 255;
+    private const long MaxMemoryUsageMb = 1_000_000;
+    private const int MaxOutputLength = 1_000_000;
+    private const int MaxErrorMessageLength = 10_000;
+    private const int MaxStackTraceLength = 100_000;
     /// <summary>
     /// Validates a <see cref="JobExecution"/> instance and returns a list of human-readable validation problems.
     /// </summary>
@@ -46,7 +54,7 @@ public static class JobExecutionValidation
         {
             errors.Add("StartedAt must be set to a non-default DateTime value.");
         }
-        else if (value.StartedAt > DateTime.UtcNow.AddMinutes(5))
+        else if (value.StartedAt > DateTime.UtcNow.AddMinutes(FutureTimeToleranceMinutes))
         {
             errors.Add("StartedAt cannot be in the future.");
         }
@@ -59,7 +67,7 @@ public static class JobExecutionValidation
                 errors.Add("CompletedAt cannot be earlier than StartedAt.");
             }
 
-            if (value.CompletedAt > DateTime.UtcNow.AddMinutes(5))
+            if (value.CompletedAt > DateTime.UtcNow.AddMinutes(FutureTimeToleranceMinutes))
             {
                 errors.Add("CompletedAt cannot be in the future.");
             }
@@ -73,7 +81,7 @@ public static class JobExecutionValidation
         else if (value.CompletedAt.HasValue && value.DurationMilliseconds > 0)
         {
             var calculatedDuration = (long)(value.CompletedAt.Value - value.StartedAt).TotalMilliseconds;
-            if (Math.Abs(value.DurationMilliseconds - calculatedDuration) > 1000)
+            if (Math.Abs(value.DurationMilliseconds - calculatedDuration) > DurationToleranceMilliseconds)
             {
                 errors.Add("DurationMilliseconds does not match the actual duration between StartedAt and CompletedAt.");
             }
@@ -84,7 +92,7 @@ public static class JobExecutionValidation
         {
             errors.Add("AttemptNumber must be at least 1.");
         }
-        else if (value.AttemptNumber > 1000)
+        else if (value.AttemptNumber > MaxAttemptNumber)
         {
             errors.Add("AttemptNumber cannot exceed 1000.");
         }
@@ -94,13 +102,13 @@ public static class JobExecutionValidation
         {
             errors.Add("ExecutorName must be a non-empty string.");
         }
-        else if (value.ExecutorName.Length > 255)
+        else if (value.ExecutorName.Length > MaxExecutorStringLength)
         {
             errors.Add("ExecutorName cannot exceed 255 characters.");
         }
 
         // Validate ExecutorInstance
-        if (!string.IsNullOrWhiteSpace(value.ExecutorInstance) && value.ExecutorInstance.Length > 255)
+        if (!string.IsNullOrWhiteSpace(value.ExecutorInstance) && value.ExecutorInstance.Length > MaxExecutorStringLength)
         {
             errors.Add("ExecutorInstance cannot exceed 255 characters.");
         }
@@ -110,11 +118,11 @@ public static class JobExecutionValidation
         {
             errors.Add("CreatedAt must be set to a non-default DateTime value.");
         }
-        else if (value.CreatedAt > DateTime.UtcNow.AddMinutes(5))
+        else if (value.CreatedAt > DateTime.UtcNow.AddMinutes(FutureTimeToleranceMinutes))
         {
             errors.Add("CreatedAt cannot be in the future.");
         }
-        else if (value.CreatedAt < value.StartedAt.AddMinutes(-5))
+        else if (value.CreatedAt < value.StartedAt.AddMinutes(-FutureTimeToleranceMinutes))
         {
             errors.Add("CreatedAt cannot be more than 5 minutes before StartedAt.");
         }
@@ -124,7 +132,7 @@ public static class JobExecutionValidation
         {
             errors.Add("MemoryUsageMb cannot be negative.");
         }
-        else if (value.MemoryUsageMb > 1_000_000)
+        else if (value.MemoryUsageMb > MaxMemoryUsageMb)
         {
             errors.Add("MemoryUsageMb cannot exceed 1,000,000 MB (1 TB).");
         }
@@ -172,19 +180,19 @@ public static class JobExecutionValidation
         }
 
         // Validate Output length
-        if (!string.IsNullOrWhiteSpace(value.Output) && value.Output.Length > 1_000_000)
+        if (!string.IsNullOrWhiteSpace(value.Output) && value.Output.Length > MaxOutputLength)
         {
             errors.Add("Output cannot exceed 1,000,000 characters.");
         }
 
         // Validate ErrorMessage length
-        if (!string.IsNullOrWhiteSpace(value.ErrorMessage) && value.ErrorMessage.Length > 10_000)
+        if (!string.IsNullOrWhiteSpace(value.ErrorMessage) && value.ErrorMessage.Length > MaxErrorMessageLength)
         {
             errors.Add("ErrorMessage cannot exceed 10,000 characters.");
         }
 
         // Validate StackTrace length
-        if (!string.IsNullOrWhiteSpace(value.StackTrace) && value.StackTrace.Length > 100_000)
+        if (!string.IsNullOrWhiteSpace(value.StackTrace) && value.StackTrace.Length > MaxStackTraceLength)
         {
             errors.Add("StackTrace cannot exceed 100,000 characters.");
         }
