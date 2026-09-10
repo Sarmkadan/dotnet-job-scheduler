@@ -33,6 +33,30 @@ public sealed class JobSchedulerService
     private readonly ConcurrencyManager _concurrencyManager;
     private readonly ILogger<JobSchedulerService>? _logger;
 
+    /// <summary>Default limit for execution history records</summary>
+    private const int DefaultExecutionHistoryLimit = 20;
+
+    /// <summary>Default page number for job listings</summary>
+    private const int DefaultJobPageNumber = 1;
+
+    /// <summary>Default page size for job listings</summary>
+    private const int DefaultJobPageSize = 10;
+
+    /// <summary>Default page number for job execution listings</summary>
+    private const int DefaultJobExecutionPageNumber = 1;
+
+    /// <summary>Default page size for job execution listings</summary>
+    private const int DefaultJobExecutionPageSize = 20;
+
+    /// <summary>Default limit for recent failed executions</summary>
+    private const int DefaultRecentFailedExecutionsLimit = 50;
+
+    /// <summary>Default count for slowest jobs retrieval</summary>
+    private const int DefaultSlowestJobsCount = 10;
+
+    /// <summary>Default count for most failing jobs retrieval</summary>
+    private const int DefaultMostFailingJobsCount = 10;
+
     /// <exception cref="ArgumentNullException">Thrown when a required dependency is null.</exception>
     public JobSchedulerService(
         IJobRepository jobRepository,
@@ -415,10 +439,10 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// </summary>
     /// <param name="jobId">The job identifier.</param>
     /// <param name="limit">Maximum number of records to return. Defaults to 20.</param>
-    public async Task<IEnumerable<JobExecution>> GetExecutionHistoryAsync(Guid jobId, int limit = 20)
+    public async Task<IEnumerable<JobExecution>> GetExecutionHistoryAsync(Guid jobId, int limit = DefaultExecutionHistoryLimit)
     {
         if (limit <= 0)
-            limit = 20;
+            limit = DefaultExecutionHistoryLimit;
 
         var job = await _jobRepository.GetByIdAsync(jobId);
         if (job is null)
@@ -436,16 +460,16 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// <summary>
     /// Retrieves a page of jobs, optionally filtered by status.
     /// </summary>
-    public async Task<IEnumerable<Job>> GetJobsAsync(JobStatus? status, int pageNumber = 1, int pageSize = 10)
+    public async Task<IEnumerable<Job>> GetJobsAsync(JobStatus? status, int pageNumber = DefaultJobPageNumber, int pageSize = DefaultJobPageSize)
     {
         var jobs = status.HasValue
             ? await _jobRepository.GetJobsByStatusAsync(status.Value)
             : await _jobRepository.GetAllAsync();
 
         if (pageNumber < 1)
-            pageNumber = 1;
+            pageNumber = DefaultJobPageNumber;
         if (pageSize < 1)
-            pageSize = 10;
+            pageSize = DefaultJobPageSize;
 
         return jobs
             .OrderByDescending(j => j.CreatedAt)
@@ -544,16 +568,16 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// <summary>
     /// Retrieves a page of executions for a job, or null if the job does not exist.
     /// </summary>
-    public async Task<IEnumerable<JobExecution>?> GetJobExecutionsAsync(Guid jobId, int pageNumber = 1, int pageSize = 20)
+    public async Task<IEnumerable<JobExecution>?> GetJobExecutionsAsync(Guid jobId, int pageNumber = DefaultJobExecutionPageNumber, int pageSize = DefaultJobExecutionPageSize)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
         if (job is null)
             return null;
 
         if (pageNumber < 1)
-            pageNumber = 1;
+            pageNumber = DefaultJobExecutionPageNumber;
         if (pageSize < 1)
-            pageSize = 20;
+            pageSize = DefaultJobExecutionPageSize;
 
         var executions = await _executionRepository.GetExecutionsByJobAsync(jobId);
         return executions.Skip((pageNumber - 1) * pageSize).Take(pageSize);
@@ -576,7 +600,7 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// <summary>
     /// Retrieves the most recent failed executions across all jobs, since the given cutoff.
     /// </summary>
-    public async Task<IEnumerable<JobExecution>> GetRecentFailedExecutionsAsync(DateTime cutoffDate, int limit = 50)
+    public async Task<IEnumerable<JobExecution>> GetRecentFailedExecutionsAsync(DateTime cutoffDate, int limit = DefaultRecentFailedExecutionsLimit)
     {
         var failed = await _executionRepository.GetExecutionsByStatusAsync(ExecutionStatus.Failed);
         return failed
@@ -651,7 +675,7 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// <summary>
     /// Returns the jobs with the highest average execution time.
     /// </summary>
-    public async Task<List<JobPerformanceSummary>> GetSlowestJobsAsync(int count = 10)
+    public async Task<List<JobPerformanceSummary>> GetSlowestJobsAsync(int count = DefaultSlowestJobsCount)
     {
         var allJobs = await _jobRepository.GetAllAsync();
         var allExecutions = await _executionRepository.GetAllAsync();
@@ -681,7 +705,7 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// <summary>
     /// Returns the jobs with the highest number of failed executions.
     /// </summary>
-    public async Task<List<Job>> GetMostFailingJobsAsync(int count = 10)
+    public async Task<List<Job>> GetMostFailingJobsAsync(int count = DefaultMostFailingJobsCount)
     {
         var allJobs = await _jobRepository.GetAllAsync();
         return allJobs
