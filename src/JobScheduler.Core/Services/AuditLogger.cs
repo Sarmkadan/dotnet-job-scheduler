@@ -51,6 +51,8 @@ public sealed class AuditLogger
     /// </summary>
     public async Task LogApiCallAsync(ApiCallAudit audit)
     {
+        ArgumentNullException.ThrowIfNull(audit);
+
         var entry = new AuditLogEntry
         {
             EventId = Guid.NewGuid(),
@@ -71,8 +73,13 @@ public sealed class AuditLogger
     /// <summary>
     /// Logs job creation event.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="jobName"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="jobName"/> is empty or white space.</exception>
     public async Task LogJobCreationAsync(Guid jobId, string jobName, string? createdBy)
     {
+        ArgumentNullException.ThrowIfNull(jobName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(jobName);
+
         var entry = new AuditLogEntry
         {
             EventId = Guid.NewGuid(),
@@ -95,8 +102,17 @@ public sealed class AuditLogger
     /// <summary>
     /// Logs job modification event.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="jobName"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="jobName"/> is empty or white space.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="field"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="field"/> is empty or white space.</exception>
     public async Task LogJobModificationAsync(Guid jobId, string jobName, string field, object? oldValue, object? newValue, string? modifiedBy)
     {
+        ArgumentNullException.ThrowIfNull(jobName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(jobName);
+        ArgumentNullException.ThrowIfNull(field);
+        ArgumentException.ThrowIfNullOrWhiteSpace(field);
+
         var entry = new AuditLogEntry
         {
             EventId = Guid.NewGuid(),
@@ -119,8 +135,13 @@ public sealed class AuditLogger
     /// <summary>
     /// Logs job deletion event.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="jobName"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="jobName"/> is empty or white space.</exception>
     public async Task LogJobDeletionAsync(Guid jobId, string jobName, string? deletedBy)
     {
+        ArgumentNullException.ThrowIfNull(jobName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(jobName);
+
         var entry = new AuditLogEntry
         {
             EventId = Guid.NewGuid(),
@@ -143,8 +164,17 @@ public sealed class AuditLogger
     /// <summary>
     /// Logs security-related event (auth, permission denied, etc).
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="eventType"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="eventType"/> is empty or white space.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="message"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="message"/> is empty or white space.</exception>
     public async Task LogSecurityEventAsync(string eventType, string? userId, string message, int severity = 2)
     {
+        ArgumentNullException.ThrowIfNull(eventType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
+        ArgumentNullException.ThrowIfNull(message);
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+
         var entry = new AuditLogEntry
         {
             EventId = Guid.NewGuid(),
