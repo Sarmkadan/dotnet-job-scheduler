@@ -49,8 +49,14 @@ public sealed class PerformanceMonitor
     /// Records execution time for a job.
     /// Metrics are stored in-memory for analysis.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="jobId"/> is empty.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="jobName"/> is null, empty, or consists only of white-space characters.</exception>
     public void RecordExecutionTime(Guid jobId, string jobName, long elapsedMs, bool success)
     {
+        if (jobId == Guid.Empty)
+            throw new ArgumentException("Job ID must not be empty.", nameof(jobId));
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(jobName);
         _logger.LogInformation("RecordExecutionTime called with {JobId} and {JobName}", jobId, jobName);
         var metric = new PerformanceMetric
         {
@@ -77,8 +83,11 @@ public sealed class PerformanceMonitor
     /// <summary>
     /// Gets average execution time for a specific job.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="jobId"/> is empty.</exception>
     public long GetAverageExecutionTime(Guid jobId)
     {
+        if (jobId == Guid.Empty)
+            throw new ArgumentException("Job ID must not be empty.", nameof(jobId));
         _logger.LogInformation("GetAverageExecutionTime called with {JobId}", jobId);
         var jobMetrics = _metrics.Where(m => m.JobId == jobId).ToList();
         return jobMetrics.Any() ? (long)jobMetrics.Average(m => m.ExecutionTimeMs) : 0;
@@ -124,8 +133,11 @@ public sealed class PerformanceMonitor
     /// <summary>
     /// Gets success rate for a specific job.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="jobId"/> is empty.</exception>
     public double GetSuccessRate(Guid jobId)
     {
+        if (jobId == Guid.Empty)
+            throw new ArgumentException("Job ID must not be empty.", nameof(jobId));
         _logger.LogInformation("GetSuccessRate called with {JobId}", jobId);
         var jobMetrics = _metrics.Where(m => m.JobId == jobId).ToList();
         if (!jobMetrics.Any())
