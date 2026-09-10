@@ -19,6 +19,50 @@ namespace JobScheduler.Core.Controllers;
 public static class HealthControllerValidation
 {
     /// <summary>
+    /// Maximum allowed length for the version string.
+    /// </summary>
+    private const int MaxVersionLength = 50;
+
+    /// <summary>
+    /// Maximum allowed length for the status string.
+    /// </summary>
+    private const int MaxStatusLength = 20;
+
+    /// <summary>
+    /// Maximum allowed length for error messages.
+    /// </summary>
+    private const int MaxErrorMessageLength = 500;
+
+    /// <summary>
+    /// Maximum allowed length for machine name.
+    /// </summary>
+    private const int MaxMachineNameLength = 100;
+
+    /// <summary>
+    /// Maximum allowed length for runtime version string.
+    /// </summary>
+    private const int MaxRuntimeVersionLength = 100;
+
+    /// <summary>
+    /// Maximum allowed count for recent errors collection.
+    /// </summary>
+    private const int MaxRecentErrorsCount = 1000;
+
+    /// <summary>
+    /// Maximum allowed length for error log entry messages.
+    /// </summary>
+    private const int MaxErrorLogEntryMessageLength = 1000;
+
+    /// <summary>
+    /// Minimum allowed percentage value.
+    /// </summary>
+    private const int MinPercentage = 0;
+
+    /// <summary>
+    /// Maximum allowed percentage value.
+    /// </summary>
+    private const int MaxPercentage = 100;
+    /// <summary>
     /// Validates a HealthController instance and returns any validation problems.
     /// </summary>
     /// <param name="value">The HealthController instance to validate.</param>
@@ -84,18 +128,18 @@ public static class HealthControllerValidation
         {
             errors.Add("Version must be a non-empty string.");
         }
-        else if (value.Version.Length > 50)
+        else if (value.Version.Length > MaxVersionLength)
         {
-            errors.Add("Version must be 50 characters or less.");
+            errors.Add($"Version must be {MaxVersionLength} characters or less.");
         }
 
         if (string.IsNullOrWhiteSpace(value.Status))
         {
             errors.Add("Status must be a non-empty string.");
         }
-        else if (value.Status.Length > 20)
+        else if (value.Status.Length > MaxStatusLength)
         {
-            errors.Add("Status must be 20 characters or less.");
+            errors.Add($"Status must be {MaxStatusLength} characters or less.");
         }
         else if (!IsValidStatus(value.Status))
         {
@@ -165,9 +209,9 @@ public static class HealthControllerValidation
             errors.Add("ErrorMessage must be set when Database is not Available.");
         }
 
-        if (!string.IsNullOrEmpty(value.ErrorMessage) && value.ErrorMessage.Length > 500)
+        if (!string.IsNullOrEmpty(value.ErrorMessage) && value.ErrorMessage.Length > MaxErrorMessageLength)
         {
-            errors.Add("ErrorMessage must be 500 characters or less.");
+            errors.Add($"ErrorMessage must be {MaxErrorMessageLength} characters or less.");
         }
 
         return errors.AsReadOnly();
@@ -274,9 +318,9 @@ public static class HealthControllerValidation
             errors.Add("TotalCount must be a non-negative integer.");
         }
 
-        if (value.SuccessRate < 0 || value.SuccessRate > 100)
+        if (value.SuccessRate < MinPercentage || value.SuccessRate > MaxPercentage)
         {
-            errors.Add("SuccessRate must be between 0 and 100 (inclusive).");
+            errors.Add($"SuccessRate must be between {MinPercentage} and {MaxPercentage} (inclusive).");
         }
 
         return errors.AsReadOnly();
@@ -387,9 +431,9 @@ public static class HealthControllerValidation
         {
             errors.Add("MachineName must be a non-empty string.");
         }
-        else if (value.MachineName.Length > 100)
+        else if (value.MachineName.Length > MaxMachineNameLength)
         {
-            errors.Add("MachineName must be 100 characters or less.");
+            errors.Add($"MachineName must be {MaxMachineNameLength} characters or less.");
         }
 
         if (value.ProcessorCount <= 0)
@@ -401,9 +445,9 @@ public static class HealthControllerValidation
         {
             errors.Add("RuntimeVersion must be a non-empty string.");
         }
-        else if (value.RuntimeVersion.Length > 100)
+        else if (value.RuntimeVersion.Length > MaxRuntimeVersionLength)
         {
-            errors.Add("RuntimeVersion must be 100 characters or less.");
+            errors.Add($"RuntimeVersion must be {MaxRuntimeVersionLength} characters or less.");
         }
 
         errors.AddRange(value.Memory.Validate());
@@ -413,9 +457,9 @@ public static class HealthControllerValidation
         {
             errors.Add("RecentErrors collection must be initialized.");
         }
-        else if (value.RecentErrors.Count > 1000)
+        else if (value.RecentErrors.Count > MaxRecentErrorsCount)
         {
-            errors.Add("RecentErrors collection must contain 1000 items or less.");
+            errors.Add($"RecentErrors collection must contain {MaxRecentErrorsCount} items or less.");
         }
         else
         {
@@ -557,9 +601,9 @@ public static class HealthControllerValidation
             errors.Add("TotalExecutions must be a non-negative integer.");
         }
 
-        if (value.AverageSuccessRate < 0 || value.AverageSuccessRate > 100)
+        if (value.AverageSuccessRate < MinPercentage || value.AverageSuccessRate > MaxPercentage)
         {
-            errors.Add("AverageSuccessRate must be between 0 and 100 (inclusive).");
+            errors.Add($"AverageSuccessRate must be between {MinPercentage} and {MaxPercentage} (inclusive).");
         }
 
         if (value.AverageExecutionTimeMs < 0)
@@ -613,9 +657,9 @@ public static class HealthControllerValidation
         {
             errors.Add("Message must be a non-empty string.");
         }
-        else if (value.Message.Length > 1000)
+        else if (value.Message.Length > MaxErrorLogEntryMessageLength)
         {
-            errors.Add("Message must be 1000 characters or less.");
+            errors.Add($"Message must be {MaxErrorLogEntryMessageLength} characters or less.");
         }
 
         if (value.Count <= 0)
