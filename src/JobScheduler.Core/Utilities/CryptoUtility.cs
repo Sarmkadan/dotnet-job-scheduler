@@ -17,10 +17,39 @@ namespace JobScheduler.Core.Utilities;
 public static class CryptoUtility
 {
     /// <summary>
+    /// Default length for generated secure random strings.
+    /// </summary>
+    private const int DefaultSecureRandomStringLength = 32;
+
+    /// <summary>
+    /// Size of nonce/random bytes in timestamped tokens.
+    /// </summary>
+    private const int TimestampedTokenNonceSize = 12;
+
+    /// <summary>
+    /// Key size for AES encryption in bits.
+    /// </summary>
+    private const int AesKeySizeBits = 256;
+
+    /// <summary>
+    /// Salt size for PBKDF2 key derivation in bytes.
+    /// </summary>
+    private const int Pbkdf2SaltSizeBytes = 16;
+
+    /// <summary>
+    /// Iteration count for PBKDF2 key derivation.
+    /// </summary>
+    private const int Pbkdf2IterationCount = 10000;
+
+    /// <summary>
+    /// Length of derived keys in bytes.
+    /// </summary>
+    private const int DerivedKeySizeBytes = 32;
+    /// <summary>
     /// Generates a cryptographically secure random string.
     /// Used for job tokens and temporary identifiers.
     /// </summary>
-    public static string GenerateSecureRandomString(int length = 32)
+    public static string GenerateSecureRandomString(int length = DefaultSecureRandomStringLength)
     {
         if (length <= 0)
             throw new ArgumentException("Length must be greater than zero", nameof(length));
@@ -40,7 +69,7 @@ public static class CryptoUtility
     public static string GenerateTimestampedToken()
     {
         var timestamp = BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-        var random = new byte[12];
+        var random = new byte[TimestampedTokenNonceSize];
 
         using (var rng = RandomNumberGenerator.Create())
         {
@@ -115,14 +144,14 @@ public static class CryptoUtility
 
         using (var aes = Aes.Create())
         {
-            aes.KeySize = 256;
+            aes.KeySize = AesKeySizeBits;
             aes.Mode = CipherMode.CBC;
             aes.Padding = PaddingMode.PKCS7;
 
             // Derive key from input
-            using (var kdf = new Rfc2898DeriveBytes(key, 16, 10000, HashAlgorithmName.SHA256))
+            using (var kdf = new Rfc2898DeriveBytes(key, Pbkdf2SaltSizeBytes, Pbkdf2IterationCount, HashAlgorithmName.SHA256))
             {
-                aes.Key = kdf.GetBytes(32);
+                aes.Key = kdf.GetBytes(DerivedKeySizeBytes);
             }
 
             using (var encryptor = aes.CreateEncryptor())
@@ -158,14 +187,14 @@ public static class CryptoUtility
         {
             using (var aes = Aes.Create())
             {
-                aes.KeySize = 256;
+                aes.KeySize = AesKeySizeBits;
                 aes.Mode = CipherMode.CBC;
                 aes.Padding = PaddingMode.PKCS7;
 
                 // Derive key from input
-                using (var kdf = new Rfc2898DeriveBytes(key, 16, 10000, HashAlgorithmName.SHA256))
+                using (var kdf = new Rfc2898DeriveBytes(key, Pbkdf2SaltSizeBytes, Pbkdf2IterationCount, HashAlgorithmName.SHA256))
                 {
-                    aes.Key = kdf.GetBytes(32);
+                    aes.Key = kdf.GetBytes(DerivedKeySizeBytes);
                 }
 
                 aes.IV = Convert.FromBase64String(iv);
@@ -229,18 +258,18 @@ public static class CryptoUtility
     /// Generates a password hash using PBKDF2.
     /// Used for securely storing API keys and tokens.
     /// </summary>
-    public static (string Hash, string Salt) GeneratePasswordHash(string password, int iterations = 10000)
+    public static (string Hash, string Salt) GeneratePasswordHash(string password, int iterations = Pbkdf2IterationCount)
     {
         ArgumentException.ThrowIfNullOrEmpty(password);
 
         using (var rng = RandomNumberGenerator.Create())
         {
-            var salt = new byte[16];
+            var salt = new byte[Pbkdf2SaltSizeBytes];
             rng.GetBytes(salt);
 
             using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256))
             {
-                var hash = pbkdf2.GetBytes(32);
+                var hash = pbkdf2.GetBytes(DerivedKeySizeBytes);
                 return (Convert.ToBase64String(hash), Convert.ToBase64String(salt));
             }
         }
@@ -249,7 +278,7 @@ public static class CryptoUtility
     /// <summary>
     /// Verifies password against stored hash.
     /// </summary>
-    public static bool VerifyPasswordHash(string password, string hash, string salt, int iterations = 10000)
+    public static bool VerifyPasswordHash(string password, string hash, string salt, int iterations = Pbkdf2IterationCount)
     {
         ArgumentException.ThrowIfNullOrEmpty(password);
         ArgumentException.ThrowIfNullOrEmpty(hash);
@@ -260,7 +289,7 @@ public static class CryptoUtility
             var saltBytes = Convert.FromBase64String(salt);
             using (var pbkdf2 = new Rfc2898DeriveBytes(password, saltBytes, iterations, HashAlgorithmName.SHA256))
             {
-                var hashBytes = pbkdf2.GetBytes(32);
+                var hashBytes = pbkdf2.GetBytes(DerivedKeySizeBytes);
                 var hashString = Convert.ToBase64String(hashBytes);
                 return CompareStringsSecurely(hashString, hash);
             }
