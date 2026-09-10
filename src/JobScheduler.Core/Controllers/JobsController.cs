@@ -44,11 +44,13 @@ public sealed class JobsController : ControllerBase
     /// Creates a new scheduled job with validation and cron expression checking.
     /// Returns 201 Created with the newly created job details.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="request"/> is null.</exception>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<JobResponse>> CreateJob([FromBody] CreateJobRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
         try
         {
             var job = new Job
@@ -151,12 +153,14 @@ public sealed class JobsController : ControllerBase
     /// Updates an existing job's configuration, cron expression, and retry settings.
     /// Performs validation before persisting changes.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="request"/> is null.</exception>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<JobResponse>> UpdateJob(Guid id, [FromBody] CreateJobRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
         try
         {
             var updated = await _schedulerService.UpdateJobAsync(id, request, User?.Identity?.Name);
