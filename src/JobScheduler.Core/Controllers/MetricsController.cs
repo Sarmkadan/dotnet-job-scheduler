@@ -29,6 +29,13 @@ public sealed class MetricsController : ControllerBase
     private readonly PerformanceMonitor _performanceMonitor;
     private readonly ILogger<MetricsController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MetricsController"/> class.
+    /// </summary>
+    /// <param name="jobRepository">The repository for accessing job data.</param>
+    /// <param name="executionRepository">The repository for accessing execution data.</param>
+    /// <param name="performanceMonitor">The performance monitor service.</param>
+    /// <param name="logger">The logger for recording errors and diagnostic information.</param>
     public MetricsController(
         IJobRepository jobRepository,
         IExecutionRepository executionRepository,
@@ -42,8 +49,9 @@ public sealed class MetricsController : ControllerBase
     }
 
     /// <summary>
-    /// Returns all scheduler metrics in OpenMetrics text format.
+    /// Returns all scheduler metrics in OpenMetrics (Prometheus) text format.
     /// </summary>
+    /// <returns>A task representing the asynchronous operation, containing an <see cref="IActionResult"/> with the metrics text.</returns>
     /// <remarks>
     /// Exposes the following metric families:
     /// <list type="bullet">
@@ -88,6 +96,10 @@ public sealed class MetricsController : ControllerBase
     // Private helpers
     // -------------------------------------------------------------------------
 
+    /// <summary>
+    /// Appends job-related metrics to the string builder.
+    /// Produces <c>job_scheduler_jobs_total</c> gauge metrics with labels for state (all, active, suspended, failed).
+    /// </summary>
     private async Task AppendJobMetricsAsync(StringBuilder sb)
     {
         var jobs = (await _jobRepository.GetAllAsync()).ToList();
@@ -105,6 +117,11 @@ public sealed class MetricsController : ControllerBase
         sb.AppendLine(Metric("job_scheduler_jobs_total", failed, ("state", "failed")));
     }
 
+    /// <summary>
+    /// Appends execution-related metrics to the string builder.
+    /// Produces <c>job_scheduler_executions_total</c> counter metrics with labels for outcome (total, success, failure),
+    /// and <c>job_scheduler_running_executions</c> gauge metric for currently running executions.
+    /// </summary>
     private async Task AppendExecutionMetricsAsync(StringBuilder sb)
     {
         var runningExecutions = await _executionRepository.GetRunningExecutionsAsync();
@@ -127,6 +144,11 @@ public sealed class MetricsController : ControllerBase
         sb.AppendLine(Metric("job_scheduler_running_executions", runningCount));
     }
 
+    /// <summary>
+    /// Appends queue depth and scheduler lag metrics to the string builder.
+    /// Produces <c>job_scheduler_queue_depth</c> gauge metrics with labels for priority (critical, high, normal, low),
+    /// and <c>job_scheduler_scheduler_lag_seconds</c> gauge metric for average lag of overdue jobs.
+    /// </summary>
     private async Task AppendQueueDepthMetricsAsync(StringBuilder sb)
     {
         var now = DateTime.UtcNow;
@@ -160,6 +182,12 @@ public sealed class MetricsController : ControllerBase
         sb.AppendLine(Metric("job_scheduler_scheduler_lag_seconds", avgLagSeconds));
     }
 
+    /// <summary>
+    /// Appends performance-related metrics to the string builder.
+    /// Produces <c>job_scheduler_execution_duration_ms</c> gauge for average execution duration,
+    /// <c>job_scheduler_success_rate_percent</c> gauge for overall success rate,
+    /// and <c>job_scheduler_memory_bytes</c> gauge for process memory usage.
+    /// </summary>
     private void AppendPerformanceMetrics(StringBuilder sb)
     {
         var summary = _performanceMonitor.GetSummary();
@@ -181,6 +209,9 @@ public sealed class MetricsController : ControllerBase
     // Formatting helpers
     // -------------------------------------------------------------------------
 
+    /// <summary>
+    /// Formats a single metric line in OpenMetrics text format, including optional label sets.
+    /// </summary>
     private static string Metric(string name, double value, params (string key, string value)[] labels)
     {
         if (labels.Length == 0)
@@ -190,6 +221,9 @@ public sealed class MetricsController : ControllerBase
         return $"{name}{{{labelStr}}} {FormatValue(value)}";
     }
 
+    /// <summary>
+    /// Formats a numeric value for OpenMetrics output, handling NaN and Infinity by returning "0".
+    /// </summary>
     private static string FormatValue(double value)
     {
         if (double.IsNaN(value) || double.IsInfinity(value))
