@@ -24,6 +24,11 @@ public sealed class HistoryController : ControllerBase
     private readonly JobHistoryService _historyService;
     private readonly ILogger<HistoryController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HistoryController"/> class.
+    /// </summary>
+    /// <param name="historyService">The job history service used to retrieve execution data.</param>
+    /// <param name="logger">The logger instance for recording controller events.</param>
     public HistoryController(JobHistoryService historyService, ILogger<HistoryController> logger)
     {
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
@@ -34,6 +39,13 @@ public sealed class HistoryController : ControllerBase
     /// Returns a filtered, paginated list of execution records for a specific job.
     /// Results are ordered newest-first.
     /// </summary>
+    /// <param name="jobId">The unique identifier of the job to retrieve history for.</param>
+    /// <param name="status">Optional filter to restrict results by execution status.</param>
+    /// <param name="from">Optional start date filter for execution records.</param>
+    /// <param name="to">Optional end date filter for execution records.</param>
+    /// <param name="pageNumber">The page number to retrieve (1-based).</param>
+    /// <param name="pageSize">The number of records per page.</param>
+    /// <returns>A paginated result containing execution responses for the specified job.</returns>
     [HttpGet("jobs/{jobId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -73,6 +85,10 @@ public sealed class HistoryController : ControllerBase
     /// <summary>
     /// Returns aggregated execution statistics for a specific job.
     /// </summary>
+    /// <param name="jobId">The unique identifier of the job to retrieve the summary for.</param>
+    /// <param name="from">Optional start date filter for the statistics.</param>
+    /// <param name="to">Optional end date filter for the statistics.</param>
+    /// <returns>Aggregated execution statistics for the specified job.</returns>
     [HttpGet("jobs/{jobId:guid}/summary")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -101,6 +117,12 @@ public sealed class HistoryController : ControllerBase
     /// Returns a filtered, paginated list of execution records across all jobs.
     /// Useful for monitoring the overall health of the scheduler.
     /// </summary>
+    /// <param name="status">Optional filter to restrict results by execution status.</param>
+    /// <param name="from">Optional start date filter for execution records.</param>
+    /// <param name="to">Optional end date filter for execution records.</param>
+    /// <param name="pageNumber">The page number to retrieve (1-based).</param>
+    /// <param name="pageSize">The number of records per page.</param>
+    /// <returns>A paginated result containing execution responses across all jobs.</returns>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<ExecutionResponse>>> GetSystemHistory(
@@ -134,6 +156,9 @@ public sealed class HistoryController : ControllerBase
     /// <summary>
     /// Returns aggregated execution statistics across all jobs.
     /// </summary>
+    /// <param name="from">Optional start date filter for the statistics.</param>
+    /// <param name="to">Optional end date filter for the statistics.</param>
+    /// <returns>Aggregated execution statistics across all jobs.</returns>
     [HttpGet("summary")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<JobExecutionSummary>> GetSystemSummary(
