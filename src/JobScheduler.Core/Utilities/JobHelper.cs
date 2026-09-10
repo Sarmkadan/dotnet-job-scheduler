@@ -90,10 +90,10 @@ public static class JobHelper
     /// <summary>
     /// Gets a human-readable status description for a job.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is null.</exception>
     public static string GetJobStatusDescription(Job job)
     {
-        if (job is null)
-            return "Unknown";
+        ArgumentNullException.ThrowIfNull(job);
 
         return job.Status switch
         {
@@ -128,8 +128,10 @@ public static class JobHelper
     /// <summary>
     /// Gets execution frequency description based on cron expression.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="cronExpression"/> is null.</exception>
     public static string GetExecutionFrequencyDescription(string cronExpression)
     {
+        ArgumentNullException.ThrowIfNull(cronExpression);
         if (string.IsNullOrWhiteSpace(cronExpression))
             return "Never";
 
