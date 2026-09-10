@@ -46,6 +46,7 @@ public sealed class ScheduleService
     /// Gets the next N scheduled execution times for a job.
     /// Useful for displaying upcoming execution schedule to users.
     /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="jobId"/> corresponds to a job with a <see langword="null"/> or empty cron expression.</exception>
     public async Task<List<DateTime>> GetUpcomingExecutionTimesAsync(
         Guid jobId,
         int count = DefaultUpcomingCount)
@@ -55,6 +56,8 @@ public sealed class ScheduleService
             var job = await _jobRepository.GetByIdAsync(jobId);
             if (job is null || !job.IsActive)
                 return new();
+
+            ArgumentException.ThrowIfNullOrWhiteSpace(job.CronExpression);
 
             var upcomingTimes = new List<DateTime>();
             var current = job.NextExecutionAt ?? DateTime.UtcNow;
@@ -139,6 +142,7 @@ public sealed class ScheduleService
     /// Estimates the number of executions in a given time period.
     /// Used for capacity planning and SLA calculations.
     /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="jobId"/> corresponds to a job with a <see langword="null"/> or empty cron expression.</exception>
     public async Task<int> EstimateExecutionCountAsync(Guid jobId, int days)
     {
         try
@@ -146,6 +150,8 @@ public sealed class ScheduleService
             var job = await _jobRepository.GetByIdAsync(jobId);
             if (job is null)
                 return 0;
+
+            ArgumentException.ThrowIfNullOrWhiteSpace(job.CronExpression);
 
             var frequency = await GetExecutionFrequencyPerDayAsync(job.CronExpression);
             return (int)(frequency * days);
