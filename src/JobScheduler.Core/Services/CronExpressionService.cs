@@ -99,9 +99,16 @@ public class CronExpressionService
     /// Handles leap-year-specific expressions such as "0 0 29 2 *" (Feb 29) by
     /// advancing year-by-year until a valid date is found.
     /// </summary>
+    /// <param name="cronExpression">Standard five-field cron expression.</param>
+    /// <param name="baseTime">
+    /// Reference point in UTC.  Defaults to <see cref="DateTime.UtcNow"/>.
+    /// </param>
+    /// <returns>The next execution time in UTC.</returns>
+    /// <exception cref="ArgumentException">cronExpression is null, empty, or whitespace.</exception>
+    /// <exception cref="CronExpressionException">If the cron expression is invalid.</exception>
     public virtual DateTime GetNextExecutionTime(string cronExpression, DateTime? baseTime = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(cronExpression, nameof(cronExpression));
+        ArgumentException.ThrowIfNullOrWhiteSpace(cronExpression);
 
         var schedule = ParseCronExpression(cronExpression);
         var reference = baseTime ?? DateTime.UtcNow;
@@ -147,9 +154,10 @@ public class CronExpressionService
     /// <param name="baseTimeUtc">
     /// Reference point in UTC.  Defaults to <see cref="DateTime.UtcNow"/>.
     /// </param>
+    /// <exception cref="ArgumentException">cronExpression is null, empty, or whitespace.</exception>
     public virtual DateTime GetNextExecutionTimeInZone(string cronExpression, string timezoneId, DateTime? baseTimeUtc = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(cronExpression, nameof(cronExpression));
+        ArgumentException.ThrowIfNullOrWhiteSpace(cronExpression);
 
         if (string.IsNullOrWhiteSpace(timezoneId))
             throw new ArgumentException("Timezone ID cannot be null or empty.", nameof(timezoneId));
@@ -208,9 +216,16 @@ public class CronExpressionService
     /// <summary>
     /// Calculates the next N execution times.
     /// </summary>
+    /// <param name="cronExpression">Standard five-field cron expression.</param>
+    /// <param name="count">Number of execution times to return. Must be positive.</param>
+    /// <param name="baseTime">
+    /// Reference point in UTC.  Defaults to <see cref="DateTime.UtcNow"/>.
+    /// </param>
+    /// <returns>Sequence of next execution times.</returns>
+    /// <exception cref="ArgumentException">cronExpression is null, empty, or whitespace -or- count is not positive.</exception>
     public virtual IEnumerable<DateTime> GetNextExecutionTimes(string cronExpression, int count, DateTime? baseTime = null)
     {
-        ArgumentException.ThrowIfNullOrEmpty(cronExpression, nameof(cronExpression));
+        ArgumentException.ThrowIfNullOrWhiteSpace(cronExpression);
 
         if (count <= 0)
             throw new ArgumentException("Count must be positive", nameof(count));
@@ -234,9 +249,13 @@ public class CronExpressionService
     /// <summary>
     /// Checks if a job should execute at the given time based on its cron expression.
     /// </summary>
+    /// <param name="cronExpression">Standard five-field cron expression.</param>
+    /// <param name="checkTime">The time to check.</param>
+    /// <returns>true if the job should execute at the given time; otherwise, false.</returns>
+    /// <exception cref="ArgumentException">cronExpression is null, empty, or whitespace.</exception>
     public virtual bool ShouldExecuteAt(string cronExpression, DateTime checkTime)
     {
-        ArgumentException.ThrowIfNullOrEmpty(cronExpression, nameof(cronExpression));
+        ArgumentException.ThrowIfNullOrWhiteSpace(cronExpression);
 
         try
         {
@@ -287,9 +306,10 @@ public class CronExpressionService
     /// (second minute hour day month day-of-week) layouts.
     /// </summary>
     /// <returns>The description, or "Invalid cron expression" when the expression cannot be parsed.</returns>
+    /// <exception cref="ArgumentException">cronExpression is null, empty, or whitespace.</exception>
     public virtual string GetCronDescription(string cronExpression)
     {
-        ArgumentException.ThrowIfNullOrEmpty(cronExpression, nameof(cronExpression));
+        ArgumentException.ThrowIfNullOrWhiteSpace(cronExpression);
 
         try
         {
