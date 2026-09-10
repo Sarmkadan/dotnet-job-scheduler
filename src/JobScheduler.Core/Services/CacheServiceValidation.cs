@@ -19,6 +19,20 @@ namespace JobScheduler.Core.Services;
 public static class CacheServiceValidation
 {
     /// <summary>
+    /// Maximum allowed length for cache keys and key patterns.
+    /// </summary>
+    private const int MaxCacheKeyLength = 1024;
+
+    /// <summary>
+    /// Minimum allowed value for TotalKeys in cache statistics.
+    /// </summary>
+    private const int MinTotalKeys = 0;
+
+    /// <summary>
+    /// Maximum allowed minutes in the future for cache statistics timestamp.
+    /// </summary>
+    private const int MaxTimestampFutureMinutes = 5;
+    /// <summary>
     /// Validates a <see cref="CacheService"/> instance for common issues.
     /// </summary>
     /// <param name="value">The CacheService instance to validate.</param>
@@ -80,9 +94,9 @@ public static class CacheServiceValidation
             problems.Add("Cache key cannot be whitespace or empty.");
         }
 
-        if (key.Length > 1024)
+        if (key.Length > MaxCacheKeyLength)
         {
-            problems.Add("Cache key cannot exceed 1024 characters.");
+            problems.Add($"Cache key cannot exceed {MaxCacheKeyLength} characters.");
         }
 
         if (key.Contains(' ') || key.Contains('\t') || key.Contains('\n') || key.Contains('\r'))
@@ -142,9 +156,9 @@ public static class CacheServiceValidation
             problems.Add("Cache key pattern cannot be whitespace or empty.");
         }
 
-        if (keyPattern.Length > 1024)
+        if (keyPattern.Length > MaxCacheKeyLength)
         {
-            problems.Add("Cache key pattern cannot exceed 1024 characters.");
+            problems.Add($"Cache key pattern cannot exceed {MaxCacheKeyLength} characters.");
         }
 
         // Pattern should not be a complete key (patterns typically contain wildcards)
@@ -194,7 +208,7 @@ public static class CacheServiceValidation
 
         var problems = new List<string>();
 
-        if (statistics.TotalKeys < 0)
+        if (statistics.TotalKeys < MinTotalKeys)
         {
             problems.Add("TotalKeys cannot be negative.");
         }
@@ -209,7 +223,7 @@ public static class CacheServiceValidation
             problems.Add("Timestamp must be in UTC.");
         }
 
-        if (statistics.Timestamp > DateTime.UtcNow.AddMinutes(5))
+        if (statistics.Timestamp > DateTime.UtcNow.AddMinutes(MaxTimestampFutureMinutes))
         {
             problems.Add("Timestamp cannot be in the future.");
         }
