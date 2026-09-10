@@ -21,6 +21,16 @@ public sealed class GlobalExceptionMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionMiddleware> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GlobalExceptionMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">The next middleware in the pipeline.</param>
+    /// <param name="logger">The logger instance.</param>
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GlobalExceptionMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">The next middleware in the pipeline.</param>
+    /// <param name="logger">The logger instance.</param>
     public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
