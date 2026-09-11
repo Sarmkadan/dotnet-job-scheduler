@@ -279,6 +279,14 @@ public sealed class PerformanceMetric
     public long ExecutionTimeMs { get; set; }
     public bool Success { get; set; }
     public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// Returns a string representation of the performance metric.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"PerformanceMetric {{ JobId = {JobId}, JobName = {JobName}, ExecutionTimeMs = {ExecutionTimeMs}, Success = {Success}, Timestamp = {Timestamp} }}";
+    }
 }
 
 public sealed class MetricsSummary
@@ -292,6 +300,14 @@ public sealed class MetricsSummary
     public long MemoryUsageMb { get; set; }
 
     public double SuccessRate => TotalExecutions == 0 ? 0 : (double)SuccessfulExecutions / TotalExecutions * 100;
+
+    /// <summary>
+    /// Returns a string representation of the metrics summary.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"MetricsSummary {{ TotalExecutions = {TotalExecutions}, SuccessfulExecutions = {SuccessfulExecutions}, FailedExecutions = {FailedExecutions}, AverageExecutionTimeMs = {AverageExecutionTimeMs}, MinExecutionTimeMs = {MinExecutionTimeMs}, MaxExecutionTimeMs = {MaxExecutionTimeMs}, MemoryUsageMb = {MemoryUsageMb}, SuccessRate = {SuccessRate:F2}% }}";
+    }
 }
 
 public sealed class PerformanceTimelinePoint
@@ -301,4 +317,12 @@ public sealed class PerformanceTimelinePoint
     public int SuccessCount { get; set; }
     public int FailureCount { get; set; }
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Returns a string representation of the performance timeline point.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"PerformanceTimelinePoint {{ Timestamp = {Timestamp}, ExecutionCount = {ExecutionCount}, SuccessCount = {SuccessCount}, FailureCount = {FailureCount}, AverageExecutionTimeMs = {AverageExecutionTimeMs} }}";
+    }
 }
