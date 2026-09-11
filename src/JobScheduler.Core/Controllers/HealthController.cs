@@ -208,6 +208,10 @@ public sealed class HealthController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Retrieves a summary of recent failed executions grouped by error message.
+    /// </summary>
+    /// <returns>A list of error log entries summarizing recent failures.</returns>
     private async Task<List<ErrorLogEntry>> GetRecentErrorsSummary()
     {
         try
@@ -233,14 +237,38 @@ public sealed class HealthController : ControllerBase
     }
 }
 
+/// <summary>
+/// Represents the detailed health status response containing subsystem information.
+/// </summary>
 public sealed class HealthStatusResponse
 {
+    /// <summary>
+    /// Gets or sets the timestamp when the health status was generated.
+    /// </summary>
     public DateTime Timestamp { get; set; }
+    /// <summary>
+    /// Gets or sets the version of the health check implementation.
+    /// </summary>
     public string Version { get; set; } = "1.1.0";
+    /// <summary>
+    /// Gets or sets the overall status of the system (e.g., OK, Degraded).
+    /// </summary>
     public string Status { get; set; } = "OK";
+    /// <summary>
+    /// Gets or sets the database connectivity status.
+    /// </summary>
     public DatabaseStatus Database { get; set; } = new();
+    /// <summary>
+    /// Gets or sets the jobs system status.
+    /// </summary>
     public JobsStatus Jobs { get; set; } = new();
+    /// <summary>
+    /// Gets or sets the executions system status.
+    /// </summary>
     public ExecutionsStatus Executions { get; set; } = new();
+    /// <summary>
+    /// Gets or sets the memory usage status.
+    /// </summary>
     public MemoryStatus Memory { get; set; } = new();
 
     /// <summary>
@@ -250,10 +278,22 @@ public sealed class HealthStatusResponse
         => $"{nameof(HealthStatusResponse)} {{ Timestamp = {Timestamp}, Version = {Version}, Status = {Status}, Database = {Database}, Jobs = {Jobs}, Executions = {Executions}, Memory = {Memory} }}";
 }
 
+/// <summary>
+/// Represents the status of the database connection.
+/// </summary>
 public sealed class DatabaseStatus
 {
+    /// <summary>
+    /// Gets or sets a value indicating whether the database is available.
+    /// </summary>
     public bool Available { get; set; }
+    /// <summary>
+    /// Gets or sets the timestamp when the database status was last checked.
+    /// </summary>
     public DateTime LastChecked { get; set; }
+    /// <summary>
+    /// Gets or sets the error message if the database check failed.
+    /// </summary>
     public string? ErrorMessage { get; set; }
 
     /// <summary>
@@ -263,9 +303,18 @@ public sealed class DatabaseStatus
         => $"{nameof(DatabaseStatus)} {{ Available = {Available}, LastChecked = {LastChecked}, ErrorMessage = {ErrorMessage} }}";
 }
 
+/// <summary>
+/// Represents the status of the job scheduler.
+/// </summary>
 public sealed class JobsStatus
 {
+    /// <summary>
+    /// Gets or sets the total number of jobs.
+    /// </summary>
     public int TotalCount { get; set; }
+    /// <summary>
+    /// Gets or sets the number of active jobs.
+    /// </summary>
     public int ActiveCount { get; set; }
 
     /// <summary>
@@ -275,9 +324,18 @@ public sealed class JobsStatus
         => $"{nameof(JobsStatus)} {{ TotalCount = {TotalCount}, ActiveCount = {ActiveCount} }}";
 }
 
+/// <summary>
+/// Represents the status of job executions.
+/// </summary>
 public sealed class ExecutionsStatus
 {
+    /// <summary>
+    /// Gets or sets the total number of executions.
+    /// </summary>
     public int TotalCount { get; set; }
+    /// <summary>
+    /// Gets or sets the success rate of executions.
+    /// </summary>
     public double SuccessRate { get; set; }
 
     /// <summary>
@@ -287,9 +345,18 @@ public sealed class ExecutionsStatus
         => $"{nameof(ExecutionsStatus)} {{ TotalCount = {TotalCount}, SuccessRate = {SuccessRate} }}";
 }
 
+/// <summary>
+/// Represents the memory usage status.
+/// </summary>
 public sealed class MemoryStatus
 {
+    /// <summary>
+    /// Gets or sets the current memory usage in megabytes.
+    /// </summary>
     public long UsageMb { get; set; }
+    /// <summary>
+    /// Gets or sets the memory usage threshold in megabytes before health is considered degraded.
+    /// </summary>
     public long Threshold { get; set; }
 
     /// <summary>
@@ -299,14 +366,38 @@ public sealed class MemoryStatus
         => $"{nameof(MemoryStatus)} {{ UsageMb = {UsageMb}, Threshold = {Threshold} }}";
 }
 
+/// <summary>
+/// Represents the detailed diagnostics response for troubleshooting.
+/// </summary>
 public sealed class DiagnosticsResponse
 {
+    /// <summary>
+    /// Gets or sets the timestamp when the diagnostics were generated.
+    /// </summary>
     public DateTime Timestamp { get; set; }
+    /// <summary>
+    /// Gets or sets the name of the machine running the scheduler.
+    /// </summary>
     public string MachineName { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the number of processors available.
+    /// </summary>
     public int ProcessorCount { get; set; }
+    /// <summary>
+    /// Gets or sets the runtime version description.
+    /// </summary>
     public string RuntimeVersion { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the memory diagnostics information.
+    /// </summary>
     public MemoryDiagnostics Memory { get; set; } = new();
+    /// <summary>
+    /// Gets or sets the system statistics diagnostics information.
+    /// </summary>
     public SystemDiagnostics SystemStatistics { get; set; } = new();
+    /// <summary>
+    /// Gets or sets the list of recent error log entries.
+    /// </summary>
     public List<ErrorLogEntry> RecentErrors { get; set; } = new();
 
     /// <summary>
@@ -316,12 +407,30 @@ public sealed class DiagnosticsResponse
         => $"{nameof(DiagnosticsResponse)} {{ Timestamp = {Timestamp}, MachineName = {MachineName}, ProcessorCount = {ProcessorCount}, RuntimeVersion = {RuntimeVersion}, Memory = {Memory}, SystemStatistics = {SystemStatistics}, RecentErrors = {RecentErrors} }}";
 }
 
+/// <summary>
+/// Represents memory usage and garbage collection diagnostics.
+/// </summary>
 public sealed class MemoryDiagnostics
 {
+    /// <summary>
+    /// Gets or sets the total memory usage in megabytes.
+    /// </summary>
     public long TotalMemoryMb { get; set; }
+    /// <summary>
+    /// Gets or sets the managed heap size in megabytes.
+    /// </summary>
     public long ManagedHeapSizeMb { get; set; }
+    /// <summary>
+    /// Gets or sets the number of Gen 0 garbage collection cycles.
+    /// </summary>
     public int Gen0Collections { get; set; }
+    /// <summary>
+    /// Gets or sets the number of Gen 1 garbage collection cycles.
+    /// </summary>
     public int Gen1Collections { get; set; }
+    /// <summary>
+    /// Gets or sets the number of Gen 2 garbage collection cycles.
+    /// </summary>
     public int Gen2Collections { get; set; }
 
     /// <summary>
@@ -331,12 +440,30 @@ public sealed class MemoryDiagnostics
         => $"{nameof(MemoryDiagnostics)} {{ TotalMemoryMb = {TotalMemoryMb}, ManagedHeapSizeMb = {ManagedHeapSizeMb}, Gen0Collections = {Gen0Collections}, Gen1Collections = {Gen1Collections}, Gen2Collections = {Gen2Collections} }}";
 }
 
+/// <summary>
+/// Represents system-wide scheduler statistics.
+/// </summary>
 public sealed class SystemDiagnostics
 {
+    /// <summary>
+    /// Gets or sets the total number of jobs.
+    /// </summary>
     public int TotalJobs { get; set; }
+    /// <summary>
+    /// Gets or sets the number of active jobs.
+    /// </summary>
     public int ActiveJobs { get; set; }
+    /// <summary>
+    /// Gets or sets the total number of executions.
+    /// </summary>
     public int TotalExecutions { get; set; }
+    /// <summary>
+    /// Gets or sets the average success rate of executions.
+    /// </summary>
     public double AverageSuccessRate { get; set; }
+    /// <summary>
+    /// Gets or sets the average execution time in milliseconds.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
 
     /// <summary>
@@ -346,10 +473,22 @@ public sealed class SystemDiagnostics
         => $"{nameof(SystemDiagnostics)} {{ TotalJobs = {TotalJobs}, ActiveJobs = {ActiveJobs}, TotalExecutions = {TotalExecutions}, AverageSuccessRate = {AverageSuccessRate}, AverageExecutionTimeMs = {AverageExecutionTimeMs} }}";
 }
 
+/// <summary>
+/// Represents a single entry from the recent error logs.
+/// </summary>
 public sealed class ErrorLogEntry
 {
+    /// <summary>
+    /// Gets or sets the error message.
+    /// </summary>
     public string Message { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the count of occurrences of this error.
+    /// </summary>
     public int Count { get; set; }
+    /// <summary>
+    /// Gets or sets the timestamp when this error last occurred.
+    /// </summary>
     public DateTime? LastOccurred { get; set; }
 
     /// <summary>
