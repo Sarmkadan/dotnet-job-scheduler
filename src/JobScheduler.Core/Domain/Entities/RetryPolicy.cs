@@ -15,33 +15,71 @@ namespace JobScheduler.Core.Domain.Entities;
 /// </summary>
 public sealed class RetryPolicy
 {
+    /// <summary>
+    /// Unique identifier for the retry policy.
+    /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    /// <summary>
+    /// Identifier of the job this retry policy applies to.
+    /// </summary>
     public Guid JobId { get; set; }
 
+    /// <summary>
+    /// Maximum number of retry attempts allowed.
+    /// </summary>
     public int MaxRetries { get; set; } = SchedulerConstants.DefaultMaxRetries;
 
+    /// <summary>
+    /// Initial delay in seconds before the first retry attempt.
+    /// </summary>
     public int InitialBackoffSeconds { get; set; } = SchedulerConstants.DefaultRetryBackoffSeconds;
 
+    /// <summary>
+    /// Maximum delay in seconds between retry attempts.
+    /// </summary>
     public int MaxBackoffSeconds { get; set; } = SchedulerConstants.DefaultMaxRetryBackoffSeconds;
 
+    /// <summary>
+    /// The backoff strategy used to calculate retry delays.
+    /// </summary>
     public BackoffStrategy Strategy { get; set; } = BackoffStrategy.Exponential;
 
+    /// <summary>
+    /// Multiplier applied to the backoff delay for exponential strategies.
+    /// </summary>
     public double BackoffMultiplier { get; set; } = SchedulerConstants.RetryBackoffMultiplier;
 
+    /// <summary>
+    /// Indicates whether to retry on timeout exceptions.
+    /// </summary>
     public bool RetryOnTimeout { get; set; } = true;
 
+    /// <summary>
+    /// Indicates whether to retry on cancellation exceptions.
+    /// </summary>
     public bool RetryOnCancellation { get; set; } = false;
 
+    /// <summary>
+    /// Comma-separated list of exception types that are eligible for retry.
+    /// </summary>
     public string? RetryableExceptions { get; set; }
 
+    /// <summary>
+    /// Timestamp when the retry policy was created.
+    /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Timestamp when the retry policy was last updated.
+    /// </summary>
     public DateTime? UpdatedAt { get; set; }
 
     /// <summary>
     /// Calculates the delay before the next retry attempt based on the strategy.
     /// </summary>
+    /// <param name="attemptNumber">The current retry attempt number.</param>
+    /// <returns>The calculated backoff delay in seconds.</returns>
     public int CalculateBackoffDelay(int attemptNumber)
     {
         if (attemptNumber <= 0)
@@ -61,6 +99,8 @@ public sealed class RetryPolicy
     /// <summary>
     /// Determines if a retry should be attempted based on exception type.
     /// </summary>
+    /// <param name="exceptionType">The type of the exception that occurred.</param>
+    /// <returns>True if the exception is retryable; otherwise, false.</returns>
     public bool ShouldRetryOnException(string exceptionType)
     {
         if (string.IsNullOrWhiteSpace(RetryableExceptions))
@@ -73,6 +113,9 @@ public sealed class RetryPolicy
     /// <summary>
     /// Gets the next scheduled retry time for an execution.
     /// </summary>
+    /// <param name="lastFailureTime">The time when the last execution failed.</param>
+    /// <param name="attemptNumber">The current retry attempt number.</param>
+    /// <returns>The scheduled time for the next retry attempt.</returns>
     public DateTime GetNextRetryTime(DateTime lastFailureTime, int attemptNumber)
     {
         int backoffSeconds = CalculateBackoffDelay(attemptNumber);
@@ -82,6 +125,7 @@ public sealed class RetryPolicy
     /// <summary>
     /// Validates the retry policy configuration.
     /// </summary>
+    /// <returns>True if the configuration is valid; otherwise, false.</returns>
     public bool IsValid()
     {
         if (MaxRetries < 0 || MaxRetries > 100)
@@ -99,6 +143,7 @@ public sealed class RetryPolicy
     /// <summary>
     /// Gets a string description of the retry strategy.
     /// </summary>
+    /// <returns>A human-readable description of the backoff strategy.</returns>
     public string GetStrategyDescription()
     {
         return Strategy switch
@@ -113,6 +158,7 @@ public sealed class RetryPolicy
     /// <summary>
     /// Returns a concise string representation of the retry policy.
     /// </summary>
+    /// <returns>A string containing the policy's key configuration details.</returns>
     public override string ToString() => $"RetryPolicy {{ Id = {Id}, JobId = {JobId}, MaxRetries = {MaxRetries}, InitialBackoffSeconds = {InitialBackoffSeconds}, MaxBackoffSeconds = {MaxBackoffSeconds}, Strategy = {Strategy} }}";
 }
 
