@@ -119,6 +119,11 @@ public sealed class NotificationSettings
     /// Gets or sets the email addresses that receive alerts. The default is an empty list.
     /// </summary>
     public List<string> AlertEmails { get; set; } = new();
+
+    /// <summary>
+    /// Returns a string representation of the notification settings.
+    /// </summary>
+    public override string ToString() => $"NotificationSettings {{ EnableWebhooks = {EnableWebhooks}, EnableSlack = {EnableSlack}, EnableEmail = {EnableEmail}, SmtpServer = {SmtpServer}, SmtpPort = {SmtpPort}, SmtpUsername = {SmtpUsername}, SmtpFromEmail = {SmtpFromEmail}, AlertEmails = {AlertEmails.Count} }}";
 }
 
 /// <summary>
@@ -150,6 +155,11 @@ public sealed class CachingSettings
     /// Gets or sets the Redis connection string.
     /// </summary>
     public string? RedisConnectionString { get; set; }
+
+    /// <summary>
+    /// Returns a string representation of the caching settings.
+    /// </summary>
+    public override string ToString() => $"CachingSettings {{ EnableCache = {EnableCache}, DefaultCacheDurationMinutes = {DefaultCacheDurationMinutes}, MaxCacheEntries = {MaxCacheEntries}, EnableDistributedCache = {EnableDistributedCache} }}";
 }
 
 /// <summary>
@@ -181,6 +191,11 @@ public sealed class SecuritySettings
     /// Gets or sets the allowed cross-origin resource sharing origins. The default is an empty list.
     /// </summary>
     public List<string> CorsOrigins { get; set; } = new();
+
+    /// <summary>
+    /// Returns a string representation of the security settings, masking any sensitive key values.
+    /// </summary>
+    public override string ToString() => $"SecuritySettings {{ EnableApiKeyAuth = {EnableApiKeyAuth}, ApiKeys = {ApiKeys.Count}, RequireHttps = {RequireHttps}, EnableCors = {EnableCors}, CorsOrigins = {CorsOrigins.Count} }}";
 }
 
 /// <summary>
@@ -207,6 +222,11 @@ public sealed class ApiKeyConfig
     /// Gets or sets the date and time when the API key expires.
     /// </summary>
     public DateTime? ExpiresAt { get; set; }
+
+    /// <summary>
+    /// Returns a string representation of the API key configuration, masking the key value.
+    /// </summary>
+    public override string ToString() => $"ApiKeyConfig {{ Key = {(string.IsNullOrEmpty(Key) ? "***" : $"*** (length {Key.Length})")}, Name = {Name}, Active = {Active}, ExpiresAt = {ExpiresAt} }}";
 }
 
 /// <summary>
@@ -243,6 +263,11 @@ public sealed class LoggingSettings
     /// Gets or sets whether structured logging is enabled. The default is <see langword="false"/>.
     /// </summary>
     public bool EnableStructuredLogging { get; set; } = false;
+
+    /// <summary>
+    /// Returns a string representation of the logging settings.
+    /// </summary>
+    public override string ToString() => $"LoggingSettings {{ LogLevel = {LogLevel}, EnableDetailedLogging = {EnableDetailedLogging}, EnableAuditLogging = {EnableAuditLogging}, AuditLogRetentionDays = {AuditLogRetentionDays}, EnableStructuredLogging = {EnableStructuredLogging} }}";
 }
 
 /// <summary>
@@ -274,6 +299,11 @@ public sealed class PerformanceSettings
     /// Gets or sets whether percentile tracking is enabled. The default is <see langword="true"/>.
     /// </summary>
     public bool EnablePercentileTracking { get; set; } = true;
+
+    /// <summary>
+    /// Returns a string representation of the performance settings.
+    /// </summary>
+    public override string ToString() => $"PerformanceSettings {{ EnablePerformanceMonitoring = {EnablePerformanceMonitoring}, MetricsRetentionMinutes = {MetricsRetentionMinutes}, EnableSlowQueryLogging = {EnableSlowQueryLogging}, SlowQueryThresholdMs = {SlowQueryThresholdMs}, EnablePercentileTracking = {EnablePercentileTracking} }}";
 }
 
 /// <summary>
@@ -305,6 +335,11 @@ public sealed class PersistenceSettings
     /// Gets or sets whether database query logging is enabled. The default is <see langword="false"/>.
     /// </summary>
     public bool EnableQueryLogging { get; set; } = false;
+
+    /// <summary>
+    /// Returns a string representation of the persistence settings.
+    /// </summary>
+    public override string ToString() => $"PersistenceSettings {{ DatabaseProvider = {DatabaseProvider}, CommandTimeoutSeconds = {CommandTimeoutSeconds}, EnableAutoMigration = {EnableAutoMigration}, MaxConnectionPoolSize = {MaxConnectionPoolSize}, EnableQueryLogging = {EnableQueryLogging} }}";
 }
 
 /// <summary>
@@ -353,6 +388,11 @@ public sealed class DistributedSettings
     /// The default is 30.
     /// </summary>
     public int LeaderElectionLeaseDurationSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Returns a string representation of the distributed settings.
+    /// </summary>
+    public override string ToString() => $"DistributedSettings {{ EnableDistributed = {EnableDistributed}, ServiceName = {ServiceName}, ServiceInstanceId = {ServiceInstanceId}, EnableServiceDiscovery = {EnableServiceDiscovery}, EnableLeaderElection = {EnableLeaderElection}, LeaderElectionLeaseDurationSeconds = {LeaderElectionLeaseDurationSeconds} }}";
 }
 
 /// <summary>
@@ -379,4 +419,9 @@ public sealed class FeatureFlags
     /// Gets or sets whether distributed locking is enabled. The default is <see langword="false"/>.
     /// </summary>
     public bool EnableDistributedLocking { get; set; } = false;
+
+    /// <summary>
+    /// Returns a string representation of the feature flags.
+    /// </summary>
+    public override string ToString() => $"FeatureFlags {{ EnableAdvancedScheduling = {EnableAdvancedScheduling}, EnableJobChaining = {EnableJobChaining}, EnableWorkflows = {EnableWorkflows}, EnableDistributedLocking = {EnableDistributedLocking} }}";
 }
