@@ -1009,6 +1009,81 @@ Note: Replace the JobId values with actual job IDs from your system.
 
 The `JobPipelineService` manages job pipelines — ordered chains of jobs where each step is triggered only after the previous step succeeds. Pipeline step ordering is enforced through `JobDependency` edges in the dependency graph.
 
+## CacheService
+
+The `CacheService` provides in-memory caching for frequently accessed scheduler data, reducing database queries and improving response times for hot data. It uses `IMemoryCache` underneath with proactive cleanup of expired entries.
+
+### Public API
+
+- `GetAsync<T>(string key)` - Retrieves a value from cache if exists and not expired
+- `SetAsync<T>(string key, T value, TimeSpan? expiration = null)` - Stores a value in cache with optional expiration (defaults to 1 hour)
+- `RemoveAsync(string key)` - Removes a specific key from cache
+- `InvalidatePatternAsync(string keyPattern)` - Removes all cache entries matching a pattern
+- `GetOrSetAsync<T>(string key, Func<Task<T?>> factory, TimeSpan? expiration = null)` - Gets value from cache or creates it using a factory function
+- `ClearAllAsync()` - Removes all cache entries
+- `GetStatistics()` - Returns current cache statistics
+- `RemoveExpiredEntriesAsync()` - Proactively removes expired entries to prevent memory leaks
+
+### CacheStatistics
+
+The `CacheStatistics` class provides a snapshot of cache state:
+
+- `TotalKeys` - Number of tracked cache keys
+- `Timestamp` - Time at which the statistics were captured
+
+### Usage example
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
+
+public class CacheDemo
+{
+    public static async Task Main()
+    {
+        // Setup cache service (typically done via dependency injection)
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var logger = NullLogger<CacheService>.Instance;
+        var cacheService = new CacheService(memoryCache, logger);
+
+        // 1️⃣ Set a value in cache with default expiration (1 hour)
+        var jobData = new { Id = 1, Name = "Test Job", Status = "Active" };
+        await cacheService.SetAsync("job:1", jobData);
+
+        // 2️⃣ Retrieve the value from cache
+        var cachedData = await cacheService.GetAsync<dynamic>("job:1");
+        Console.WriteLine($"Retrieved job: {cachedData?.Name}");
+
+        // 3️⃣ Use GetOrSet for lazy cache population
+        var stats = await cacheService.GetOrSetAsync(
+            "system:stats",
+            async () =>
+            {
+                // Expensive operation to compute stats
+                await Task.Delay(100); // Simulate work
+                return new { TotalJobs = 42, ActiveJobs = 5 };
+            },
+            TimeSpan.FromMinutes(10)); // Cache for 10 minutes
+
+        Console.WriteLine($"Stats: {stats?.TotalJobs} total jobs");
+
+        // 4️⃣ Check cache statistics
+        var statsInfo = cacheService.GetStatistics();
+        Console.WriteLine($"Cache contains {statsInfo.TotalKeys} keys as of {statsInfo.Timestamp}");
+
+        // 5️⃣ Invalidate cache entries by pattern
+        await cacheService.InvalidatePatternAsync("job:");
+        Console.WriteLine("Invalidated all job-related cache entries");
+
+        // 6️⃣ Clean up
+        cacheService.Dispose();
+    }
+}
+```
+
 ## AuditLogger
 
 The `AuditLogger` service provides comprehensive audit logging capabilities for compliance and security purposes. It tracks all important scheduler operations and API calls, storing them in memory with automatic trimming to maintain performance.
