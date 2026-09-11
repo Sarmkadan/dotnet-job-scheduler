@@ -1760,8 +1760,155 @@ To run the tests, use the `dotnet test` command.
 
 Note: The third test project `src/JobScheduler.Core.Tests` does not exist in this repository.
 
-| Action | Verb and route | Parameters or request body | Declared status codes |
-| --- | --- | --- | --- |
+## Performance monitoring
+
+The job scheduler includes built-in performance monitoring capabilities through the `PerformanceMonitor` and `ExecutionStatisticsService` services. These services collect, analyze, and report on job execution metrics to help identify bottlenecks, track performance trends, and detect anomalies.
+
+### PerformanceMonitor
+
+The `PerformanceMonitor` service (`src/JobScheduler.Core/Services/PerformanceMonitor.cs`) provides real-time monitoring of scheduler performance metrics including execution times, throughput, and resource usage.
+
+#### Key features
+
+- **Execution time tracking**: Records execution time for individual jobs with success/failure status
+- **Metrics aggregation**: Computes average, minimum, and maximum execution times
+- **Throughput measurement**: Calculates executions per minute for the scheduler
+- **Success rate calculation**: Tracks percentage of successful executions
+- **Percentile analysis**: Supports percentile calculations (P95, P99) for SLA monitoring
+- **Resource monitoring**: Provides CPU utilization and memory usage measurements
+- **Timeline data**: Generates hourly aggregated performance data for dashboard visualization
+- **Metrics summary**: Provides comprehensive statistics summary including total executions, success rates, and resource usage
+
+#### Core classes
+
+- `PerformanceMonitor`: Main service for recording and retrieving performance metrics
+- `PerformanceMetric`: Individual performance metric record containing job ID, name, execution time, success status, and timestamp
+- `MetricsSummary`: Summary statistics including total executions, successful/failed executions, average/min/max execution times, and memory usage
+- `PerformanceTimelinePoint`: Hourly aggregated data point showing execution counts, success/failure counts, and average execution time
+
+#### Usage example
+
+```csharp
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.Logging;
+
+// Assume logger is available from dependency injection
+var performanceMonitor = new PerformanceMonitor(logger);
+
+// Record a job execution
+performanceMonitor.RecordExecutionTime(
+    jobId: Guid.NewGuid(),
+    jobName: "ReportGenerationJob",
+    elapsedMs: 1542,
+    success: true);
+
+// Get average execution time for a specific job
+var avgTime = performanceMonitor.GetAverageExecutionTime(jobId);
+
+// Get overall scheduler throughput (executions per minute)
+var throughput = performanceMonitor.GetThroughputPerMinute();
+
+// Get success rate percentage
+var successRate = performanceMonitor.GetSuccessRate();
+
+// Get P95 execution time for SLA monitoring
+var p95Time = performanceMonitor.GetPercentileExecutionTime(jobId, 95);
+
+// Get comprehensive metrics summary
+var summary = performanceMonitor.GetSummary();
+Console.WriteLine($"Total executions: {summary.TotalExecutions}");
+Console.WriteLine($"Average execution time: {summary.AverageExecutionTimeMs}ms");
+Console.WriteLine($"Success rate: {summary.SuccessRate:F2}%");
+```
+
+### ExecutionStatisticsService
+
+The `ExecutionStatisticsService` (`src/JobScheduler.Core/Services/ExecutionStatisticsService.cs`) computes advanced execution statistics and analytics for jobs, providing detailed performance analysis including percentiles, trends, and anomaly detection.
+
+#### Key features
+
+- **Comprehensive job statistics**: Success rates, execution time metrics, and last execution timestamp
+- **Performance analysis**: Percentile-based analysis (median, P95, P99) with slowest/fastest execution timestamps
+- **Trend analysis**: Daily performance trends showing execution counts, average execution times, and success rates over time
+- **Anomaly detection**: Identifies anomalous execution times using standard deviation (executions >2σ from mean)
+- **Historical analysis**: Works with historical execution data from the repository
+
+#### Core classes
+
+- `ExecutionStatsResponse`: Basic job statistics including total executions, successful/failed executions, success rate, average/min/max execution times, and last execution timestamp
+- `PerformanceAnalysisResponse`: Detailed performance metrics including average, median, P95, P99 execution times, slowest/fastest execution times and timestamps
+- `PerformanceTrendPoint`: Daily trend data point showing date, execution count, average execution time, success rate, and maximum execution time
+- `ExecutionAnomalyReport`: Anomaly detection result showing execution ID, timestamp, actual/expected execution times, deviation factor, and anomaly type (SlowExecution/FastExecution)
+
+#### Usage example
+
+```csharp
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.Logging;
+
+// Assume repositories are available from dependency injection
+var executionStatisticsService = new ExecutionStatisticsService(
+    executionRepository,
+    jobRepository,
+    logger);
+
+// Get comprehensive statistics for a job
+var stats = await executionStatisticsService.GetJobExecutionStatsAsync(jobId);
+if (stats != null)
+{
+    Console.WriteLine($"Job {stats.JobId} statistics:");
+    Console.WriteLine($"  Total executions: {stats.TotalExecutions}");
+    Console.WriteLine($"  Success rate: {stats.SuccessRate:F2}%");
+    Console.WriteLine($"  Average execution time: {stats.AverageExecutionTimeMs}ms");
+}
+
+// Get detailed performance analysis including percentiles
+var analysis = await executionStatisticsService.GetJobPerformanceAnalysisAsync(jobId);
+if (analysis != null)
+{
+    Console.WriteLine($"Performance analysis for job {analysis.JobId}:");
+    Console.WriteLine($"  Average execution time: {analysis.AverageExecutionTimeMs}ms");
+    Console.WriteLine($"  Median execution time: {analysis.MedianExecutionTimeMs}ms");
+    Console.WriteLine($"  P95 execution time: {analysis.P95ExecutionTimeMs}ms");
+    Console.WriteLine($"  P99 execution time: {analysis.P99ExecutionTimeMs}ms");
+    Console.WriteLine($"  Slowest execution: {analysis.SlowestExecutionTimeMs}ms at {analysis.SlowestExecutionAt}");
+    Console.WriteLine($"  Fastest execution: {analysis.FastestExecutionTimeMs}ms at {analysis.FastestExecutionAt}");
+}
+
+// Get performance trend over the last 7 days
+var trend = await executionStatisticsService.GetPerformanceTrendAsync(jobId, days: 7);
+foreach (var point in trend)
+{
+    Console.WriteLine($"{point.Date:yyyy-MM-dd}: {point.ExecutionCount} executions, " +
+                     $"avg {point.AverageExecutionTimeMs}ms, success rate {point.SuccessRate:F1}%");
+}
+
+// Detect execution anomalies
+var anomalies = await executionStatisticsService.DetectExecutionAnomaliesAsync(jobId);
+foreach (var anomaly in anomalies)
+{
+    Console.WriteLine($"{anomaly.AnomalyType} on {anomaly.Timestamp:yyyy-MM-dd HH:mm:ss}: " +
+                     $"{anomaly.ExecutionTimeMs}ms (expected {anomaly.ExpectedTimeMs}ms, " +
+                     $"deviation factor {anomaly.DeviationFactor:F2})");
+}
+```
+
+### Integration with controllers
+
+Performance monitoring data is exposed through REST API endpoints:
+
+- **DashboardController**: 
+  - `GET /api/Dashboard/performance-timeline?hours={hours}` - Returns hourly performance timeline data
+  - `GET /api/Dashboard/overview` - Includes average execution time and success rate in overview
+
+- **ExecutionsController**:
+  - `GET /api/Executions/job/{jobId}/stats` - Returns execution statistics for a specific job
+  - `GET /api/Executions/job/{jobId}/performance` - Returns performance analysis including percentiles
+
+- **HistoryController**:
+  - `GET /api/History/jobs/{jobId}/summary` - Returns job execution summary with success rates and average duration
+
+These services work together to provide comprehensive performance monitoring capabilities, enabling operators to track job scheduler health, identify performance bottlenecks, and make data-driven decisions for optimization and capacity planning.
 | `CreateJob` | `POST /api/Jobs` | JSON `CreateJobRequest` body | `201 Created`, `400 Bad Request` |
 | `GetJob` | `GET /api/Jobs/{id}` | `id` (Guid) | `200 OK`, `404 Not Found` |
 | `ListJobs` | `GET /api/Jobs` | Optional query parameters: `status`, `pageNumber` (default `1`), and `pageSize` (default `10`) | `200 OK` |
