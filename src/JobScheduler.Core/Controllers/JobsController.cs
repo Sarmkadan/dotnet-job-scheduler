@@ -353,6 +353,11 @@ public sealed class JobsController : ControllerBase
 public sealed class SuspendJobRequest
 {
     public string? Reason { get; set; }
+
+    /// <summary>
+    /// Returns a string representation of the suspend job request.
+    /// </summary>
+    public override string ToString() => $"SuspendJobRequest: Reason = {Reason ?? "(none)"}";
 }
 
 public sealed class PaginatedResponse<T>
@@ -361,4 +366,10 @@ public sealed class PaginatedResponse<T>
     public int TotalCount { get; set; }
     public int PageNumber { get; set; }
     public int PageSize { get; set; }
+
+    /// <summary>
+    /// Returns a string representation of the paginated response.
+    /// </summary>
+    public override string ToString() =>
+        $"PaginatedResponse: Page = {PageNumber}, PageSize = {PageSize}, TotalCount = {TotalCount}, ItemCount = {Data.Count}";
 }
