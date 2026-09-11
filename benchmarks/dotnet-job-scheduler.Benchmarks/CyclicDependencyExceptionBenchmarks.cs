@@ -4,6 +4,9 @@ using JobScheduler.Core.Exceptions;
 namespace JobScheduler.Benchmarks;
 
 [MemoryDiagnoser]
+/// <summary>
+/// Benchmarks for measuring the performance of CyclicDependencyException creation.
+/// </summary>
 public class CyclicDependencyExceptionBenchmarks
 {
     private Guid _jobId;
@@ -14,6 +17,9 @@ public class CyclicDependencyExceptionBenchmarks
     public int Count { get; set; }
 
     [GlobalSetup]
+    /// <summary>
+    /// Initializes test data for each benchmark iteration.
+    /// </summary>
     public void Setup()
     {
         _jobId = Guid.NewGuid();
@@ -22,6 +28,9 @@ public class CyclicDependencyExceptionBenchmarks
     }
 
     [Benchmark]
+    /// <summary>
+    /// Measures the time to create a CyclicDependencyException with job IDs only.
+    /// </summary>
     public CyclicDependencyException CreateSimple()
     {
         return new CyclicDependencyException(_jobId, _dependsOnJobId);
@@ -33,7 +42,10 @@ public class CyclicDependencyExceptionBenchmarks
         return new CyclicDependencyException(_jobId, _dependsOnJobId, _innerException);
     }
 
-    [Benchmark]
+    /// <summary>
+/// Measures the time to create multiple CyclicDependencyException instances (as specified by Count).
+/// </summary>
+[Benchmark]
     public void CreateMany()
     {
         for (int i = 0; i < Count; i++)
