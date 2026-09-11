@@ -242,6 +242,12 @@ public sealed class HealthStatusResponse
     public JobsStatus Jobs { get; set; } = new();
     public ExecutionsStatus Executions { get; set; } = new();
     public MemoryStatus Memory { get; set; } = new();
+
+    /// <summary>
+    /// Returns a concise, informative representation of the health status response.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(HealthStatusResponse)} {{ Timestamp = {Timestamp}, Version = {Version}, Status = {Status}, Database = {Database}, Jobs = {Jobs}, Executions = {Executions}, Memory = {Memory} }}";
 }
 
 public sealed class DatabaseStatus
@@ -249,24 +255,48 @@ public sealed class DatabaseStatus
     public bool Available { get; set; }
     public DateTime LastChecked { get; set; }
     public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Returns a concise, informative representation of the database status.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(DatabaseStatus)} {{ Available = {Available}, LastChecked = {LastChecked}, ErrorMessage = {ErrorMessage} }}";
 }
 
 public sealed class JobsStatus
 {
     public int TotalCount { get; set; }
     public int ActiveCount { get; set; }
+
+    /// <summary>
+    /// Returns a concise, informative representation of the jobs status.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(JobsStatus)} {{ TotalCount = {TotalCount}, ActiveCount = {ActiveCount} }}";
 }
 
 public sealed class ExecutionsStatus
 {
     public int TotalCount { get; set; }
     public double SuccessRate { get; set; }
+
+    /// <summary>
+    /// Returns a concise, informative representation of the executions status.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(ExecutionsStatus)} {{ TotalCount = {TotalCount}, SuccessRate = {SuccessRate} }}";
 }
 
 public sealed class MemoryStatus
 {
     public long UsageMb { get; set; }
     public long Threshold { get; set; }
+
+    /// <summary>
+    /// Returns a concise, informative representation of the memory status.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(MemoryStatus)} {{ UsageMb = {UsageMb}, Threshold = {Threshold} }}";
 }
 
 public sealed class DiagnosticsResponse
@@ -278,6 +308,12 @@ public sealed class DiagnosticsResponse
     public MemoryDiagnostics Memory { get; set; } = new();
     public SystemDiagnostics SystemStatistics { get; set; } = new();
     public List<ErrorLogEntry> RecentErrors { get; set; } = new();
+
+    /// <summary>
+    /// Returns a concise, informative representation of the diagnostics response.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(DiagnosticsResponse)} {{ Timestamp = {Timestamp}, MachineName = {MachineName}, ProcessorCount = {ProcessorCount}, RuntimeVersion = {RuntimeVersion}, Memory = {Memory}, SystemStatistics = {SystemStatistics}, RecentErrors = {RecentErrors} }}";
 }
 
 public sealed class MemoryDiagnostics
@@ -287,6 +323,12 @@ public sealed class MemoryDiagnostics
     public int Gen0Collections { get; set; }
     public int Gen1Collections { get; set; }
     public int Gen2Collections { get; set; }
+
+    /// <summary>
+    /// Returns a concise, informative representation of the memory diagnostics.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(MemoryDiagnostics)} {{ TotalMemoryMb = {TotalMemoryMb}, ManagedHeapSizeMb = {ManagedHeapSizeMb}, Gen0Collections = {Gen0Collections}, Gen1Collections = {Gen1Collections}, Gen2Collections = {Gen2Collections} }}";
 }
 
 public sealed class SystemDiagnostics
@@ -296,6 +338,12 @@ public sealed class SystemDiagnostics
     public int TotalExecutions { get; set; }
     public double AverageSuccessRate { get; set; }
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Returns a concise, informative representation of the system diagnostics.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(SystemDiagnostics)} {{ TotalJobs = {TotalJobs}, ActiveJobs = {ActiveJobs}, TotalExecutions = {TotalExecutions}, AverageSuccessRate = {AverageSuccessRate}, AverageExecutionTimeMs = {AverageExecutionTimeMs} }}";
 }
 
 public sealed class ErrorLogEntry
@@ -303,4 +351,10 @@ public sealed class ErrorLogEntry
     public string Message { get; set; } = string.Empty;
     public int Count { get; set; }
     public DateTime? LastOccurred { get; set; }
+
+    /// <summary>
+    /// Returns a concise, informative representation of the error log entry.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(ErrorLogEntry)} {{ Message = {Message}, Count = {Count}, LastOccurred = {LastOccurred} }}";
 }
