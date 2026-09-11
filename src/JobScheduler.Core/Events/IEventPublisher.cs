@@ -127,6 +127,12 @@ public sealed class JobCreatedEvent : SchedulerEventBase
     /// The user or system that created the job.
     /// </summary>
     public string CreatedBy { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, JobName={JobName}, CreatedBy={CreatedBy}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
 
 /// <summary>
@@ -140,6 +146,12 @@ public sealed class JobExecutionStartedEvent : SchedulerEventBase
     /// The name of the job that started execution.
     /// </summary>
     public string JobName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, JobName={JobName}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
 
 /// <summary>
@@ -165,6 +177,12 @@ public sealed class JobExecutionCompletedEvent : SchedulerEventBase
     /// The error message if the execution failed, otherwise null.
     /// </summary>
     public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, JobName={JobName}, Success={Success}, ExecutionTimeMs={ExecutionTimeMs}, ErrorMessage={ErrorMessage}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
 
 /// <summary>
@@ -190,6 +208,12 @@ public sealed class JobExecutionFailedEvent : SchedulerEventBase
     /// Indicates whether the job will be retried again.
     /// </summary>
     public bool WillRetry { get; init; }
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, JobName={JobName}, ErrorMessage={ErrorMessage}, RetryAttempt={RetryAttempt}, WillRetry={WillRetry}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
 
 /// <summary>
@@ -215,6 +239,12 @@ public sealed class JobExecutionExhaustedEvent : SchedulerEventBase
     /// The maximum number of retry attempts allowed.
     /// </summary>
     public int MaxRetries { get; init; }
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, JobName={JobName}, ErrorMessage={ErrorMessage}, TotalAttempts={TotalAttempts}, MaxRetries={MaxRetries}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
 
 /// <summary>
@@ -241,6 +271,12 @@ public sealed class JobExecutionTimedOutEvent : SchedulerEventBase
     /// The actual execution time in milliseconds before the timeout occurred.
     /// </summary>
     public long ExecutionTimeMs { get; init; }
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, JobName={JobName}, ErrorMessage={ErrorMessage}, TimeoutSeconds={TimeoutSeconds}, ExecutionTimeMs={ExecutionTimeMs}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
 
 /// <summary>
@@ -259,6 +295,12 @@ public sealed class JobExecutionInterruptedEvent : SchedulerEventBase
     /// The reason for the interruption.
     /// </summary>
     public string Reason { get; init; } = "Shutdown interrupted execution";
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, JobName={JobName}, Reason={Reason}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
 
 /// <summary>
@@ -282,6 +324,12 @@ public sealed class JobSuspendedEvent : SchedulerEventBase
     /// The user or system that suspended the job.
     /// </summary>
     public string? SuspendedBy { get; init; }
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, JobName={JobName}, Reason={Reason}, SuspendedBy={SuspendedBy}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
 
 /// <summary>
@@ -301,6 +349,12 @@ public sealed class JobResumedEvent : SchedulerEventBase
     /// The user or system that resumed the job.
     /// </summary>
     public string? ResumedBy { get; init; }
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, JobName={JobName}, ResumedBy={ResumedBy}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
 
 /// <summary>
@@ -320,6 +374,12 @@ public sealed class JobDeletedEvent : SchedulerEventBase
     /// The user or system that deleted the job.
     /// </summary>
     public string? DeletedBy { get; init; }
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, JobName={JobName}, DeletedBy={DeletedBy}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
 
 /// <summary>
@@ -349,4 +409,10 @@ public sealed class SchedulerErrorEvent : SchedulerEventBase
     /// The severity of the error (1=Low, 2=Medium, 3=High, 4=Critical).
     /// </summary>
     public int Severity { get; init; }
+
+    /// <summary>
+    /// Returns a concise single-line summary of the event.
+    /// </summary>
+    public override string ToString() =>
+        $"{EventType} [JobId={JobId}, ErrorMessage={ErrorMessage}, Component={Component}, Severity={Severity}, OccurredAtUtc={OccurredAtUtc:O}]";
 }
