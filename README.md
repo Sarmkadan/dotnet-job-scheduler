@@ -1179,7 +1179,7 @@ The `JobsController` manages scheduled jobs under the `/api/Jobs` route.
 The `benchmarks/dotnet-job-scheduler.Benchmarks` project contains performance benchmarks for core scheduler components using BenchmarkDotNet. To run the benchmarks:
 
 ```bash
-dotnet run -c Release --project benchmarks/dotnet-job-scheduler.Benchmarks
+dotnet run -c Release
 ```
 
 ### Benchmark Classes
