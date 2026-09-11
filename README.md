@@ -1174,6 +1174,63 @@ curl -X DELETE "http://localhost:5000/api/Executions/cleanup" \
 
 The `JobsController` manages scheduled jobs under the `/api/Jobs` route.
 
+## Enums and policies
+
+### JobStatus
+
+Represents the status of a scheduled job in the system.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| Pending | 0 | Job has been created but not yet scheduled |
+| Scheduled | 1 | Job is currently scheduled and waiting for execution |
+| Running | 2 | Job is currently executing |
+| Completed | 3 | Job execution completed successfully |
+| Failed | 4 | Job failed and is awaiting retry |
+| Suspended | 5 | Job was suspended by user or system |
+| Cancelled | 6 | Job has been cancelled |
+| FailedPermanently | 7 | Job failed permanently after all retries exhausted |
+
+**Extension methods:**
+- `IsFinal()`: Returns `true` if the status is `Completed`, `Cancelled`, or `FailedPermanently`; otherwise `false`.
+
+### ExecutionStatus
+
+Represents the result status of a single job execution attempt.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| Running | 0 | Execution is currently in progress |
+| Success | 1 | Execution completed successfully |
+| Failed | 2 | Execution failed with an error |
+| Cancelled | 3 | Execution was cancelled before completion |
+| TimedOut | 4 | Execution timed out |
+| Skipped | 5 | Execution was skipped due to concurrency control |
+
+**Extension methods:**
+- `IsTerminal()`: Returns `true` if the status is `Success`, `Failed`, `Cancelled`, `TimedOut`, or `Skipped`; otherwise `false`.
+
+### JobPriority
+
+Defines priority levels for job execution in the scheduler queue. Higher values indicate higher priority and execute first.
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| Low | 0 | Lowest priority - executes last |
+| Normal | 1 | Normal priority - default for most jobs |
+| High | 2 | High priority - executes before normal priority jobs |
+| Critical | 3 | Critical priority - executes before all other jobs |
+
+### MisfirePolicy
+
+Defines the policy for handling misfired jobs (jobs that were scheduled to run but the scheduler was not running at the scheduled time).
+
+| Member | Value | Description |
+|--------|-------|-------------|
+| FireOnceNow | 0 | Fire the job once immediately when the scheduler restarts after a misfire. This can cause a "thundering herd" problem if many jobs have missed their execution windows. |
+| SkipToNext | 1 | Skip the missed execution and schedule the next execution based on the cron expression. This is the safest default for recurring jobs. |
+| FireAll | 2 | Fire all missed executions immediately when the scheduler restarts. This can cause performance issues if many executions were missed. |
+
 ## Examples
 
 The repository includes various example files demonstrating different aspects of the job scheduler:
