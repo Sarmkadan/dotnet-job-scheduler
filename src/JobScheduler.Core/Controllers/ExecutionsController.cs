@@ -337,14 +337,49 @@ public sealed class ExecutionsController : ControllerBase
 
 public sealed class ExecutionStatsResponse
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the job.
+    /// </summary>
     public Guid JobId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of executions for the job.
+    /// </summary>
     public int TotalExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of successful executions.
+    /// </summary>
     public int SuccessfulExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of failed executions.
+    /// </summary>
     public int FailedExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the success rate as a value between 0 and 1.
+    /// </summary>
     public double SuccessRate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average execution time in milliseconds.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum execution time in milliseconds.
+    /// </summary>
     public long MinExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum execution time in milliseconds.
+    /// </summary>
     public long MaxExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the date and time of the last execution.
+    /// </summary>
     public DateTime? LastExecutionAt { get; set; }
 
     /// <summary>
@@ -358,14 +393,49 @@ public sealed class ExecutionStatsResponse
 
 public sealed class PerformanceAnalysisResponse
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the job.
+    /// </summary>
     public Guid JobId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average execution time in milliseconds.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the median execution time in milliseconds.
+    /// </summary>
     public long MedianExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the 95th percentile execution time in milliseconds.
+    /// </summary>
     public long P95ExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the 99th percentile execution time in milliseconds.
+    /// </summary>
     public long P99ExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the slowest execution time in milliseconds.
+    /// </summary>
     public long SlowestExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the fastest execution time in milliseconds.
+    /// </summary>
     public long FastestExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the date and time when the slowest execution occurred.
+    /// </summary>
     public DateTime? SlowestExecutionAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the date and time when the fastest execution occurred.
+    /// </summary>
     public DateTime? FastestExecutionAt { get; set; }
 
     /// <summary>
@@ -380,8 +450,19 @@ public sealed class PerformanceAnalysisResponse
 
 public sealed class CleanupResponse
 {
+    /// <summary>
+    /// Gets or sets the number of deleted execution records.
+    /// </summary>
     public int DeletedCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the cutoff date used for determining which executions to delete.
+    /// </summary>
     public DateTime CutoffDate { get; set; }
+
+    /// <summary>
+    /// Gets or sets a message describing the cleanup operation results.
+    /// </summary>
     public string Message { get; set; } = string.Empty;
 
     /// <summary>
