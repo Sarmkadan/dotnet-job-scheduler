@@ -6,8 +6,14 @@ using Xunit;
 
 namespace JobScheduler.Core.Tests;
 
+/// <summary>
+/// Tests for the Job class.
+/// </summary>
 public class JobTests
 {
+    /// <summary>
+    /// Verifies that IsValidForScheduling returns true when all job properties are valid.
+    /// </summary>
     [Fact]
     public void IsValidForScheduling_ReturnsTrue_WhenAllPropertiesAreValid()
     {
@@ -33,6 +39,9 @@ public class JobTests
         Assert.True(result);
     }
 
+    /// <summary>
+    /// Verifies that IsValidForScheduling returns false when the job name exceeds the maximum allowed length.
+    /// </summary>
     [Fact]
     public void IsValidForScheduling_ReturnsFalse_WhenNameIsTooLong()
     {
@@ -54,6 +63,9 @@ public class JobTests
         Assert.False(result);
     }
 
+    /// <summary>
+    /// Verifies that UpdateExecutionMetrics increments the appropriate counters and sets the last execution timestamp.
+    /// </summary>
     [Fact]
     public void UpdateExecutionMetrics_IncrementsCounters_AndSetsLastExecutedAt()
     {
@@ -77,6 +89,9 @@ public class JobTests
         Assert.True((DateTime.UtcNow - job.LastExecutedAt!.Value).TotalSeconds < 5);
     }
 
+    /// <summary>
+    /// Verifies that GetSuccessRate returns zero when no executions have been recorded.
+    /// </summary>
     [Fact]
     public void GetSuccessRate_ReturnsZero_WhenNoExecutions()
     {
@@ -90,6 +105,9 @@ public class JobTests
         Assert.Equal(0.0, rate);
     }
 
+    /// <summary>
+    /// Verifies that CanExecuteNow returns false when concurrent execution is disallowed and the job is already running.
+    /// </summary>
     [Fact]
     public void CanExecuteNow_ReturnsFalse_WhenDisallowConcurrentAndAlreadyRunning()
     {
@@ -108,6 +126,9 @@ public class JobTests
         Assert.False(canExecute);
     }
 
+    /// <summary>
+    /// Verifies that GetEffectiveRetryPolicy returns a default retry policy when the job's retry policy is null.
+    /// </summary>
     [Fact]
     public void GetEffectiveRetryPolicy_ReturnsDefault_WhenRetryPolicyIsNull()
     {
@@ -130,6 +151,9 @@ public class JobTests
         Assert.Equal(BackoffStrategy.Exponential, policy.Strategy);
     }
 
+    /// <summary>
+    /// Verifies that CalculateEffectivePriority applies aging bonus and caps at Critical priority level.
+    /// </summary>
     [Fact]
     public void CalculateEffectivePriority_AppliesAgingBonus_AndCapsAtCritical()
     {
