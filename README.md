@@ -1005,6 +1005,110 @@ curl -X POST "http://localhost:5000/api/Pipelines" \
 
 Note: Replace the JobId values with actual job IDs from your system.
 
+## JobPipelineService
+
+The `JobPipelineService` manages job pipelines — ordered chains of jobs where each step is triggered only after the previous step succeeds. Pipeline step ordering is enforced through `JobDependency` edges in the dependency graph.
+
+### Key Features
+
+- **Pipeline Creation**: Creates pipelines from ordered job steps with automatic dependency registration
+- **Step Ordering**: Ensures steps execute in sequence through dependency graph management
+- **StopOnFailure Semantics**: Individual steps can be configured to halt pipeline execution on failure
+- **Status Tracking**: Provides real-time status of each pipeline step based on job execution history
+- **Validation**: Automatically validates pipeline dependency graphs to prevent cycles
+- **Extension Methods**: Additional convenience methods via `JobPipelineServiceExtensions`
+
+### Core Responsibilities
+
+1. **Creating Pipelines**: The `CreatePipelineAsync` method validates job existence, creates pipeline entities, registers sequential dependencies, and validates the resulting dependency graph
+2. **Retrieving Pipelines**: Methods like `GetPipelineAsync` and `GetAllPipelinesAsync` fetch pipelines with their associated steps and job details
+3. **Managing Pipelines**: `DeletePipelineAsync` removes pipelines and cleans up their dependency edges
+4. **Status Monitoring**: `GetPipelineStatusAsync` examines latest execution records for each step to determine current pipeline state
+5. **Dependency Management**: Works with `IJobDependencyService` to maintain proper step ordering through graph edges
+
+### StopOnFailure Behavior
+
+Each pipeline step can be configured with `StopOnFailure = true` (default) or `false`:
+- When `true`: Pipeline execution stops if this step fails, preventing subsequent steps from running
+- When `false`: Pipeline continues to next step even if this step fails (though the step itself is marked as failed)
+
+### Pipeline Status Response
+
+The service returns a `PipelineStatusResponse` containing:
+- Pipeline identification and name
+- List of `PipelineStepStatus` objects showing:
+  - Step order and associated job details
+  - Current execution status (NotStarted, Pending, Running, Success, Failed, etc.)
+  - Last execution timestamp
+  - Readiness status (whether previous steps succeeded)
+
+### Extension Methods
+
+`JobPipelineServiceExtensions` provides additional functionality:
+- `ExistsAsync`: Check if a pipeline exists by ID
+- `GetPipelineByNameAsync`: Find pipeline by name (case-insensitive)
+- `GetActivePipelinesAsync`: Retrieve only active pipelines
+- `GetPipelineStatusWithStatsAsync`: Get status with execution statistics (success/failure counts, average durations)
+- `GetDbContext`: Access underlying DbContext for advanced queries
+
+### Usage Example
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+
+// Assume dependencies are resolved via DI or manually instantiated
+var context = new JobSchedulerContext(/* options */);
+var dependencyService = new JobDependencyService(context);
+var logger = /* logger instance */;
+var pipelineService = new JobPipelineService(context, dependencyService, logger);
+
+// Define pipeline steps (must have at least 2 steps)
+var steps = new List<CreatePipelineRequest.PipelineStepRequest>
+{
+    new() { JobId = Guid.Parse("11111111-1111-1111-1111-111111111111"), StopOnFailure = true },
+    new() { JobId = Guid.Parse("22222222-2222-2222-2222-222222222222"), StopOnFailure = true },
+    new() { JobId = Guid.Parse("33333333-3333-3333-3333-333333333333"), StopOnFailure = false }
+};
+
+var request = new CreatePipelineRequest
+{
+    Name = "Data Processing Pipeline",
+    Description = "Ingest, process, and archive daily data",
+    Steps = steps
+};
+
+// Create the pipeline
+var pipeline = await pipelineService.CreatePipelineAsync(request, createdBy: "system");
+
+// Check pipeline status
+var status = await pipelineService.GetPipelineStatusAsync(pipeline.Id);
+if (status != null)
+{
+    Console.WriteLine($"Pipeline '{status.PipelineName}' status:");
+    foreach (var stepStatus in status.StepStatuses)
+    {
+        Console.WriteLine($"  Step {stepStatus.StepOrder}: {stepStatus.JobName} - {stepStatus.Status} " +
+                         $"(Ready: {stepStatus.IsReady})");
+    }
+}
+
+// Get extended status with statistics
+var stats = await pipelineService.GetPipelineStatusWithStatsAsync(pipeline.Id);
+if (stats != null)
+{
+    Console.WriteLine($"Pipeline execution statistics:");
+    foreach (var stepStat in stats.ExecutionStats)
+    {
+        Console.WriteLine($"  Step {stepStat.StepOrder}: {stepStat.SuccessCount} successes, " +
+                         $"{stepStat.FailureCount} failures, avg duration: {stepStat.AverageDuration}");
+    }
+}
+```
+
 ## ExecutionsController REST API
 
 The `ExecutionsController` provides access to job execution history, logs, and detailed execution metrics under the `/api/Executions` route.
