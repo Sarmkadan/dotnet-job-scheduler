@@ -418,7 +418,6 @@ public sealed class AuditStatistics
     /// Timestamp of the newest audit log entry.
     /// </summary>
     public DateTime? NewestLog { get; set; }
-}
 
     /// <summary>
     /// Returns a string summarizing the audit statistics including total logs and counts by event type and severity.
