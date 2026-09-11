@@ -312,23 +312,34 @@ public sealed class DashboardOverview
     public long AverageExecutionTimeMs { get; set; }
     public DateTime LastUpdatedAt { get; set; }
 
+    /// <summary>
+    /// Returns a string summarizing the key dashboard overview metrics.
+    /// </summary>
     public override string ToString()
     {
-        return $"DashboardOverview {{ TotalJobs = {TotalJobs}, ActiveJobs = {ActiveJobs}, RunningExecutions = {RunningExecutions}, FailedJobsLast24Hours = {FailedJobsLast24Hours}, AverageSuccessRate = {AverageSuccessRate}, TotalExecutions = {TotalExecutions} }}";
+        return $"DashboardOverview {{ TotalJobs = {TotalJobs}, ActiveJobs = {ActiveJobs}, RunningExecutions = {RunningExecutions}, FailedJobsLast24Hours = {FailedJobsLast24Hours}, AverageSuccessRate = {AverageSuccessRate}, TotalExecutions = {TotalExecutions}, SuccessfulExecutions = {SuccessfulExecutions}, AverageExecutionTimeMs = {AverageExecutionTimeMs}, LastUpdatedAt = {LastUpdatedAt} }}";
     }
 }
 
 public sealed class QueueStatusResponse
-{
-    public int PendingJobs { get; set; }
-    public int RunningJobs { get; set; }
-    public int FailedJobs { get; set; }
-    public int CompletedJobs { get; set; }
-    public int SuspendedJobs { get; set; }
-    public int TotalQueued { get; set; }
-    public double QueueUtilization { get; set; }
-    public TimeSpan? EstimatedTimeToEmpty { get; set; }
-}
+    {
+        public int PendingJobs { get; set; }
+        public int RunningJobs { get; set; }
+        public int FailedJobs { get; set; }
+        public int CompletedJobs { get; set; }
+        public int SuspendedJobs { get; set; }
+        public int TotalQueued { get; set; }
+        public double QueueUtilization { get; set; }
+        public TimeSpan? EstimatedTimeToEmpty { get; set; }
+
+        /// <summary>
+        /// Returns a string summarizing the key queue status metrics.
+        /// </summary>
+        public override string ToString()
+        {
+            return $"QueueStatusResponse {{ PendingJobs = {PendingJobs}, RunningJobs = {RunningJobs}, FailedJobs = {FailedJobs}, CompletedJobs = {CompletedJobs}, SuspendedJobs = {SuspendedJobs}, TotalQueued = {TotalQueued}, QueueUtilization = {QueueUtilization}, EstimatedTimeToEmpty = {EstimatedTimeToEmpty} }}";
+        }
+    }
 
 public sealed class PriorityDistributionResponse
 {
@@ -337,6 +348,14 @@ public sealed class PriorityDistributionResponse
     public int NormalJobs { get; set; }
     public int LowJobs { get; set; }
     public int TotalJobs { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the job priority distribution.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"PriorityDistributionResponse {{ CriticalJobs = {CriticalJobs}, HighJobs = {HighJobs}, NormalJobs = {NormalJobs}, LowJobs = {LowJobs}, TotalJobs = {TotalJobs} }}";
+    }
 }
 
 public sealed class PerformanceTimelinePoint
@@ -346,6 +365,14 @@ public sealed class PerformanceTimelinePoint
     public int SuccessCount { get; set; }
     public int FailureCount { get; set; }
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the performance timeline point.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"PerformanceTimelinePoint {{ Timestamp = {Timestamp}, ExecutionCount = {ExecutionCount}, SuccessCount = {SuccessCount}, FailureCount = {FailureCount}, AverageExecutionTimeMs = {AverageExecutionTimeMs} }}";
+    }
 }
 
 public sealed class SlowestJobResponse
@@ -355,6 +382,14 @@ public sealed class SlowestJobResponse
     public long AverageExecutionTimeMs { get; set; }
     public long MaxExecutionTimeMs { get; set; }
     public int ExecutionCount { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the slowest job metrics.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"SlowestJobResponse {{ JobId = {JobId}, JobName = {JobName}, AverageExecutionTimeMs = {AverageExecutionTimeMs}, MaxExecutionTimeMs = {MaxExecutionTimeMs}, ExecutionCount = {ExecutionCount} }}";
+    }
 }
 
 public sealed class FailingJobResponse
@@ -364,6 +399,14 @@ public sealed class FailingJobResponse
     public double FailureRate { get; set; }
     public int FailedCount { get; set; }
     public double SuccessRate { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the failing job metrics.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"FailingJobResponse {{ JobId = {JobId}, JobName = {JobName}, FailureRate = {FailureRate}, FailedCount = {FailedCount}, SuccessRate = {SuccessRate} }}";
+    }
 }
 
 public sealed class HealthReportResponse
@@ -374,12 +417,28 @@ public sealed class HealthReportResponse
     public double ProcessorUtilization { get; set; }
     public List<HealthWarning> Warnings { get; set; } = new();
     public bool IsHealthy { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the health report.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"HealthReportResponse {{ Timestamp = {Timestamp}, DatabaseConnected = {DatabaseConnected}, MemoryUsageMb = {MemoryUsageMb}, ProcessorUtilization = {ProcessorUtilization}, Warnings = {Warnings.Count}, IsHealthy = {IsHealthy} }}";
+    }
 }
 
 public sealed class HealthWarning
 {
     public string Severity { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Returns a string summarizing the health warning.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"HealthWarning {{ Severity = {Severity}, Message = {Message} }}";
+    }
 }
 
 public sealed class QueueStatus
