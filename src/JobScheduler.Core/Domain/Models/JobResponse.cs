@@ -128,4 +128,12 @@ public sealed class JobResponse
             MaxConcurrentExecutions = job.MaxConcurrentExecutions
         };
     }
+    /// <summary>
+    /// Returns a string representation of the job response.
+    /// </summary>
+    /// <returns>A string summarizing Id, Name, Status, and NextExecution.</returns>
+    public override string ToString()
+    {
+        return $"Job {Id}: {Name} - {Status}, Next: {NextExecutionAt?.ToString("o") ?? "None"}";
+    }
 }
