@@ -155,6 +155,16 @@ public sealed class RateLimitBucket
 
         return false;
     }
+
+    /// <summary>
+    /// Returns a string representation of the rate limit bucket, including the
+    /// maximum requests allowed, the window size in seconds, and the current request count.
+    /// </summary>
+    /// <returns>A string describing the bucket's limits, window, and current count.</returns>
+    public override string ToString()
+    {
+        return $"RateLimitBucket[MaxRequests={_maxRequests}, WindowSizeSeconds={_windowSizeSeconds}, CurrentCount={_requests.Count}]";
+    }
 }
 
 /// <summary>
@@ -173,4 +183,14 @@ public sealed class RateLimitSettings
     /// Default value is 60 seconds (1 minute).
     /// </summary>
     public int WindowSizeSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// Returns a string representation of the rate limit settings, including the
+    /// maximum requests per window and the window size in seconds.
+    /// </summary>
+    /// <returns>A string describing the configured limits and window.</returns>
+    public override string ToString()
+    {
+        return $"RateLimitSettings[RequestsPerWindow={RequestsPerWindow}, WindowSizeSeconds={WindowSizeSeconds}]";
+    }
 }
