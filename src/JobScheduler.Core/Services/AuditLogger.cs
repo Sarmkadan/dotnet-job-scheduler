@@ -382,7 +382,6 @@ public sealed class ApiCallAudit
     /// Timestamp when the API call was made.
     /// </summary>
     public DateTime Timestamp { get; set; }
-}
 
     /// <summary>
     /// Returns a string summarizing the API call's method, path, status code, and execution time.
