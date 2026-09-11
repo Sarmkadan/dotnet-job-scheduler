@@ -10,6 +10,9 @@ using Xunit;
 
 namespace JobScheduler.Core.Tests;
 
+/// <summary>
+/// Tests for the ExecutionRepository class.
+/// </summary>
 public class ExecutionRepositoryTests
 {
     private static JobSchedulerContext CreateContext()
@@ -72,6 +75,9 @@ public class ExecutionRepositoryTests
         return context;
     }
 
+    /// <summary>
+    /// Tests that GetLatestExecutionAsync returns the most recent execution for a given job.
+    /// </summary>
     [Fact]
     public async Task GetLatestExecutionAsync_ReturnsMostRecentExecution()
     {
@@ -90,6 +96,9 @@ public class ExecutionRepositoryTests
         Assert.Equal(expected.Id, latest!.Id);
     }
 
+    /// <summary>
+    /// Tests that GetExecutionsByJobAsync returns all executions for a job ordered by start date descending.
+    /// </summary>
     [Fact]
     public async Task GetExecutionsByJobAsync_ReturnsAllExecutionsOrderedDesc()
     {
@@ -107,6 +116,9 @@ public class ExecutionRepositoryTests
         Assert.Equal(expected, result.Select(e => e.Id));
     }
 
+    /// <summary>
+    /// Tests that GetExecutionsByStatusAsync filters executions by the specified status.
+    /// </summary>
     [Fact]
     public async Task GetExecutionsByStatusAsync_FiltersByStatus()
     {
@@ -123,6 +135,9 @@ public class ExecutionRepositoryTests
         Assert.Equal(expectedIds, result.Select(e => e.Id));
     }
 
+    /// <summary>
+    /// Tests that GetExecutionsByJobAndStatusAsync returns the correct subset of executions for a job and status.
+    /// </summary>
     [Fact]
     public async Task GetExecutionsByJobAndStatusAsync_ReturnsCorrectSubset()
     {
@@ -140,6 +155,9 @@ public class ExecutionRepositoryTests
         Assert.Equal(expected, result.Select(e => e.Id));
     }
 
+    /// <summary>
+    /// Tests that GetCurrentlyRunningCountAsync returns the correct count of currently running executions for a job.
+    /// </summary>
     [Fact]
     public async Task GetCurrentlyRunningCountAsync_ReturnsCorrectCount()
     {
@@ -153,6 +171,9 @@ public class ExecutionRepositoryTests
         Assert.Equal(expected, count);
     }
 
+    /// <summary>
+    /// Tests that GetFailedExecutionsRequiringRetryAsync only returns retryable failed executions.
+    /// </summary>
     [Fact]
     public async Task GetFailedExecutionsRequiringRetryAsync_OnlyReturnsRetryableFailed()
     {
@@ -169,6 +190,9 @@ public class ExecutionRepositoryTests
         Assert.Equal(expected, result.Select(e => e.Id));
     }
 
+    /// <summary>
+    /// Tests that GetExecutionsByDateRangeAsync returns executions within the specified date range.
+    /// </summary>
     [Fact]
     public async Task GetExecutionsByDateRangeAsync_ReturnsExecutionsWithinRange()
     {
@@ -187,6 +211,9 @@ public class ExecutionRepositoryTests
         Assert.Equal(expected, result.Select(e => e.Id));
     }
 
+    /// <summary>
+    /// Tests that GetLatestExecutionAsync returns null for a non-existing job.
+    /// </summary>
     [Fact]
     public async Task GetLatestExecutionAsync_NonExistingJob_ReturnsNull()
     {
@@ -199,6 +226,9 @@ public class ExecutionRepositoryTests
         Assert.Null(result);
     }
 
+    /// <summary>
+    /// Tests that GetExecutionsByJobAsync returns an empty enumerable for a non-existing job.
+    /// </summary>
     [Fact]
     public async Task GetExecutionsByJobAsync_EmptyResult_ReturnsEmptyEnumerable()
     {
