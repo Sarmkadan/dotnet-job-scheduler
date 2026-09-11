@@ -253,4 +253,23 @@ public sealed class JobSchedulerOptions
     /// Defaults to 30 s.
     /// </summary>
     public int LeaderElectionLeaseDurationSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Returns a summary of the configured scheduler options.
+    /// The connection string is masked to avoid leaking credentials.
+    /// </summary>
+    public override string ToString()
+    {
+        var connectionString = string.IsNullOrWhiteSpace(ConnectionString)
+            ? "<not set>"
+            : "<masked>";
+
+        return $"MaxConcurrentJobs={MaxConcurrentJobs}, DefaultTimeoutSeconds={DefaultTimeoutSeconds}, " +
+               $"DefaultMaxRetries={DefaultMaxRetries}, DefaultRetryBackoffSeconds={DefaultRetryBackoffSeconds}, " +
+               $"QueuePollIntervalMs={QueuePollIntervalMs}, EnableCleanup={EnableCleanup}, " +
+               $"CleanupIntervalMs={CleanupIntervalMs}, EnableLeaderElection={EnableLeaderElection}, " +
+               $"LeaderElectionInstanceId={LeaderElectionInstanceId ?? "<not set>"}, " +
+               $"LeaderElectionLeaseDurationSeconds={LeaderElectionLeaseDurationSeconds}, " +
+               $"ConnectionString={connectionString}";
+    }
 }
