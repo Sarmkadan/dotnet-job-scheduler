@@ -149,6 +149,14 @@ public sealed class ApiSuccessResponse<T>
     public string Message { get; set; } = string.Empty;
     public T? Data { get; set; }
     public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the success flag, message and error count.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"ApiSuccessResponse {{ Success = {Success}, Message = {Message}, ErrorCount = 0 }}";
+    }
 }
 
 /// <summary>
@@ -160,6 +168,14 @@ public class ApiErrorResponse
     public string Message { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public string? CorrelationId { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the success flag, message and error count.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"ApiErrorResponse {{ Success = {Success}, Message = {Message}, ErrorCount = 0 }}";
+    }
 }
 
 /// <summary>
@@ -168,4 +184,12 @@ public class ApiErrorResponse
 public sealed class ApiValidationErrorResponse : ApiErrorResponse
 {
     public Dictionary<string, string[]> Errors { get; set; } = new();
+
+    /// <summary>
+    /// Returns a string summarizing the success flag, message and error count.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"ApiValidationErrorResponse {{ Success = {Success}, Message = {Message}, ErrorCount = {Errors.Count} }}";
+    }
 }
