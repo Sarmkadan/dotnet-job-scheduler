@@ -1278,6 +1278,130 @@ curl -X DELETE "http://localhost:5000/api/Executions/cleanup" \
 
 The `JobsController` manages scheduled jobs under the `/api/Jobs` route.
 
+## Leader election
+
+The job scheduler supports distributed leader election to ensure only one scheduler node fires jobs at each scheduled interval in a multi-instance deployment.
+
+### How it works
+
+The leader election is backed by a database table `SchedulerLeaderLock` (represented by the `SchedulerLeaderLock` entity). 
+This table contains a single row (identified by `LockName = 'scheduler-leader'`) that stores:
+- `LeaderInstanceId`: the instance ID of the current leader.
+- `LeaseExpiresAt`: the UTC time when the current lease expires.
+- `AcquiredAt`: the UTC time when the lock was acquired by the current leader.
+
+### Lease and renewal
+
+The `DatabaseLeaderElectionService` implements the `ILeaderElectionService` interface and provides the following behavior:
+
+- When `TryAcquireLeadershipAsync` is called:
+  1. If no lock row exists, it creates one with the current instance as the leader and sets the lease to expire in `_leaseDuration` seconds (default 30).
+  2. If the lock row exists and the current instance is already the leader, it renews the lease by updating `LeaseExpiresAt`.
+  3. If the lock row exists and is held by another instance but the lease has not expired, it returns false (not the leader).
+  4. If the lock row exists and the lease has expired, the current instance takes over by updating the row with its instance ID and a new lease expiration.
+
+- The service can be called periodically (e.g., every 15 seconds) to renew the lease. If the service fails to renew the lease within the lease duration, another instance may take over.
+
+- The `ReleaseLeadershipAsync` method expires the lease immediately (by setting `LeaseExpiresAt` to a time in the past) so that another node can take over.
+
+### Configuration
+
+The `DatabaseLeaderElectionService` is configured via its constructor:
+
+- `context`: The `JobSchedulerContext` (EF Core) used to access the lock table.
+- `instanceId` (optional): A unique identifier for this scheduler node. Defaults to the machine name.
+- `leaseDurationSeconds` (optional): The lease duration in seconds. Defaults to 30.
+- `logger` (optional): An `ILogger<DatabaseLeaderElectionService>` for logging.
+
+### Usage example
+
+Here's an example of how to use the leader election service in a background service:
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using JobScheduler.Core.Data;
+using JobScheduler.Core.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+public class LeaderElectionBackgroundService : BackgroundService
+{
+    private readonly ILeaderElectionService _leaderElectionService;
+    private readonly ILogger<LeaderElectionBackgroundService> _logger;
+    private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(15);
+
+    public LeaderElectionBackgroundService(
+        JobSchedulerContext context,
+        ILogger<LeaderElectionBackgroundService> logger,
+        string? instanceId = null,
+        int leaseDurationSeconds = 30)
+    {
+        _leaderElectionService = new DatabaseLeaderElectionService(
+            context,
+            instanceId,
+            leaseDurationSeconds,
+            logger: logger); // Note: we are passing the same logger for the election service, but you can use a different one.
+
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Leader election background service started.");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                var isLeader = await _leaderElectionService.TryAcquireLeadershipAsync(stoppingToken);
+                if (isLeader)
+                {
+                    _logger.LogInformation("This instance is the leader. Performing leader tasks...");
+                    // Perform leader-only tasks here (e.g., schedule jobs, run pending tasks).
+                }
+                else
+                {
+                    _logger.LogDebug("This instance is not the leader.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in leader election loop.");
+            }
+
+            await Task.Delay(_checkInterval, stoppingToken);
+        }
+
+        // Ensure we release leadership on shutdown.
+        await _leaderElectionService.ReleaseLeadershipAsync(stoppingToken);
+        _logger.LogInformation("Leader election background service stopping.");
+    }
+}
+```
+
+Then, register the service in your host:
+
+```csharp
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((hostContext, services) =>
+    {
+        // Add the JobSchedulerContext (replace with your actual connection string)
+        services.AddDbContext<JobSchedulerContext>(options =>
+            options.UseSqlServer(hostContext.Configuration.GetConnectionString("JobSchedulerDb")));
+
+        // Add the leader election background service
+        services.AddHostedService<LeaderElectionBackgroundService>();
+    })
+    .Build();
+
+await host.RunAsync();
+```
+
+Note: The leader election service is designed to be lightweight and can be used in any background service that requires leader election.
+
 ## Extension methods
 
 ### StringExtensions
