@@ -422,7 +422,7 @@ public sealed class PriorityDistributionResponse
 
     /// <summary>
     /// Gets or sets the number of high priority jobs.
-    /// </>
+    /// </summary>
     public int HighJobs { get; set; }
 
     /// <summary>
@@ -523,10 +523,25 @@ public sealed class SlowestJobResponse
 
 public sealed class FailingJobResponse
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the job.
+    /// </summary>
     public Guid JobId { get; set; }
+    /// <summary>
+    /// Gets or sets the name of the job.
+    /// </summary>
     public string JobName { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the failure rate percentage.
+    /// </summary>
     public double FailureRate { get; set; }
+    /// <summary>
+    /// Gets or sets the number of failed executions.
+    /// </summary>
     public int FailedCount { get; set; }
+    /// <summary>
+    /// Gets or sets the success rate percentage.
+    /// </summary>
     public double SuccessRate { get; set; }
 
     /// <summary>
@@ -540,11 +555,29 @@ public sealed class FailingJobResponse
 
 public sealed class HealthReportResponse
 {
+    /// <summary>
+    /// Gets or sets the timestamp when the report was generated.
+    /// </summary>
     public DateTime Timestamp { get; set; }
+    /// <summary>
+    /// Gets or sets a value indicating whether the database is connected.
+    /// </summary>
     public bool DatabaseConnected { get; set; }
+    /// <summary>
+    /// Gets or sets the current memory usage in megabytes.
+    /// </summary>
     public long MemoryUsageMb { get; set; }
+    /// <summary>
+    /// Gets or sets the current processor utilization percentage.
+    /// </summary>
     public double ProcessorUtilization { get; set; }
+    /// <summary>
+    /// Gets or sets the list of health warnings.
+    /// </summary>
     public List<HealthWarning> Warnings { get; set; } = new();
+    /// <summary>
+    /// Gets or sets a value indicating whether the system is healthy.
+    /// </summary>
     public bool IsHealthy { get; set; }
 
     /// <summary>
@@ -558,7 +591,13 @@ public sealed class HealthReportResponse
 
 public sealed class HealthWarning
 {
+    /// <summary>
+    /// Gets or sets the severity level of the warning.
+    /// </summary>
     public string Severity { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets or sets the warning message.
+    /// </summary>
     public string Message { get; set; } = string.Empty;
 
     /// <summary>
@@ -572,9 +611,24 @@ public sealed class HealthWarning
 
 public sealed class QueueStatus
 {
+    /// <summary>
+    /// Gets or sets the number of pending jobs.
+    /// </summary>
     public int PendingCount { get; set; }
+    /// <summary>
+    /// Gets or sets the number of running jobs.
+    /// </summary>
     public int RunningCount { get; set; }
+    /// <summary>
+    /// Gets or sets the number of failed jobs.
+    /// </summary>
     public int FailedCount { get; set; }
+    /// <summary>
+    /// Gets or sets the number of completed jobs.
+    /// </summary>
     public int CompletedCount { get; set; }
+    /// <summary>
+    /// Gets or sets the number of suspended jobs.
+    /// </summary>
     public int SuspendedCount { get; set; }
 }
