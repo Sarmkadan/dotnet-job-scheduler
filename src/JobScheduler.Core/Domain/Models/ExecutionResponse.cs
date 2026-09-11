@@ -16,20 +16,64 @@ namespace JobScheduler.Core.Domain.Models;
 /// </summary>
 public sealed class ExecutionResponse
 {
+    /// <summary>
+    /// Unique identifier for the execution.
+    /// </summary>
     public Guid Id { get; set; }
+    /// <summary>
+    /// Identifier of the job that this execution belongs to.
+    /// </summary>
     public Guid JobId { get; set; }
+    /// <summary>
+    /// Current status of the execution (e.g., Running, Success, Failed).
+    /// </summary>
     public string Status { get; set; } = string.Empty;
+    /// <summary>
+    /// Date and time when the execution started.
+    /// </summary>
     public DateTime StartedAt { get; set; }
+    /// <summary>
+    /// Date and time when the execution completed, or null if still running.
+    /// </summary>
     public DateTime? CompletedAt { get; set; }
+    /// <summary>
+    /// Total duration of the execution in milliseconds (wall clock time).
+    /// </summary>
     public long DurationMilliseconds { get; set; }
+    /// <summary>
+    /// Number of times this execution has been attempted (initial attempt plus retries).
+    /// </summary>
     public int AttemptNumber { get; set; }
+    /// <summary>
+    /// Actual execution time in milliseconds (excluding waiting time between retries).
+    /// </summary>
     public long ExecutionTimeMs { get; set; }
+    /// <summary>
+    /// Number of retry attempts made for this execution (excluding the initial attempt).
+    /// </summary>
     public int RetryAttempt { get; set; }
+    /// <summary>
+    /// Error message if the execution failed, otherwise null.
+    /// </summary>
     public string? ErrorMessage { get; set; }
+    /// <summary>
+    /// Name of the executor that ran the job.
+    /// </summary>
     public string ExecutorName { get; set; } = string.Empty;
+    /// <summary>
+    /// Indicates whether the execution can be retried upon failure.
+    /// </summary>
     public bool IsRetryable { get; set; }
+    /// <summary>
+    /// Date and time when the execution record was created.
+    /// </summary>
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>
+    /// Creates an ExecutionResponse from a JobExecution entity.
+    /// </summary>
+    /// <param name="execution">The JobExecution entity to convert.</param>
+    /// <returns>An ExecutionResponse representing the execution.</returns>
     public static ExecutionResponse FromExecution(JobExecution execution)
     {
         return new ExecutionResponse
@@ -50,6 +94,10 @@ public sealed class ExecutionResponse
         };
     }
 
+    /// <summary>
+    /// Returns a human-readable status text based on the internal Status string.
+    /// </summary>
+    /// <returns>A localized status string for display.</returns>
     public string GetStatusText()
     {
         return Status switch
