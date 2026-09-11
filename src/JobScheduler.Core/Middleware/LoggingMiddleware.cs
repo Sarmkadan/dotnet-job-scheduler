@@ -235,6 +235,15 @@ public sealed class RequestDetails
     /// Gets or sets the timestamp of the request.
     /// </summary>
     public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// Returns a concise summary of the request details.
+    /// </summary>
+    /// <returns>A string summarizing the request method, path, query string, and timestamp.</returns>
+    public override string ToString()
+    {
+        return $"Request: {Method} {Path}{QueryString} at {Timestamp:O}";
+    }
 }
 
 /// <summary>
@@ -256,4 +265,13 @@ public sealed class ResponseDetails
     /// Gets or sets the response body (truncated if too long).
     /// </summary>
     public string? Body { get; set; }
+
+    /// <summary>
+    /// Returns a concise summary of the response details.
+    /// </summary>
+    /// <returns>A string summarizing the response status code and body length.</returns>
+    public override string ToString()
+    {
+        return $"Response: {StatusCode} (body length: {Body?.Length ?? 0})";
+    }
 }
