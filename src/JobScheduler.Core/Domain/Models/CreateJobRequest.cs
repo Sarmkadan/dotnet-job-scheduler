@@ -86,6 +86,10 @@ public sealed class CreateJobRequest
     /// </summary>
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// Determines whether the CreateJobRequest is valid.
+    /// </summary>
+    /// <returns>True if the request is valid; otherwise, false.</returns>
     public bool IsValid()
     {
         return !string.IsNullOrWhiteSpace(Name) &&
@@ -96,6 +100,10 @@ public sealed class CreateJobRequest
                MaxConcurrentExecutions > 0;
     }
 
+    /// <summary>
+    /// Converts the CreateJobRequest to a Job entity.
+    /// </summary>
+    /// <returns>A Job object initialized with the properties of this request.</returns>
     public Job ToJob()
     {
         return new Job
