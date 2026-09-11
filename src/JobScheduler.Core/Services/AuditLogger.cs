@@ -310,6 +310,14 @@ public sealed class AuditLogEntry
     public string? EntityType { get; set; }
     public string Details { get; set; } = string.Empty;
     public AuditSeverity Severity { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the audit log entry's event type, entity, timestamp, and severity.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"{EventType} | Entity: {EntityType ?? "N/A"} | Id: {EntityId?.ToString() ?? "N/A"} | User: {UserId ?? "N/A"} | At: {Timestamp:O} | Severity: {Severity}";
+    }
 }
 
 public sealed class ApiCallAudit
@@ -320,6 +328,14 @@ public sealed class ApiCallAudit
     public long ExecutionTimeMs { get; set; }
     public string? UserId { get; set; }
     public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the API call's method, path, status code, and execution time.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"{Method} {Path} | Status: {StatusCode} | Time: {ExecutionTimeMs}ms | User: {UserId ?? "N/A"} | At: {Timestamp:O}";
+    }
 }
 
 public sealed class AuditStatistics
@@ -329,6 +345,14 @@ public sealed class AuditStatistics
     public Dictionary<string, int> LogsBySeverity { get; set; } = new();
     public DateTime? OldestLog { get; set; }
     public DateTime? NewestLog { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the audit statistics including total logs and counts by event type and severity.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"Total Logs: {TotalLogs} | Event Types: {LogsByEventType.Count} | Severity Levels: {LogsBySeverity.Count} | Oldest: {OldestLog?.ToString("O") ?? "N/A"} | Newest: {NewestLog?.ToString("O") ?? "N/A"}";
+    }
 }
 
 public enum AuditSeverity
