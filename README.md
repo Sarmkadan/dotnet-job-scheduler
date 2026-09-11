@@ -2084,6 +2084,173 @@ Performance monitoring data is exposed through REST API endpoints:
   - `GET /api/History/jobs/{jobId}/summary` - Returns job execution summary with success rates and average duration
 
 These services work together to provide comprehensive performance monitoring capabilities, enabling operators to track job scheduler health, identify performance bottlenecks, and make data-driven decisions for optimization and capacity planning.
+
+## Notifications
+
+The job scheduler includes notification services for alerting external systems about job events.
+
+### SlackNotificationService
+
+The `SlackNotificationService` sends notifications to Slack channels via webhooks for job execution events and scheduler alerts.
+
+#### Public API
+
+- `SendJobFailureNotificationAsync(Job job, JobExecution execution, string webhookUrl)` - Sends job execution failure notification with error message and retry information
+- `SendJobSuccessNotificationAsync(Job job, JobExecution execution, string webhookUrl)` - Sends job execution success notification with execution time and performance metrics
+- `SendSchedulerAlertAsync(string title, string message, string severity, string webhookUrl)` - Sends alert for critical scheduler events with severity-based coloring
+
+#### Configuration
+
+Requires a Slack webhook URL. The service uses different attachment colors based on event type:
+- Warning color for job failures that can still be retried
+- Danger color for job failures that have exhausted retries
+- Good color for successful job executions
+- Configurable colors for scheduler alerts based on severity
+
+#### Payload Shape
+
+Notifications use Slack's attachment format with fields containing:
+- Job name and status
+- Execution time
+- Retry attempt information (for failures)
+- Success rate (for successes)
+- Severity and timestamp (for scheduler alerts)
+
+#### Usage Example
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.Logging.Abstractions;
+
+// Setup Slack notification service (typically done via dependency injection)
+var httpClient = new HttpClient();
+var logger = NullLogger<SlackNotificationService>.Instance;
+var slackService = new SlackNotificationService(httpClient, logger);
+
+// Example: Send job failure notification
+var job = new Job { Id = Guid.NewGuid(), Name = "ReportJob", MaxRetries = 3 };
+var execution = new JobExecution 
+{ 
+    Id = Guid.NewGuid(), 
+    ExecutionTimeMs = 1500, 
+    RetryAttempt = 1, 
+    ErrorMessage = "Database timeout" 
+};
+
+await slackService.SendJobFailureNotificationAsync(
+    job, 
+    execution, 
+    "<your-slack-webhook-url>"
+);
+
+// Example: Send scheduler alert
+await slackService.SendSchedulerAlertAsync(
+    "Scheduler Maintenance",
+    "The scheduler will be restarted in 5 minutes for maintenance",
+    "Warning",
+    "<your-slack-webhook-url>"
+);
+```
+
+### WebhookNotificationService
+
+The `WebhookNotificationService` sends HTTP webhook notifications for job execution events with delivery retry and signature verification.
+
+#### Public API
+
+- `SendExecutionNotificationAsync(Job job, JobExecution execution, WebhookConfig config)` - Sends webhook notification for job execution completion
+- `RegisterWebhookAsync(Guid jobId, string webhookUrl, string? secret = null)` - Registers a webhook endpoint for job events
+- `UnregisterWebhookAsync(Guid jobId)` - Unregisters a webhook for a job
+- `GetWebhookConfigAsync(Guid jobId)` - Retrieves webhook configuration for a job
+- `TestWebhookAsync(string webhookUrl, string? secret = null)` - Tests webhook connectivity and response
+
+#### Configuration
+
+Webhook configuration is stored in the `WebhookConfig` class:
+- `JobId`: Associated job identifier
+- `WebhookUrl`: Target webhook URL (HTTP or HTTPS)
+- `Secret`: Optional secret for HMAC-SHA256 signature verification
+- `IsActive`: Whether the webhook is active
+- `CreatedAt`: Configuration creation timestamp
+- `MaxRetries`: Maximum delivery retry attempts (default: 5)
+
+#### Payload Shape
+
+Webhook payloads (`WebhookPayload`) include:
+- `EventType`: Type of webhook event (e.g., "job.execution.completed")
+- `Timestamp`: When the event occurred
+- `JobId` and `JobName`: Associated job information
+- `ExecutionId`: Job execution identifier (if applicable)
+- `Status`: Execution status (Success, Failed, etc.)
+- `ExecutionTimeMs`: Execution time in milliseconds
+- `ErrorMessage`: Error message if execution failed
+- `RetryAttempt`: Current retry attempt for webhook delivery
+
+#### Features
+
+- **Delivery Retry**: Exponential backoff retry strategy (starting at 1 second, max 30 seconds)
+- **Signature Verification**: HMAC-SHA256 signature validation when secret is configured
+- **Event Filtering**: Sends notifications only for job execution completed events
+- **Timeout Handling**: Configurable request timeout (default: 10 seconds)
+- **Caching**: Webhook configurations are cached for performance
+
+#### Usage Example
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.Logging.Abstractions;
+
+// Setup webhook notification service (typically done via dependency injection)
+var httpClient = new HttpClient();
+var logger = NullLogger<WebhookNotificationService>.Instance;
+var cacheService = new CacheService(new MemoryCache(new MemoryCacheOptions()), logger);
+var webhookService = new WebhookNotificationService(httpClient, logger, cacheService);
+
+// Example: Register a webhook for a job
+var jobId = Guid.NewGuid();
+await webhookService.RegisterWebhookAsync(
+    jobId,
+    "https://example.com/webhooks/job-events",
+    "my-secret-key"  // Optional secret for signature verification
+);
+
+// Example: Send execution notification (typically called internally by the scheduler)
+var job = new Job { Id = jobId, Name = "DataProcessingJob" };
+var execution = new JobExecution 
+{ 
+    Id = Guid.NewGuid(), 
+    Status = JobScheduler.Core.Constants.ExecutionStatus.Success,
+    ExecutionTimeMs = 2500 
+};
+
+// Get the webhook config and send notification
+var config = await webhookService.GetWebhookConfigAsync(jobId);
+if (config != null)
+{
+    await webhookService.SendExecutionNotificationAsync(job, execution, config);
+}
+
+// Example: Test webhook connectivity
+var testResult = await webhookService.TestWebhookAsync(
+    "https://example.com/webhooks/job-events",
+    "my-secret-key"
+);
+
+if (testResult.Success)
+{
+    Console.WriteLine("Webhook is reachable and configured correctly");
+}
+else
+{
+    Console.WriteLine($"Webhook test failed: {testResult.Message}");
+}
+```
 | `CreateJob` | `POST /api/Jobs` | JSON `CreateJobRequest` body | `201 Created`, `400 Bad Request` |
 | `GetJob` | `GET /api/Jobs/{id}` | `id` (Guid) | `200 OK`, `404 Not Found` |
 | `ListJobs` | `GET /api/Jobs` | Optional query parameters: `status`, `pageNumber` (default `1`), and `pageSize` (default `10`) | `200 OK` |
