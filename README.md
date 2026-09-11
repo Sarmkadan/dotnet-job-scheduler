@@ -2087,7 +2087,26 @@ These services work together to provide comprehensive performance monitoring cap
 
 ## Notifications
 
-The job scheduler includes notification services for alerting external systems about job events.
+The job scheduler includes notification services for alerting external systems about job events. Notification services can be enabled and configured through the `NotificationSettings` class.
+
+### Notification Settings
+
+Notification services are configured via the `NotificationSettings` class, which controls whether each notification type is enabled and provides service-specific configuration.
+
+#### Configuration Properties
+
+- `EnableWebhooks` (bool): Whether webhook notifications are enabled (default: false)
+- `EnableSlack` (bool): Whether Slack notifications are enabled (default: false)
+- `EnableEmail` (bool): Whether email notifications are enabled (default: false)
+- `SlackWebhookUrl` (string): The Slack webhook URL for Slack notifications
+- `SmtpServer` (string): SMTP server host name for email notifications
+- `SmtpPort` (int): SMTP server port (default: 587)
+- `SmtpUsername` (string): SMTP user name
+- `SmtpPassword` (string): SMTP password
+- `SmtpFromEmail` (string): Sender email address for SMTP messages
+- `AlertEmails` (List<string>): Email addresses that receive alerts (default: empty list)
+
+These settings are typically configured through dependency injection or the application's configuration system.
 
 ### SlackNotificationService
 
