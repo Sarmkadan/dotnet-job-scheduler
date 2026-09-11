@@ -101,4 +101,9 @@ public sealed class JobPipelineStep
 
     /// <summary>Gets or sets the navigation property for the job at this step.</summary>
     public Job? Job { get; set; }
+
+    /// <summary>
+    /// Returns a string representation of the JobPipelineStep.
+    /// </summary>
+    public override string ToString() => $"JobPipelineStep {{ StepOrder = {StepOrder}, JobId = {JobId}, StopOnFailure = {StopOnFailure} }}";
 }
