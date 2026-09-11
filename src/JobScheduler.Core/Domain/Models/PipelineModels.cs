@@ -54,13 +54,20 @@ public sealed class PipelineStepRequest
 /// </summary>
 public sealed class PipelineResponse
 {
+    /// <summary>Unique identifier of the pipeline.</summary>
     public Guid Id { get; set; }
+    /// <summary>Human-readable name for the pipeline.</summary>
     public string Name { get; set; } = string.Empty;
+    /// <summary>Optional description of the pipeline's purpose.</summary>
     public string Description { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    /// <summary>Whether the pipeline is currently active and can be executed.</summary>
     public DateTime CreatedAt { get; set; }
+    /// <summary>Timestamp when the pipeline was created.</summary>
     public string? CreatedBy { get; set; }
+    /// <summary>User or system that created the pipeline.</summary>
     public List<PipelineStepResponse> Steps { get; set; } = new();
+    /// <summary>Collection of steps in the pipeline.</summary>
 
     public override string ToString()
     {
@@ -74,10 +81,15 @@ public sealed class PipelineResponse
 public sealed class PipelineStepResponse
 {
     public Guid StepId { get; set; }
+    /// <summary>Unique identifier of the pipeline step.</summary>
     public Guid JobId { get; set; }
+    /// <summary>Identifier of the job associated with this step.</summary>
     public string? JobName { get; set; }
+    /// <summary>Optional name of the job for display purposes.</summary>
     public int StepOrder { get; set; }
+    /// <summary>Zero-based index of this step in the pipeline execution order.</summary>
     public bool StopOnFailure { get; set; }
+    /// <summary>Whether the pipeline should stop execution if this step fails.</summary>
 
     public override string ToString()
     {
@@ -91,8 +103,11 @@ public sealed class PipelineStepResponse
 public sealed class PipelineStatusResponse
 {
     public Guid PipelineId { get; set; }
+    /// <summary>Identifier of the pipeline this status belongs to.</summary>
     public string PipelineName { get; set; } = string.Empty;
+    /// <summary>Human-readable name of the pipeline.</summary>
     public List<PipelineStepStatus> StepStatuses { get; set; } = new();
+    /// <summary>Collection of statuses for each step in the pipeline.</summary>
 
     public override string ToString()
     {
@@ -106,11 +121,17 @@ public sealed class PipelineStatusResponse
 public sealed class PipelineStepStatus
 {
     public int StepOrder { get; set; }
+    /// <summary>Zero-based index of this step in the pipeline execution order.</summary>
     public Guid JobId { get; set; }
+    /// <summary>Identifier of the job associated with this step.</summary>
     public string? JobName { get; set; }
+    /// <summary>Optional name of the job for display purposes.</summary>
     public string Status { get; set; } = string.Empty;
+    /// <summary>Current execution status of the step (e.g., Pending, Running, Completed, Failed).</summary>
     public DateTime? LastExecutedAt { get; set; }
+    /// <summary>Timestamp of the last execution of this step, if any.</summary>
     public bool IsReady { get; set; }
+    /// <summary>Whether the step is ready to be executed (dependencies satisfied).</summary>
 
     public override string ToString()
     {
