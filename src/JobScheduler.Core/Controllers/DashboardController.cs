@@ -42,6 +42,12 @@ public sealed class DashboardController : ControllerBase
     private readonly PerformanceMonitor _performanceMonitor;
     private readonly ILogger<DashboardController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DashboardController"/> class.
+    /// </summary>
+    /// <param name="schedulerService">The job scheduler service used to retrieve system data.</param>
+    /// <param name="performanceMonitor">The performance monitor used to retrieve performance metrics.</param>
+    /// <param name="logger">The logger used for logging controller operations.</param>
     public DashboardController(
         JobSchedulerService schedulerService,
         PerformanceMonitor performanceMonitor,
@@ -302,14 +308,49 @@ public sealed class DashboardController : ControllerBase
 
 public sealed class DashboardOverview
 {
+    /// <summary>
+    /// Gets or sets the total number of jobs in the system.
+    /// </summary>
     public int TotalJobs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of active jobs in the system.
+    /// </summary>
     public int ActiveJobs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of currently running job executions.
+    /// </summary>
     public int RunningExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of failed jobs in the last 24 hours.
+    /// </summary>
     public int FailedJobsLast24Hours { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average success rate of job executions (percentage).
+    /// </summary>
     public double AverageSuccessRate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of job executions.
+    /// </summary>
     public int TotalExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of successful job executions.
+    /// </summary>
     public int SuccessfulExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average execution time in milliseconds.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timestamp when the overview was last updated.
+    /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
     /// <summary>
@@ -323,13 +364,44 @@ public sealed class DashboardOverview
 
 public sealed class QueueStatusResponse
     {
+        /// <summary>
+        /// Gets or sets the number of pending jobs in the queue.
+        /// </summary>
         public int PendingJobs { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of currently running jobs.
+        /// </summary>
         public int RunningJobs { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of failed jobs.
+        /// </summary>
         public int FailedJobs { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of completed jobs.
+        /// </summary>
         public int CompletedJobs { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of suspended jobs.
+        /// </summary>
         public int SuspendedJobs { get; set; }
+
+        /// <summary>
+        /// Gets or sets the total number of queued jobs (pending + running).
+        /// </summary>
         public int TotalQueued { get; set; }
+
+        /// <summary>
+        /// Gets or sets the queue utilization percentage.
+        /// </summary>
         public double QueueUtilization { get; set; }
+
+        /// <summary>
+        /// Gets or sets the estimated time to empty the queue based on current processing rate.
+        /// </summary>
         public TimeSpan? EstimatedTimeToEmpty { get; set; }
 
         /// <summary>
@@ -343,10 +415,29 @@ public sealed class QueueStatusResponse
 
 public sealed class PriorityDistributionResponse
 {
+    /// <summary>
+    /// Gets or sets the number of critical priority jobs.
+    /// </summary>
     public int CriticalJobs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of high priority jobs.
+    /// </>
     public int HighJobs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of normal priority jobs.
+    /// </summary>
     public int NormalJobs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of low priority jobs.
+    /// </summary>
     public int LowJobs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of jobs across all priority levels.
+    /// </summary>
     public int TotalJobs { get; set; }
 
     /// <summary>
@@ -360,10 +451,29 @@ public sealed class PriorityDistributionResponse
 
 public sealed class PerformanceTimelinePoint
 {
+    /// <summary>
+    /// Gets or sets the timestamp of the performance data point.
+    /// </summary>
     public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of job executions during this time period.
+    /// </summary>
     public int ExecutionCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of successful job executions during this time period.
+    /// </summary>
     public int SuccessCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of failed job executions during this time period.
+    /// </summary>
     public int FailureCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average execution time in milliseconds for jobs during this time period.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
 
     /// <summary>
@@ -377,10 +487,29 @@ public sealed class PerformanceTimelinePoint
 
 public sealed class SlowestJobResponse
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the job.
+    /// </summary>
     public Guid JobId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the job.
+    /// </summary>
     public string JobName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the average execution time in milliseconds.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum execution time in milliseconds.
+    /// </summary>
     public long MaxExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of executions for this job.
+    /// </summary>
     public int ExecutionCount { get; set; }
 
     /// <summary>
