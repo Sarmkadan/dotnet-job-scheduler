@@ -186,14 +186,44 @@ public static class JobSchedulerContextExtensions
 /// </summary>
 public class JobExecutionStats
 {
+    /// <summary>
+    /// Gets or sets the identifier of the job.
+    /// </summary>
     public Guid JobId { get; set; }
+    /// <summary>
+    /// Gets or sets the total number of executions for the job.
+    /// </summary>
     public int TotalExecutions { get; set; }
+    /// <summary>
+    /// Gets or sets the number of successful executions.
+    /// </summary>
     public int SuccessfulExecutions { get; set; }
+    /// <summary>
+    /// Gets or sets the number of failed executions.
+    /// </summary>
     public int FailedExecutions { get; set; }
+    /// <summary>
+    /// Gets or sets the success rate as a percentage (0-100).
+    /// </summary>
     public double SuccessRate { get; set; }
+    /// <summary>
+    /// Gets or sets the average duration of executions in milliseconds.
+    /// </summary>
     public double? AverageDurationMs { get; set; }
+    /// <summary>
+    /// Gets or sets the timestamp of the last execution.
+    /// </summary>
     public DateTime? LastExecutionTime { get; set; }
+    /// <summary>
+    /// Gets or sets the timestamp of the last successful execution.
+    /// </summary>
     public DateTime? LastSuccessTime { get; set; }
+    /// <summary>
+    /// Gets or sets the timestamp of the last failed execution.
+    /// </summary>
     public DateTime? LastFailureTime { get; set; }
+    /// <summary>
+    /// Gets or sets the most recent execution metrics for the job.
+    /// </summary>
     public ExecutionMetrics? CurrentMetrics { get; set; }
 }
