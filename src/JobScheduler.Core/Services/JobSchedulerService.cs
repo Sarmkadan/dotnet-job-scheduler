@@ -744,6 +744,12 @@ public sealed class JobDetailsDto
     public JobExecution? LastExecution { get; set; }
     public int TotalExecutions { get; set; }
     public DateTime? NextScheduledTime { get; set; }
+
+    /// <summary>
+    /// Returns a concise, informative representation of the job details.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(JobDetailsDto)} {{ Job = {Job.Name}, TotalExecutions = {TotalExecutions}, NextScheduledTime = {NextScheduledTime} }}";
 }
 
 public sealed class SchedulerStatisticsDto
@@ -757,6 +763,12 @@ public sealed class SchedulerStatisticsDto
     public double AverageSuccessRate { get; set; }
     public long AverageExecutionTimeMs { get; set; }
     public Dictionary<string, int> ConcurrencyStats { get; set; } = new();
+
+    /// <summary>
+    /// Returns a concise, informative representation of the scheduler statistics.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(SchedulerStatisticsDto)} {{ TotalJobs = {TotalJobs}, ActiveJobs = {ActiveJobs}, RunningExecutions = {RunningExecutions}, TotalExecutions = {TotalExecutions}, SuccessfulExecutions = {SuccessfulExecutions}, FailedExecutions = {FailedExecutions}, AverageSuccessRate = {AverageSuccessRate:F2}%, AverageExecutionTimeMs = {AverageExecutionTimeMs} }}";
 }
 
 /// <summary>
@@ -769,4 +781,10 @@ public sealed class JobPerformanceSummary
     public long AverageExecutionTimeMs { get; set; }
     public long MaxExecutionTimeMs { get; set; }
     public int TotalExecutions { get; set; }
+
+    /// <summary>
+    /// Returns a concise, informative representation of the job performance summary.
+    /// </summary>
+    public override string ToString()
+        => $"{nameof(JobPerformanceSummary)} {{ Id = {Id}, Name = {Name}, AverageExecutionTimeMs = {AverageExecutionTimeMs}, MaxExecutionTimeMs = {MaxExecutionTimeMs}, TotalExecutions = {TotalExecutions} }}";
 }
