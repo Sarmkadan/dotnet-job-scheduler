@@ -352,6 +352,9 @@ public sealed class JobsController : ControllerBase
 
 public sealed class SuspendJobRequest
 {
+    /// <summary>
+    /// Gets or sets the reason for suspending the job.
+    /// </summary>
     public string? Reason { get; set; }
 
     /// <summary>
@@ -362,9 +365,24 @@ public sealed class SuspendJobRequest
 
 public sealed class PaginatedResponse<T>
 {
+    /// <summary>
+    /// Gets or sets the collection of items for the current page.
+    /// </summary>
     public List<T> Data { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the total number of items available across all pages.
+    /// </summary>
     public int TotalCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the current page number (1-based index).
+    /// </summary>
     public int PageNumber { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of items per page.
+    /// </summary>
     public int PageSize { get; set; }
 
     /// <summary>
