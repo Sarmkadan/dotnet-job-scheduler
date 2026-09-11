@@ -36,6 +36,19 @@ public sealed class DependencyGraphValidationResult
             CycleNodes = cycleNodes,
             Message = $"Cycle detected involving {cycleNodes.Count} job(s): {string.Join(" → ", cycleNodes)}."
         };
+
+    /// <summary>
+    /// Returns a string representation of the validation result.
+    /// </summary>
+    /// <returns>IsValid status plus counts of errors/cycles.</returns>
+    public override string ToString()
+    {
+        if (IsValid)
+            return "Valid: Dependency graph is a valid DAG.";
+
+        int cycleCount = CycleNodes.Count > 0 ? 1 : 0; // One cycle detected
+        return $"Invalid: Cycle detected involving {CycleNodes.Count} job(s).";
+    }
 }
 
 /// <summary>
