@@ -244,30 +244,99 @@ public sealed class WebhookNotificationService
 
 public sealed class WebhookPayload
 {
+    /// <summary>
+    /// Gets or sets the type of webhook event (e.g., job.execution.completed).
+    /// </summary>
     public string EventType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the timestamp when the webhook event occurred.
+    /// </summary>
     public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// Gets or sets the unique identifier of the job associated with the webhook.
+    /// </summary>
     public Guid JobId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the job associated with the webhook.
+    /// </summary>
     public string JobName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the unique identifier of the job execution (if applicable).
+    /// </summary>
     public Guid? ExecutionId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the status of the job execution (e.g., Success, Failed).
+    /// </summary>
     public string? Status { get; set; }
+
+    /// <summary>
+    /// Gets or sets the execution time in milliseconds.
+    /// </summary>
     public long ExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the error message if the job execution failed.
+    /// </summary>
     public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of retry attempts for this webhook delivery.
+    /// </summary>
     public int RetryAttempt { get; set; }
 }
 
 public sealed class WebhookConfig
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the job associated with the webhook.
+    /// </summary>
     public Guid JobId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the URL of the webhook endpoint.
+    /// </summary>
     public string WebhookUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the secret used for HMAC signature verification (optional).
+    /// </summary>
     public string? Secret { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the webhook is active and should be used for notifications.
+    /// </summary>
     public bool IsActive { get; set; }
+
+    /// <summary>
+    /// Gets or sets the date and time when the webhook configuration was created.
+    /// </summary>
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum number of retry attempts for failed webhook deliveries.
+    /// </summary>
     public int MaxRetries { get; set; } = 5;
 }
 
 public sealed class WebhookTestResult
 {
+    /// <summary>
+    /// Gets or sets whether the webhook test was successful.
+    /// </summary>
     public bool Success { get; set; }
+
+    /// <summary>
+    /// Gets or sets the HTTP status code returned by the webhook endpoint.
+    /// </summary>
     public int StatusCode { get; set; }
+
+    /// <summary>
+    /// Gets or sets the message describing the test result.
+    /// </summary>
     public string Message { get; set; } = string.Empty;
 }
