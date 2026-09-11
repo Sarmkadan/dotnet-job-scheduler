@@ -106,7 +106,12 @@ public sealed class DistributedJobLockService : IDistributedJobLockService
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Releases the distributed lock for the specified job if the caller holds the lock.
+    /// </summary>
+    /// <param name="jobId">The unique identifier of the job.</param>
+    /// <param name="holderInstanceId">The unique identifier of the instance that holds the lock.</param>
+    /// <param name="cancellationToken">Optional token to cancel the operation.</param>
     public async Task ReleaseLockAsync(
         Guid jobId,
         string holderInstanceId,
@@ -124,7 +129,12 @@ public sealed class DistributedJobLockService : IDistributedJobLockService
         _logger?.LogDebug("Distributed lock for job {JobId} released by instance '{InstanceId}'", jobId, holderInstanceId);
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Checks if a distributed lock is currently held for the specified job.
+    /// </summary>
+    /// <param name="jobId">The unique identifier of the job.</param>
+    /// <param name="cancellationToken">Optional token to cancel the operation.</param>
+    /// <returns>True if the lock is held and not expired; otherwise false.</returns>
     public async Task<bool> IsLockedAsync(Guid jobId, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
@@ -134,7 +144,15 @@ public sealed class DistributedJobLockService : IDistributedJobLockService
         return existing is not null && !existing.IsExpired(now);
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Renews the distributed lock for the specified job if the caller holds the lock and it has not expired.
+    /// </summary>
+    /// <param name="jobId">The unique identifier of the job.</param>
+    /// <param name="holderInstanceId">The unique identifier of the instance that holds the lock.</param>
+    /// <param name="lockDuration">The duration to extend the lock from now.</param>
+    /// <param name="cancellationToken">Optional token to cancel the operation.</param>
+    /// <returns>True if the lock was renewed; false if the lock does not exist, is held by another instance, or has expired.</returns>
+    /// <exception cref="DbUpdateException">Thrown if a database error occurs while updating the lock.</exception>
     public async Task<bool> RenewLockAsync(
         Guid jobId,
         string holderInstanceId,
