@@ -275,6 +275,15 @@ public sealed class PerformanceTrendPoint
     /// Gets or sets the maximum execution time in milliseconds for this date.
     /// </summary>
     public long MaxExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Returns a string representation of this performance trend point.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"{Date:yyyy-MM-dd}: {ExecutionCount} executions, avg {AverageExecutionTimeMs}ms, " +
+               $"max {MaxExecutionTimeMs}ms, success rate {SuccessRate:F1}%";
+    }
 }
 
 /// <summary>
@@ -311,4 +320,13 @@ public sealed class ExecutionAnomalyReport
     /// Gets or sets the type of anomaly (SlowExecution or FastExecution).
     /// </summary>
     public string AnomalyType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Returns a string representation of this execution anomaly report.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"{AnomalyType} on {Timestamp:yyyy-MM-dd HH:mm:ss}: {ExecutionTimeMs}ms " +
+               $"(expected {ExpectedTimeMs}ms, deviation factor {DeviationFactor:F2})";
+    }
 }
