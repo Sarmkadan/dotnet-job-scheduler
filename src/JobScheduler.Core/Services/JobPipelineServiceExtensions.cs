@@ -177,6 +177,13 @@ public sealed class PipelineStatusWithStatsResponse
 
     /// <summary>Execution statistics for each pipeline step.</summary>
     public List<PipelineStepExecutionStats> ExecutionStats { get; set; } = new();
+
+    /// <summary>
+    /// Returns a string representation of the pipeline status with statistics.
+    /// </summary>
+    /// <returns>A summary of the pipeline identifier, name, and execution statistics.</returns>
+    public override string ToString()
+        => $"PipelineId: {PipelineId}, PipelineName: {PipelineName}, Steps: {StepStatuses.Count}, ExecutionStats: {ExecutionStats.Count}";
 }
 
 /// <summary>
@@ -213,4 +220,11 @@ public sealed class PipelineStepExecutionStats
 
     /// <summary>Total number of executions tracked.</summary>
     public int TotalExecutions { get; set; }
+
+    /// <summary>
+    /// Returns a string representation of the step execution statistics.
+    /// </summary>
+    /// <returns>A summary of the step order, job, status, and execution counts.</returns>
+    public override string ToString()
+        => $"StepOrder: {StepOrder}, JobId: {JobId}, JobName: {JobName}, Status: {Status}, SuccessCount: {SuccessCount}, FailureCount: {FailureCount}, TotalExecutions: {TotalExecutions}";
 }
