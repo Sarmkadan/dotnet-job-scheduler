@@ -8,6 +8,9 @@ using Xunit;
 
 namespace JobScheduler.Core.Tests;
 
+/// <summary>
+/// Tests for the CsvExportFormatter class.
+/// </summary>
 public class CsvExportFormatterTests
 {
     private static readonly string ExpectedJobsHeader =
@@ -19,6 +22,9 @@ public class CsvExportFormatterTests
     private static readonly string ExpectedStatisticsHeader =
         "JobID,TotalExecutions,SuccessfulExecutions,SuccessRate,AverageExecutionTime(ms)";
 
+    /// <summary>
+    /// Tests that exporting jobs to CSV returns correct CSV with all job properties.
+    /// </summary>
     [Fact]
     public void ExportJobsToCsv_HappyPath_ReturnsCorrectCsv()
     {
@@ -67,6 +73,9 @@ public class CsvExportFormatterTests
         Assert.InRange(parsedJob.SuccessRate, 0.0, 100.0);
     }
 
+    /// <summary>
+    /// Tests that exporting an empty job collection returns CSV with only the header.
+    /// </summary>
     [Fact]
     public void ExportJobsToCsv_EmptyCollection_ReturnsHeaderOnly()
     {
@@ -79,6 +88,9 @@ public class CsvExportFormatterTests
         Assert.Equal(ExpectedJobsHeader, lines[0].TrimEnd());
     }
 
+    /// <summary>
+    /// Tests that exporting job executions to CSV returns correct CSV with all execution properties.
+    /// </summary>
     [Fact]
     public void ExportExecutionsToCsv_HappyPath_ReturnsCorrectCsv()
     {
@@ -116,6 +128,9 @@ public class CsvExportFormatterTests
         Assert.Equal(execution.ExecutionOutput ?? string.Empty, fields[8]);
     }
 
+    /// <summary>
+    /// Tests that exporting job statistics to CSV returns correct CSV with all statistics properties.
+    /// </summary>
     [Fact]
     public void ExportStatisticsToCsv_HappyPath_ReturnsCorrectCsv()
     {
@@ -142,6 +157,9 @@ public class CsvExportFormatterTests
         Assert.Equal("1234", fields[4]);
     }
 
+    /// <summary>
+    /// Tests that parsing CSV with only header returns an empty job list.
+    /// </summary>
     [Fact]
     public void ParseJobsCsv_OnlyHeader_ReturnsEmptyList()
     {
@@ -155,6 +173,9 @@ public class CsvExportFormatterTests
         Assert.Empty(result);
     }
 
+    /// <summary>
+    /// Tests that parsing CSV with malformed lines skips those lines and returns empty list.
+    /// </summary>
     [Fact]
     public void ParseJobsCsv_MalformedLine_IsSkipped()
     {
