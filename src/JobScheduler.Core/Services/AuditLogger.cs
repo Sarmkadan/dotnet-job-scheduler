@@ -302,13 +302,44 @@ public sealed class AuditLogger
 
 public sealed class AuditLogEntry
 {
+    /// <summary>
+    /// Unique identifier for the audit log entry.
+    /// </summary>
     public Guid EventId { get; set; }
+
+    /// <summary>
+    /// Type of the audited event (e.g., API_CALL, JOB_CREATED).
+    /// </summary>
     public string EventType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Timestamp when the audited event occurred.
+    /// </summary>
     public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// Identifier of the user who performed the action.
+    /// </summary>
     public string? UserId { get; set; }
+
+    /// <summary>
+    /// Identifier of the entity associated with the audited event.
+    /// </summary>
     public Guid? EntityId { get; set; }
+
+    /// <summary>
+    /// Type of the entity associated with the audited event.
+    /// </summary>
     public string? EntityType { get; set; }
+
+    /// <summary>
+    /// Additional details about the audited event.
+    /// </summary>
     public string Details { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Severity level of the audited event.
+    /// </summary>
     public AuditSeverity Severity { get; set; }
 
     /// <summary>
@@ -322,12 +353,36 @@ public sealed class AuditLogEntry
 
 public sealed class ApiCallAudit
 {
+    /// <summary>
+    /// HTTP method of the API call (e.g., GET, POST, PUT, DELETE).
+    /// </summary>
     public string Method { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Path/endpoint of the API call.
+    /// </summary>
     public string Path { get; set; } = string.Empty;
+
+    /// <summary>
+    /// HTTP status code returned by the API call.
+    /// </summary>
     public int StatusCode { get; set; }
+
+    /// <summary>
+    /// Execution time of the API call in milliseconds.
+    /// </summary>
     public long ExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Identifier of the user who made the API call.
+    /// </summary>
     public string? UserId { get; set; }
+
+    /// <summary>
+    /// Timestamp when the API call was made.
+    /// </summary>
     public DateTime Timestamp { get; set; }
+}
 
     /// <summary>
     /// Returns a string summarizing the API call's method, path, status code, and execution time.
@@ -340,11 +395,31 @@ public sealed class ApiCallAudit
 
 public sealed class AuditStatistics
 {
+    /// <summary>
+    /// Total number of audit logs.
+    /// </summary>
     public int TotalLogs { get; set; }
+
+    /// <summary>
+    /// Count of audit logs grouped by event type.
+    /// </summary>
     public Dictionary<string, int> LogsByEventType { get; set; } = new();
+
+    /// <summary>
+    /// Count of audit logs grouped by severity level.
+    /// </summary>
     public Dictionary<string, int> LogsBySeverity { get; set; } = new();
+
+    /// <summary>
+    /// Timestamp of the oldest audit log entry.
+    /// </summary>
     public DateTime? OldestLog { get; set; }
+
+    /// <summary>
+    /// Timestamp of the newest audit log entry.
+    /// </summary>
     public DateTime? NewestLog { get; set; }
+}
 
     /// <summary>
     /// Returns a string summarizing the audit statistics including total logs and counts by event type and severity.
