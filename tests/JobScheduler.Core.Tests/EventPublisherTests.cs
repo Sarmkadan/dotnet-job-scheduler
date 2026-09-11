@@ -9,6 +9,9 @@ using Xunit;
 
 namespace JobScheduler.Core.Tests;
 
+/// <summary>
+/// Tests for the EventPublisher class.
+/// </summary>
 public sealed class EventPublisherTests
 {
     private readonly Mock<ILogger<EventPublisher>> _loggerMock = new();
@@ -19,6 +22,9 @@ public sealed class EventPublisherTests
         _publisher = new EventPublisher(_loggerMock.Object);
     }
 
+    /// <summary>
+    /// Tests that constructor throws ArgumentNullException when logger is null.
+    /// </summary>
     [Fact]
     public void Constructor_WithNullLogger_ThrowsArgumentNullException()
     {
@@ -26,6 +32,9 @@ public sealed class EventPublisherTests
         Assert.Throws<ArgumentNullException>(() => new EventPublisher(null!));
     }
 
+    /// <summary>
+    /// Tests that publishing a valid event calls all subscribers.
+    /// </summary>
     [Fact]
     public async Task PublishAsync_WithValidEvent_CallsSubscribers()
     {
@@ -53,6 +62,9 @@ public sealed class EventPublisherTests
         subscriptionToken.Dispose();
     }
 
+    /// <summary>
+    /// Tests that publishing an event with multiple subscribers calls all subscribers.
+    /// </summary>
     [Fact]
     public async Task PublishAsync_WithMultipleSubscribers_CallsAllSubscribers()
     {
@@ -91,6 +103,9 @@ public sealed class EventPublisherTests
         subscription3.Dispose();
     }
 
+    /// <summary>
+    /// Tests that publishing an event with no subscribers does not throw an exception.
+    /// </summary>
     [Fact]
     public async Task PublishAsync_WithNoSubscribers_DoesNotThrow()
     {
@@ -111,6 +126,9 @@ public sealed class EventPublisherTests
         Assert.Null(exception);
     }
 
+    /// <summary>
+    /// Tests that publishing a null event throws ArgumentNullException.
+    /// </summary>
     [Fact]
     public async Task PublishAsync_WithNullEvent_ThrowsArgumentNullException()
     {
@@ -118,6 +136,9 @@ public sealed class EventPublisherTests
         await Assert.ThrowsAsync<ArgumentNullException>(() => _publisher.PublishAsync<JobCreatedEvent>(null!));
     }
 
+    /// <summary>
+    /// Tests that subscribing with a null handler throws ArgumentNullException.
+    /// </summary>
     [Fact]
     public async Task Subscribe_WithNullHandler_ThrowsArgumentNullException()
     {
@@ -126,6 +147,9 @@ public sealed class EventPublisherTests
             Task.FromResult(_publisher.Subscribe<JobExecutionFailedEvent>(null!)));
     }
 
+    /// <summary>
+    /// Tests that subscribing returns a disposable token.
+    /// </summary>
     [Fact]
     public void Subscribe_ReturnsDisposableToken()
     {
@@ -140,6 +164,9 @@ public sealed class EventPublisherTests
         Assert.IsAssignableFrom<IDisposable>(subscriptionToken);
     }
 
+    /// <summary>
+    /// Tests that unsubscribing with a valid token removes the handler.
+    /// </summary>
     [Fact]
     public void Unsubscribe_WithValidToken_RemovesHandler()
     {
@@ -172,6 +199,9 @@ public sealed class EventPublisherTests
         Assert.False(handlerCalled);
     }
 
+    /// <summary>
+    /// Tests that unsubscribing with an invalid token does not throw an exception.
+    /// </summary>
     [Fact]
     public void Unsubscribe_WithInvalidToken_DoesNotThrow()
     {
@@ -185,6 +215,9 @@ public sealed class EventPublisherTests
         Assert.Null(exception);
     }
 
+    /// <summary>
+    /// Tests that unsubscribing with a null token does not throw an exception.
+    /// </summary>
     [Fact]
     public async Task Unsubscribe_WithNullToken_DoesNotThrow()
     {
@@ -195,6 +228,9 @@ public sealed class EventPublisherTests
         Assert.Null(exception);
     }
 
+    /// <summary>
+    /// Tests that waiting for an event with a matching event returns the event.
+    /// </summary>
     [Fact]
     public async Task WaitForEventAsync_WithMatchingEvent_ReturnsEvent()
     {
@@ -220,6 +256,9 @@ public sealed class EventPublisherTests
         Assert.Equal(testEvent.EventId, receivedEvent.EventId);
     }
 
+    /// <summary>
+    /// Tests that waiting for an event with a timeout throws a TimeoutException.
+    /// </summary>
     [Fact]
     public async Task WaitForEventAsync_WithTimeout_ThrowsTimeoutException()
     {
@@ -232,6 +271,9 @@ public sealed class EventPublisherTests
         Assert.IsType<TimeoutException>(exception);
     }
 
+    /// <summary>
+    /// Tests that waiting for an event with multiple events returns the first event.
+    /// </summary>
     [Fact]
     public async Task WaitForEventAsync_WithMultipleEvents_ReturnsFirstEvent()
     {
@@ -274,6 +316,9 @@ public sealed class EventPublisherTests
         Assert.Equal(secondEvent.EventId, receivedEvent.EventId);
     }
 
+    /// <summary>
+    /// Tests that GetActiveEventTypes returns correct event types when subscribers exist.
+    /// </summary>
     [Fact]
     public void GetActiveEventTypes_WithSubscribers_ReturnsEventTypes()
     {
@@ -293,6 +338,9 @@ public sealed class EventPublisherTests
         Assert.Contains(typeof(JobExecutionCompletedEvent).FullName, activeTypes);
     }
 
+    /// <summary>
+    /// Tests that GetActiveEventTypes returns an empty list when no subscribers exist.
+    /// </summary>
     [Fact]
     public void GetActiveEventTypes_WithNoSubscribers_ReturnsEmptyList()
     {
@@ -304,6 +352,9 @@ public sealed class EventPublisherTests
         Assert.Empty(activeTypes);
     }
 
+    /// <summary>
+    /// Tests that GetSubscriberCount returns the correct count when subscribers exist.
+    /// </summary>
     [Fact]
     public void GetSubscriberCount_WithSubscribers_ReturnsCorrectCount()
     {
@@ -323,6 +374,9 @@ public sealed class EventPublisherTests
         sub3.Dispose();
     }
 
+    /// <summary>
+    /// Tests that GetSubscriberCount returns zero when no subscribers exist.
+    /// </summary>
     [Fact]
     public void GetSubscriberCount_WithNoSubscribers_ReturnsZero()
     {
@@ -333,6 +387,9 @@ public sealed class EventPublisherTests
         Assert.Equal(0, count);
     }
 
+    /// <summary>
+    /// Tests that clearing subscriptions for a specific event type removes all subscriptions for that type.
+    /// </summary>
     [Fact]
     public void ClearSubscriptions_WithSubscribers_RemovesAllSubscriptions()
     {
@@ -351,6 +408,9 @@ public sealed class EventPublisherTests
         Assert.Equal(0, _publisher.GetSubscriberCount<JobExecutionStartedEvent>());
     }
 
+    /// <summary>
+    /// Tests that clearing subscriptions with no subscribers does not throw an exception.
+    /// </summary>
     [Fact]
     public void ClearSubscriptions_WithNoSubscribers_DoesNotThrow()
     {
