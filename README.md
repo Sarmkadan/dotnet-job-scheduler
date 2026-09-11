@@ -1278,6 +1278,70 @@ curl -X DELETE "http://localhost:5000/api/Executions/cleanup" \
 
 The `JobsController` manages scheduled jobs under the `/api/Jobs` route.
 
+## Extension methods
+
+### StringExtensions
+| Method | Purpose |
+|--------|---------|
+| ToSha256 | Computes SHA256 hash of the string for secure hashing |
+| Truncate | Truncates string to specified length with optional ellipsis |
+| ToSlug | Converts string to slug format (lowercase with hyphens) |
+| JsonEscape | Safely encodes string for JSON to prevent injection |
+| IsValidGuid | Determines if string is a valid GUID |
+| IsValidEmail | Determines if string is a valid email address |
+| Repeat | Repeats a string N times |
+| Mask | Masks sensitive parts of string (e.g., API keys, passwords) |
+| ToList | Converts delimited string to list |
+| IsAlphanumericWithUnderscore | Checks if string contains only alphanumeric characters and underscores |
+
+### DateTimeExtensions
+| Method | Purpose |
+|--------|---------|
+| IsInThePast | Checks if a DateTime is in the past |
+| IsInTheFuture | Checks if a DateTime is in the future |
+| TimeUntil | Gets the time remaining until a DateTime |
+| TimeSince | Gets the time elapsed since a DateTime |
+| IsSameDay | Checks if two DateTime values are on the same day (UTC) |
+| RoundToNearestMinute | Rounds a DateTime to the nearest minute |
+| RoundToNearestHour | Rounds a DateTime to the nearest hour |
+| StartOfDay | Gets the start of the day (midnight) |
+| EndOfDay | Gets the end of the day (23:59:59) |
+| StartOfWeek | Gets the start of the week (Monday) |
+| StartOfMonth | Gets the start of the month |
+| EndOfMonth | Gets the end of the month |
+
+### CollectionExtensions
+| Method | Purpose |
+|--------|---------|
+| Batch | Batches enumerable into chunks of specified size |
+| SafeGetAt | Safely gets item at index or returns default if index is out of bounds |
+| IsEmpty | Checks if collection is empty without throwing |
+| HasItems | Checks if collection is not empty |
+| ForEachWhere | Applies action to each item if condition is met |
+| Random | Gets specified number of random items from collection |
+| Chunk | Groups items into fixed-size groups maintaining order |
+| DistinctBy | Groups items into chunks, preserving first occurrence of each key |
+| SafeCast | Safely casts collection without throwing on type mismatch |
+| TakeWhile | Returns items from start until predicate becomes false |
+| ToPage | Converts list to page based on page number and size |
+
+### HttpContextExtensions
+| Method | Purpose |
+|--------|---------|
+| GetUserId | Gets the authenticated user ID from claims |
+| GetClaimValue | Gets a specific claim value |
+| HasClaim | Checks if user has a specific claim value |
+| GetClientIpAddress | Gets the client IP address (handles proxy headers) |
+| SetCacheControl | Sets a response header for caching control |
+| SetNoCache | Sets a response header to prevent caching |
+| SetSecurityHeaders | Sets security headers to prevent common web attacks |
+| GetCorrelationId | Gets the request correlation ID (for tracing) |
+| GetQueryParameter | Gets a query parameter with type conversion |
+| AcceptsJson | Checks if the request accepts JSON response |
+| IsHttps | Checks if the request is HTTPS |
+| GetRequestScheme | Gets the request scheme (http or https) |
+| GetFullRequestUrl | Gets the full request URL |
+
 ## Enums and policies
 
 ### JobStatus
