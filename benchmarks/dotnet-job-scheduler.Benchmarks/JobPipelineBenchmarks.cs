@@ -10,6 +10,9 @@ using JobScheduler.Core.Exceptions;
 namespace dotnet_job_scheduler.Benchmarks
 {
     [MemoryDiagnoser]
+    /// <summary>
+    /// Benchmarks for the JobPipeline class, measuring performance of pipeline operations.
+    /// </summary>
     public class JobPipelineBenchmarks
     {
         // Parameters for AddSteps benchmark
@@ -27,6 +30,9 @@ namespace dotnet_job_scheduler.Benchmarks
         private JobPipeline _pipeline;
         private MockJobDependencyService _dependencyService;
 
+        /// <summary>
+        /// Sets up the benchmark by initializing a JobPipeline and a mock dependency service.
+        /// </summary>
         [GlobalSetup]
         public void Setup()
         {
@@ -47,6 +53,9 @@ namespace dotnet_job_scheduler.Benchmarks
             _dependencyService = new MockJobDependencyService(ValidateAsyncSize, result);
         }
 
+        /// <summary>
+        /// Measures the performance of adding steps to a JobPipeline.
+        /// </summary>
         [Benchmark]
         public void AddSteps_Benchmark()
         {
@@ -57,12 +66,18 @@ namespace dotnet_job_scheduler.Benchmarks
             }
         }
 
+        /// <summary>
+        /// Measures the performance of validating the dependency graph of a JobPipeline.
+        /// </summary>
         [Benchmark]
         public Task ValidateAsync_Benchmark()
         {
             return _pipeline.ValidateAsync(_dependencyService);
         }
 
+        /// <summary>
+        /// Measures the performance of creating a populated JobPipeline with steps.
+        /// </summary>
         [Benchmark]
         public void CreatePopulatedPipeline_Benchmark()
         {
@@ -89,6 +104,9 @@ namespace dotnet_job_scheduler.Benchmarks
             }
         }
 
+        /// <summary>
+        /// Measures the performance of accessing the Steps property of a JobPipeline multiple times.
+        /// </summary>
         [Benchmark]
         public void AccessSteps_Benchmark()
         {
@@ -101,6 +119,9 @@ namespace dotnet_job_scheduler.Benchmarks
             }
         }
 
+        /// <summary>
+        /// Measures the performance of clearing steps from a JobPipeline.
+        /// </summary>
         [Benchmark]
         public void ClearSteps_Benchmark()
         {
