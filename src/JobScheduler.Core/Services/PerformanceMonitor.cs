@@ -274,10 +274,29 @@ public sealed class PerformanceMonitor
 
 public sealed class PerformanceMetric
 {
+    /// <summary>
+    /// The unique identifier of the job.
+    /// </summary>
     public Guid JobId { get; set; }
+
+    /// <summary>
+    /// The name of the job.
+    /// </summary>
     public string JobName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The execution time in milliseconds.
+    /// </summary>
     public long ExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Indicates whether the execution was successful.
+    /// </summary>
     public bool Success { get; set; }
+
+    /// <summary>
+    /// The timestamp when the metric was recorded.
+    /// </summary>
     public DateTime Timestamp { get; set; }
 
     /// <summary>
@@ -291,14 +310,44 @@ public sealed class PerformanceMetric
 
 public sealed class MetricsSummary
 {
+    /// <summary>
+    /// The total number of executions recorded.
+    /// </summary>
     public int TotalExecutions { get; set; }
+
+    /// <summary>
+    /// The number of successful executions.
+    /// </summary>
     public int SuccessfulExecutions { get; set; }
+
+    /// <summary>
+    /// The number of failed executions.
+    /// </summary>
     public int FailedExecutions { get; set; }
+
+    /// <summary>
+    /// The average execution time in milliseconds.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// The minimum execution time in milliseconds.
+    /// </summary>
     public long MinExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// The maximum execution time in milliseconds.
+    /// </summary>
     public long MaxExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// The memory usage in megabytes.
+    /// </summary>
     public long MemoryUsageMb { get; set; }
 
+    /// <summary>
+    /// Gets the success rate as a percentage.
+    /// </summary>
     public double SuccessRate => TotalExecutions == 0 ? 0 : (double)SuccessfulExecutions / TotalExecutions * 100;
 
     /// <summary>
@@ -312,10 +361,29 @@ public sealed class MetricsSummary
 
 public sealed class PerformanceTimelinePoint
 {
+    /// <summary>
+    /// The timestamp for the timeline point.
+    /// </summary>
     public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// The total number of executions in this time period.
+    /// </summary>
     public int ExecutionCount { get; set; }
+
+    /// <summary>
+    /// The number of successful executions in this time period.
+    /// </summary>
     public int SuccessCount { get; set; }
+
+    /// <summary>
+    /// The number of failed executions in this time period.
+    /// </summary>
     public int FailureCount { get; set; }
+
+    /// <summary>
+    /// The average execution time in milliseconds for this time period.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
 
     /// <summary>
