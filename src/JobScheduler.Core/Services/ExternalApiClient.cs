@@ -308,4 +308,20 @@ public sealed class ApiResponse<T>
         Success = success;
         Error = error;
     }
+
+    /// <summary>
+    /// Returns a string representation of the ApiResponse containing success status, status code, and error message.
+    /// </summary>
+    /// <returns>A string representing the ApiResponse.</returns>
+    public override string ToString()
+    {
+        if (Success)
+        {
+            return $"Success: True";
+        }
+        else
+        {
+            return $"Success: False, Error: {Error ?? "None"}";
+        }
+    }
 }
