@@ -1421,6 +1421,179 @@ The repository includes various example files demonstrating different aspects of
 - **HelloWorldJobHandlerJsonExtensions.cs** - JSON serialization extensions for HelloWorldJobHandler
 - **v2-basic-usage/Program.cs** - Demonstrates basic usage of dotnet-job-scheduler v2.0 features
 
+## Utilities
+
+The `src/JobScheduler.Core/Utilities` namespace contains utility classes that provide common functionality used throughout the job scheduler.
+
+### CryptoUtility
+
+Provides cryptographic operations for securing sensitive data and generating secure tokens.
+
+- `GenerateSecureRandomString(int length = 32)` - Generates a cryptographically secure random string
+- `GenerateTimestampedToken()` - Generates a GUID-based token with timestamp embedded
+- `ComputeSha256(string input)` - Computes SHA-256 hash of input string
+- `ComputeHmacSha256(string message, string secret)` - Computes HMAC-SHA256 for message authentication
+- `VerifyHmacSha256(string message, string signature, string secret)` - Verifies HMAC-SHA256 signature
+- `EncryptAes256(string plaintext, string key)` - Encrypts string using AES-256-CBC
+- `DecryptAes256(string ciphertext, string key, string iv)` - Decrypts AES-256-CBC ciphertext
+- `CompareStringsSecurely(string a, string b)` - Performs constant-time string comparison
+- `ComputeFileHash(Stream stream)` - Generates cryptographic hash for file integrity verification
+- `GeneratePasswordHash(string password, int iterations = 10000)` - Generates a password hash using PBKDF2
+- `VerifyPasswordHash(string password, string hash, string salt, int iterations = 10000)` - Verifies password against stored hash
+
+**Usage example:**
+```csharp
+// Generate a secure random token for job authentication
+string token = CryptoUtility.GenerateSecureRandomString();
+
+// Hash sensitive data for storage
+string hashedData = CryptoUtility.ComputeSha256("sensitive-job-data");
+
+// Verify webhook signature
+bool isValid = CryptoUtility.VerifyHmacSha256(payload, signature, secret);
+```
+
+### TimeUtility
+
+Provides consistent time and date operations with proper timezone handling.
+
+- `GetUtcNow()` - Gets current UTC time
+- `FromUnixTimestamp(long unixTimestamp)` - Converts Unix timestamp to DateTime
+- `ToUnixTimestamp(DateTime dateTime)` - Converts DateTime to Unix timestamp
+- `ToIso8601(DateTime dateTime)` - Converts DateTime to ISO 8601 string format
+- `ParseIso8601(string? isoString)` - Parses ISO 8601 string to DateTime
+- `RoundDown(DateTime dateTime, TimeSpan interval)` - Rounds time down to nearest interval
+- `RoundUp(DateTime dateTime, TimeSpan interval)` - Rounds time up to nearest interval
+- `GetAge(DateTime birthDate, DateTime? referenceDate = null)` - Gets age in specified unit
+- `IsBetweenTimes(DateTime time, TimeSpan startTime, TimeSpan endTime)` - Checks if a time falls within a time range
+- `IsBetweenDates(DateTime date, DateTime startDate, DateTime endDate)` - Checks if a date falls within a date range
+- `GetBusinessDaysBetween(DateTime startDate, DateTime endDate)` - Gets the number of business days between two dates
+- `GetNextBusinessDay(DateTime date)` - Gets the next business day
+- `GetPreviousBusinessDay(DateTime date)` - Gets the previous business day
+- `GetStartOfWeek(DateTime date)` - Gets the start of the week (Monday)
+- `GetEndOfWeek(DateTime date)` - Gets the end of the week (Sunday)
+- `GetStartOfMonth(DateTime date)` - Gets the start of the month
+- `GetEndOfMonth(DateTime date)` - Gets the end of the month
+- `FormatDuration(TimeSpan duration)` - Formats duration in human-readable format
+- `IsLeapYear(int year)` - Checks if a year is a leap year
+
+**Usage example:**
+```csharp
+// Convert Unix timestamp to DateTime
+DateTime time = TimeUtility.FromUnixTimestamp(1640995200);
+
+// Format a duration for display
+string durationText = TimeUtility.FormatDuration(TimeSpan.FromSeconds(90)); // "1 minute 30 seconds"
+
+// Check if current time is within business hours
+bool isWorkHours = TimeUtility.IsBetweenTimes(DateTime.UtcNow, new TimeSpan(9, 0, 0), new TimeSpan(17, 0, 0));
+```
+
+### ParseUtility
+
+Provides safe parsing and type conversion operations with consistent error handling.
+
+- `ParseInt(string? value, int defaultValue = 0)` - Safely parses integer from string
+- `ParseLong(string? value, long defaultValue = 0)` - Safely parses long from string
+- `ParseDouble(string? value, double defaultValue = 0.0)` - Safely parses double from string
+- `ParseBool(string? value, bool defaultValue = false)` - Safely parses boolean from string
+- `ParseDateTime(string? value, DateTime? defaultValue = null)` - Safely parses DateTime from string
+- `ParseGuid(string? value)` - Safely parses Guid from string
+- `ParseEnum<T>(string? value, T defaultValue)` - Safely parses enum from string
+- `ParseJson<T>(string? json)` - Safely parses JSON string into typed object
+- `ParseTimeSpan(string? value, TimeSpan? defaultValue = null)` - Safely parses TimeSpan from string
+- `ParsePriority(string? priority)` - Parses priority string to numeric priority level (1-4)
+- `FormatFileSize(long bytes)` - Formats bytes as human-readable file size
+- `FormatDuration(long milliseconds)` - Formats milliseconds as human-readable duration
+- `FormatPercentage(double value, int decimals = 2)` - Formats percentage value
+- `ParseCsvLine(string line)` - Parses CSV line handling quoted fields with commas
+- `EscapeCsvField(string field)` - Escapes CSV field for safe writing
+
+**Usage example:**
+```csharp
+// Safely parse configuration values
+int retryCount = ParseUtility.ParseInt(config["MaxRetries"], 3);
+bool isEnabled = ParseUtility.ParseBool(config["IsEnabled"], false);
+DateTime startTime = ParseUtility.ParseDateTime(config["StartTime"]);
+
+// Parse CSV data
+List<string> columns = ParseUtility.ParseCsvLine("value1,\"value, with comma\",value3");
+
+// Format file size for display
+string sizeText = ParseUtility.FormatFileSize(1024 * 1024 * 5); // "5.00 MB"
+```
+
+### ValidationUtility
+
+Provides centralized validation logic for job scheduler operations.
+
+- `ValidateJobName(string? name)` - Validates job name format and constraints
+- `ValidateCronExpression(string? expression)` - Validates cron expression format
+- `ValidateHandlerType(string? handlerType)` - Validates handler type format
+- `ValidateJobConfiguration(Job job)` - Validates job configuration parameters
+- `ValidateJsonParameters(string? jsonParams)` - Validates JSON parameter string format
+- `ValidatePagination(int pageNumber, int pageSize)` - Validates page number and size parameters
+- `ValidateRetryStrategy(string? strategy)` - Validates retry backoff strategy type
+
+**Usage example:**
+```csharp
+// Validate job name before creation
+ValidationResult nameResult = ValidationUtility.ValidateJobName("my-job_123");
+if (!nameResult.IsValid)
+{
+    Console.WriteLine($"Invalid job name: {nameResult.Message}");
+}
+
+// Validate cron expression
+ValidationResult cronResult = ValidationUtility.ValidateCronExpression("0 0 * * *");
+if (cronResult.IsValid)
+{
+    // Proceed with job creation
+}
+
+// Validate job configuration
+ValidationResult configResult = ValidationUtility.ValidateJobConfiguration(job);
+if (!configResult.IsValid)
+{
+    throw new JobValidationException(configResult.Message);
+}
+```
+
+### JobHelper
+
+Provides helper methods for job operations and data handling.
+
+- `SerializeParameters(object? parameters)` - Serializes job handler parameters to JSON
+- `DeserializeParameters<T>(string? jsonParameters)` - Deserializes job handler parameters from JSON
+- `GetJobStatusDescription(Job job)` - Gets a human-readable status description for a job
+- `IsValidHandlerType(string? handlerType)` - Validates handler type format
+- `GetExecutionFrequencyDescription(string cronExpression)` - Gets execution frequency description based on cron expression
+- `CalculateReliabilityScore(Job job)` - Calculates the job reliability score (0-100) based on execution history
+- `GetRecommendedAction(Job job)` - Gets recommended action based on job's current state
+- `FormatDuration(long milliseconds)` - Formats duration in milliseconds to human-readable format
+- `IsConcerning(Job job)` - Determines if a job should be marked as having concerning behavior
+
+**Usage example:**
+```csharp
+// Get human-readable job status
+string statusDesc = JobHelper.GetJobStatusDescription(job);
+Console.WriteLine($"Job status: {statusDesc}");
+
+// Get reliability score for monitoring
+int reliabilityScore = JobHelper.CalculateReliabilityScore(job);
+if (reliabilityScore < 50)
+{
+    Console.WriteLine($"Job reliability is low: {reliabilityScore}%");
+}
+
+// Get recommended action based on job state
+string recommendation = JobHelper.GetRecommendedAction(job);
+Console.WriteLine($"Recommendation: {recommendation}");
+
+// Serialize job parameters for storage
+string jsonParams = JobHelper.SerializeParameters(new { ReportType = "Summary", Format = "PDF" });
+```
+
 ## Benchmarks
 
 The `benchmarks/dotnet-job-scheduler.Benchmarks` project contains performance benchmarks for core scheduler components using BenchmarkDotNet. To run the benchmarks:
