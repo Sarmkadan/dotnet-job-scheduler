@@ -1174,6 +1174,24 @@ curl -X DELETE "http://localhost:5000/api/Executions/cleanup" \
 
 The `JobsController` manages scheduled jobs under the `/api/Jobs` route.
 
+## Running tests
+
+To run the tests, use the `dotnet test` command.
+
+### Test projects
+
+1. **JobScheduler.Core.Tests** (located in `tests/JobScheduler.Core.Tests`)
+   - Contains unit tests for the core job scheduler functionality.
+   - Run all tests: `dotnet test tests/JobScheduler.Core.Tests/JobScheduler.Core.Tests.csproj`
+   - Run tests for a specific class: `dotnet test tests/JobScheduler.Core.Tests/JobScheduler.Core.Tests.csproj --filter "FullyQualifiedName~<ClassName>"`
+
+2. **dotnet-job-scheduler.Tests** (located in `tests/dotnet-job-scheduler.Tests`)
+   - Contains integration and end-to-end tests for the job scheduler application.
+   - Run all tests: `dotnet test tests/dotnet-job-scheduler.Tests/dotnet-job-scheduler.Tests.csproj`
+   - Run tests for a specific class: `dotnet test tests/dotnet-job-scheduler.Tests/dotnet-job-scheduler.Tests.csproj --filter "FullyQualifiedName~<ClassName>"`
+
+Note: The third test project `src/JobScheduler.Core.Tests` does not exist in this repository.
+
 | Action | Verb and route | Parameters or request body | Declared status codes |
 | --- | --- | --- | --- |
 | `CreateJob` | `POST /api/Jobs` | JSON `CreateJobRequest` body | `201 Created`, `400 Bad Request` |
