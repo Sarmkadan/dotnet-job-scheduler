@@ -1009,6 +1009,106 @@ Note: Replace the JobId values with actual job IDs from your system.
 
 The `JobPipelineService` manages job pipelines — ordered chains of jobs where each step is triggered only after the previous step succeeds. Pipeline step ordering is enforced through `JobDependency` edges in the dependency graph.
 
+## AuditLogger
+
+The `AuditLogger` service provides comprehensive audit logging capabilities for compliance and security purposes. It tracks all important scheduler operations and API calls, storing them in memory with automatic trimming to maintain performance.
+
+### Key Shapes
+
+#### AuditLogEntry
+Represents a single audit log entry with the following properties:
+- `EventId`: Unique identifier for the audit log entry
+- `EventType`: Type of the audited event (e.g., API_CALL, JOB_CREATED)
+- `Timestamp`: When the audited event occurred
+- `UserId`: Identifier of the user who performed the action
+- `EntityId`: Identifier of the entity associated with the audited event
+- `EntityType`: Type of the entity associated with the audited event
+- `Details`: Additional details about the audited event
+- `Severity`: Severity level of the audited event (Debug, Info, Warning, Error, Critical)
+
+#### ApiCallAudit
+Represents API call audit data:
+- `Method`: HTTP method of the API call
+- `Path`: Path/endpoint of the API call
+- `StatusCode`: HTTP status code returned by the API call
+- `ExecutionTimeMs`: Execution time of the API call in milliseconds
+- `UserId`: Identifier of the user who made the API call
+- `Timestamp`: When the API call was made
+
+#### AuditStatistics
+Provides aggregated audit log statistics:
+- `TotalLogs`: Total number of audit logs
+- `LogsByEventType`: Count of audit logs grouped by event type
+- `LogsBySeverity`: Count of audit logs grouped by severity level
+- `OldestLog`: Timestamp of the oldest audit log entry
+- `NewestLog`: Timestamp of the newest audit log entry
+
+#### AuditSeverity
+Enum defining severity levels:
+- `Debug` = 0
+- `Info` = 1
+- `Warning` = 2
+- `Error` = 3
+- `Critical` = 4
+
+### Public Methods
+
+- `LogApiCallAsync(ApiCallAudit audit)`: Logs API call with method, endpoint, and status
+- `LogJobCreationAsync(Guid jobId, string jobName, string? createdBy)`: Logs job creation event
+- `LogJobModificationAsync(Guid jobId, string jobName, string field, object? oldValue, object? newValue, string? modifiedBy)`: Logs job modification event
+- `LogJobDeletionAsync(Guid jobId, string jobName, string? deletedBy)`: Logs job deletion event
+- `LogSecurityEventAsync(string eventType, string? userId, string message, int severity = 2)`: Logs security-related event
+- `LogExecutionEventAsync(Guid jobId, Guid executionId, string eventType, string status, long executionTimeMs)`: Logs execution event (start, complete, fail)
+- `GetAuditLogs(DateTime? from = null, DateTime? to = null, string? userId = null, string? eventType = null)`: Retrieves audit logs with optional filtering
+- `ClearOldLogsAsync(int daysOld = 90)`: Clears audit logs older than specified days (retention policy)
+- `GetStatistics()`: Gets audit log statistics
+
+### Usage Example
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using JobScheduler.Core.Services;
+
+// Assume dependencies are resolved via DI or manually instantiated
+var loggerFactory = LoggerFactory.Create(builder => 
+    builder.AddConsole()
+           .SetMinimumLevel(LogLevel.Information));
+var auditLogger = new AuditLogger(loggerFactory.CreateLogger<AuditLogger>());
+
+// Log an API call
+await auditLogger.LogApiCallAsync(new ApiCallAudit
+{
+    Method = "GET",
+    Path = "/api/jobs/123",
+    StatusCode = 200,
+    ExecutionTimeMs = 45,
+    UserId = "user-123",
+    Timestamp = DateTime.UtcNow
+});
+
+// Log job creation
+await auditLogger.LogJobCreationAsync(
+    jobId: Guid.NewGuid(),
+    jobName: "DailyReportJob",
+    createdBy: "system");
+
+// Log a security event
+await auditLogger.LogSecurityEventAsync(
+    eventType: "UNAUTHORIZED_ACCESS",
+    userId: "unknown-user",
+    message: "Attempted access to restricted endpoint",
+    severity: 2); // Warning level
+
+// Retrieve audit logs from the last 24 hours
+var recentLogs = auditLogger.GetAuditLogs(
+    from: DateTime.UtcNow.AddHours(-24));
+
+// Get audit statistics
+var stats = auditLogger.GetStatistics();
+Console.WriteLine($"Total audit logs: {stats.TotalLogs}");
+```
+
 ### Key Features
 
 - **Pipeline Creation**: Creates pipelines from ordered job steps with automatic dependency registration
