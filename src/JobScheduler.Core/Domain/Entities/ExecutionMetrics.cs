@@ -34,34 +34,79 @@ public sealed class ExecutionMetrics
     /// </summary>
     private const long SlowThresholdMs = 5000;
 
+    /// <summary>
+    /// Unique identifier for the metrics record.
+    /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    /// <summary>
+    /// Identifier of the job these metrics belong to.
+    /// </summary>
     public Guid JobId { get; set; }
 
+    /// <summary>
+    /// Total number of executions.
+    /// </summary>
     public int TotalExecutions { get; set; }
 
+    /// <summary>
+    /// Number of successful executions.
+    /// </summary>
     public int SuccessfulExecutions { get; set; }
 
+    /// <summary>
+    /// Number of failed executions.
+    /// </summary>
     public int FailedExecutions { get; set; }
 
+    /// <summary>
+    /// Number of executions that timed out.
+    /// </summary>
     public int TimedOutExecutions { get; set; }
 
+    /// <summary>
+    /// Number of executions that were skipped.
+    /// </summary>
     public int SkippedExecutions { get; set; }
 
+    /// <summary>
+    /// Number of executions that were cancelled.
+    /// </summary>
     public int CancelledExecutions { get; set; }
 
+    /// <summary>
+    /// Average duration of executions in milliseconds.
+    /// </summary>
     public long AverageDurationMs { get; set; }
 
+    /// <summary>
+    /// Minimum duration of executions in milliseconds.
+    /// </summary>
     public long MinDurationMs { get; set; }
 
+    /// <summary>
+    /// Maximum duration of executions in milliseconds.
+    /// </summary>
     public long MaxDurationMs { get; set; }
 
+    /// <summary>
+    /// Success rate as a percentage (0-100).
+    /// </summary>
     public double SuccessRate { get; set; }
 
+    /// <summary>
+    /// Total number of retries across all executions.
+    /// </summary>
     public long TotalRetries { get; set; }
 
+    /// <summary>
+    /// Timestamp of the last execution.
+    /// </summary>
     public DateTime? LastExecutionTime { get; set; }
 
+    /// <summary>
+    /// Timestamp when these metrics were calculated.
+    /// </summary>
     public DateTime CalculatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
@@ -151,5 +196,8 @@ public sealed class ExecutionMetrics
         return true;
     }
 
+    /// <summary>
+    /// Returns a string representation of the ExecutionMetrics object.
+    /// </summary>
     public override string ToString() => $"ExecutionMetrics {{ Id = {Id}, JobId = {JobId}, TotalExecutions = {TotalExecutions}, SuccessfulExecutions = {SuccessfulExecutions}, FailedExecutions = {FailedExecutions}, TimedOutExecutions = {TimedOutExecutions} }}";
 }
