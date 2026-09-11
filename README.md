@@ -1174,6 +1174,28 @@ curl -X DELETE "http://localhost:5000/api/Executions/cleanup" \
 
 The `JobsController` manages scheduled jobs under the `/api/Jobs` route.
 
+## Examples
+
+The repository includes various example files demonstrating different aspects of the job scheduler:
+
+- **01-BasicConsoleApp.cs** - Basic Console Application example showing integration into a simple console app
+- **02-AspNetCoreIntegration.cs** - ASP.NET Core Integration example with background service for job execution
+- **03-RetryAndErrorHandling.cs** - Demonstrates retry strategies and error handling patterns including exponential backoff
+- **04-MetricsAndMonitoring.cs** - Shows how to collect, analyze, and report on job execution metrics
+- **05-ConcurrencyAndPriority.cs** - Demonstrates concurrency control and job priority execution
+- **06-RealWorldScenario.cs** - Real-world business scenario: e-commerce system with daily reporting, inventory sync, and customer notifications
+- **07-DataExportAndReporting.cs** - Demonstrates exporting job execution data and generating reports
+- **08-MultiDatabaseSupport.cs** - Shows how to work with multiple database connections
+- **AdvancedUsage.cs** - Demonstrates custom configuration, priority settings, retry policies, and error handling
+- **BasicUsage.cs** - Absolute minimum setup required to use the dotnet-job-scheduler library
+- **DailySalesReportJobHandlerJsonExtensions.cs** - JSON serialization extensions for DailySalesReportJobHandler
+- **DataExportJobHandlerJsonExtensions.cs** - JSON serialization extensions for DataExportJobHandler
+- **IntegrationExample.cs** - Shows integration into ASP.NET Core using HostedService
+- **HelloWorldJobHandlerExtensions.cs** - Extension methods for creating and managing hello world jobs
+- **EmailSendingJobHandlerExtensions.cs** - Extension methods for creating and managing email sending jobs
+- **HelloWorldJobHandlerJsonExtensions.cs** - JSON serialization extensions for HelloWorldJobHandler
+- **v2-basic-usage/Program.cs** - Demonstrates basic usage of dotnet-job-scheduler v2.0 features
+
 ## Benchmarks
 
 The `benchmarks/dotnet-job-scheduler.Benchmarks` project contains performance benchmarks for core scheduler components using BenchmarkDotNet. To run the benchmarks:
