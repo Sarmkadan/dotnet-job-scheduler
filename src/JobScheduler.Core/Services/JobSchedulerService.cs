@@ -739,10 +739,29 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
 
 public sealed class JobDetailsDto
 {
+    /// <summary>
+    /// Gets or sets the job entity.
+    /// </summary>
     public Job Job { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the execution statistics for the job.
+    /// </summary>
     public ExecutionStatistics ExecutionStatistics { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the last execution of the job.
+    /// </summary>
     public JobExecution? LastExecution { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of executions for the job.
+    /// </summary>
     public int TotalExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the next scheduled time for the job.
+    /// </summary>
     public DateTime? NextScheduledTime { get; set; }
 
     /// <summary>
@@ -754,14 +773,49 @@ public sealed class JobDetailsDto
 
 public sealed class SchedulerStatisticsDto
 {
+    /// <summary>
+    /// Gets or sets the total number of jobs in the system.
+    /// </summary>
     public int TotalJobs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of active jobs (jobs with IsActive = true).
+    /// </summary>
     public int ActiveJobs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of currently running executions.
+    /// </summary>
     public int RunningExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of executions across all jobs.
+    /// </summary>
     public int TotalExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of successful executions.
+    /// </summary>
     public int SuccessfulExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of failed executions.
+    /// </summary>
     public int FailedExecutions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average success rate across all jobs (0-100).
+    /// </summary>
     public double AverageSuccessRate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average execution time in milliseconds for successful executions.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets concurrency statistics (job ID to running count mapping).
+    /// </summary>
     public Dictionary<string, int> ConcurrencyStats { get; set; } = new();
 
     /// <summary>
@@ -776,10 +830,29 @@ public sealed class SchedulerStatisticsDto
 /// </summary>
 public sealed class JobPerformanceSummary
 {
+    /// <summary>
+    /// Gets or sets the unique identifier of the job.
+    /// </summary>
     public Guid Id { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the job.
+    /// </summary>
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the average execution time in milliseconds.
+    /// </summary>
     public long AverageExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum execution time in milliseconds.
+    /// </summary>
     public long MaxExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of executions for the job.
+    /// </summary>
     public int TotalExecutions { get; set; }
 
     /// <summary>
