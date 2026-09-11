@@ -1174,6 +1174,30 @@ curl -X DELETE "http://localhost:5000/api/Executions/cleanup" \
 
 The `JobsController` manages scheduled jobs under the `/api/Jobs` route.
 
+## Benchmarks
+
+The `benchmarks/dotnet-job-scheduler.Benchmarks` project contains performance benchmarks for core scheduler components using BenchmarkDotNet. To run the benchmarks:
+
+```bash
+dotnet run -c Release --project benchmarks/dotnet-job-scheduler.Benchmarks
+```
+
+### Benchmark Classes
+
+- **CacheServiceBenchmarks** - Measures in-memory caching operations for cron expressions, job metadata, performance metrics, and distributed lock leases
+- **ConcurrencyManagerBenchmarks** - Measures global and per-job concurrency limit enforcement, execution slot acquisition/release
+- **CronExpressionBenchmarks** - Measures cron expression parsing, schedule evaluation, and next execution time calculation throughput
+- **CsvProcessingBenchmarks** - Measures CSV parsing and escaping used by export formatters and audit log serializers
+- **JobExecutorServiceBenchmarks** - Measures actual job execution handling including timeout, error handling, retry logic, and metrics collection
+- **JobManagementBenchmarks** - Measures job management operations: slug generation, JSON escaping, truncation, and credential masking
+- **JobPipelineServiceBenchmarks** - Measures job pipeline operations: creation, validation, execution flow control, dependency resolution, and status tracking
+- **JobSchedulerServiceBenchmarks** - Measures core scheduler operations: job creation/validation, schedule evaluation, and bulk job processing
+- **RetryServiceBenchmarks** - Measures retry logic operations: delay calculation (exponential/linear/fixed backoff), policy validation, and attempt tracking
+- **StringProcessingBenchmarks** - Measures string manipulation: slug generation, JSON escaping, truncation, and credential masking
+- **JobDependencyBenchmarks** - Measures job dependency graph operations: adding/removing dependencies, topological ordering, and cycle detection
+- **JobPipelineBenchmarks** - Measures job pipeline execution and status tracking performance
+- **Exception Benchmarks** (JobSchedulerExceptionBenchmarks, CyclicDependencyExceptionBenchmarks) - Measures exception creation and ToString() performance
+
 ## Running tests
 
 To run the tests, use the `dotnet test` command.
