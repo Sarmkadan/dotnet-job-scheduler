@@ -258,6 +258,11 @@ public sealed class SlackMessage
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("attachments")]
     public SlackAttachment[] Attachments { get; set; } = Array.Empty<SlackAttachment>();
+
+    /// <summary>
+    /// Returns a string representation of the message, summarizing its text and attachment count.
+    /// </summary>
+    public override string ToString() => $"SlackMessage: Text='{Text}', Attachments={Attachments.Length}";
 }
 
 /// <summary>
@@ -294,6 +299,11 @@ public sealed class SlackAttachment
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("ts")]
     public string Ts { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Returns a string representation of the attachment, summarizing its title, color, text and field count.
+    /// </summary>
+    public override string ToString() => $"SlackAttachment: Title='{Title}', Color='{Color}', Text='{Text ?? "(null)"}', Fields={Fields.Length}";
 }
 
 /// <summary>
@@ -318,4 +328,9 @@ public sealed class SlackField
     /// </summary>
     [System.Text.Json.Serialization.JsonPropertyName("short")]
     public bool Short { get; set; }
+
+    /// <summary>
+    /// Returns a string representation of the field, summarizing its title and value.
+    /// </summary>
+    public override string ToString() => $"SlackField: Title='{Title}', Value='{Value}', Short={Short}";
 }
