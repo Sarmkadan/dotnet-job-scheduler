@@ -480,4 +480,14 @@ public sealed class ExecutionStatistics
     public int SkippedExecutions { get; set; }
     public long AverageDurationMs { get; set; }
     public double SuccessRate { get; set; }
+
+    /// <summary>
+    /// Returns a human-readable summary of the execution counts and rates.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"Job {JobId}: {TotalExecutions} total, {SuccessfulExecutions} succeeded, " +
+               $"{FailedExecutions} failed, {TimedOutExecutions} timed out, {SkippedExecutions} skipped, " +
+               $"avg {AverageDurationMs}ms, success rate {SuccessRate:P1}";
+    }
 }
