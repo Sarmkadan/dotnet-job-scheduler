@@ -926,6 +926,36 @@ curl --get "http://localhost:5000/api/History/jobs/12345678-1234-1234-1234-12345
   --data-urlencode "pageSize=20"
 ```
 
+## MetricsController REST API
+
+`MetricsController` exposes scheduler metrics in OpenMetrics (Prometheus) text format
+under the `/metrics` route. The endpoint uses `GET` and returns `200 OK` with plain
+text metrics or `500 Internal Server Error` on failure.
+
+| Action | Route | Response |
+| --- | --- | --- |
+| `GetMetrics` | `/metrics` | `200 OK` with OpenMetrics text format; `500 Internal Server Error` on error |
+
+### Response format
+
+Returns metrics in OpenMetrics text format (version 0.0.4) with content type
+`text/plain; version=0.0.4; charset=utf-8`. Exposes the following metric families:
+
+- `job_scheduler_jobs_total` — gauge: total jobs by status (labels: `state` with values `all`, `active`, `suspended`, `failed`)
+- `job_scheduler_executions_total` — counter: executions by outcome (labels: `outcome` with values `total`, `success`, `failure`)
+- `job_scheduler_queue_depth` — gauge: pending jobs per priority level (labels: `priority` with values `critical`, `high`, `normal`, `low`)
+- `job_scheduler_running_executions` — gauge: currently running executions
+- `job_scheduler_execution_duration_ms` — gauge: average execution duration in milliseconds
+- `job_scheduler_scheduler_lag_seconds` — gauge: average lag between scheduled and actual start in seconds
+- `job_scheduler_success_rate_percent` — gauge: overall success rate percentage (0-100)
+- `job_scheduler_memory_bytes` — gauge: process memory usage in bytes
+
+### Curl example
+
+```bash
+curl --get "http://localhost:5000/metrics"
+```
+
 ## PipelinesController REST API
 
 The `PipelinesController` exposes endpoints for managing job pipelines under the `/api/Pipelines` route.
