@@ -1724,6 +1724,86 @@ The repository includes various example files demonstrating different aspects of
 
 The `src/JobScheduler.Core/Utilities` namespace contains utility classes that provide common functionality used throughout the job scheduler.
 
+## Middleware
+
+The `src/JobScheduler.Core/Middleware` namespace contains middleware components that handle cross-cutting concerns in the ASP.NET Core pipeline.
+
+### GlobalExceptionMiddleware
+
+The `GlobalExceptionMiddleware` catches all unhandled exceptions and ensures consistent error responses while preventing sensitive information leakage.
+
+**Key Features:**
+- Maps specific exception types to appropriate HTTP status codes:
+  - `JobValidationException` and `CronExpressionException` → 400 Bad Request
+  - `JobNotFoundException` → 404 Not Found
+  - `ConcurrencyException` → 409 Conflict
+  - `ExecutionException` and other unhandled exceptions → 500 Internal Server Error
+- Logs all exceptions for audit and debugging purposes
+- Returns standardized `ErrorResponse` JSON format:
+  ```json
+  {
+    "message": "Error message",
+    "timestamp": "2023-01-01T00:00:00Z",
+    "exceptionType": "Exception.Type.Name",
+    "stackTrace": "Detailed stack trace (development only)"
+  }
+  ```
+- In development environments, includes exception details (stack trace and exception type) for debugging
+- In production environments, returns only message and timestamp to prevent information leakage
+
+**Usage:**
+The middleware is automatically registered in the ASP.NET Core pipeline during application startup.
+
+### LoggingMiddleware
+
+The `LoggingMiddleware` tracks all HTTP requests and responses, recording details including headers, body, and execution time for debugging and audit purposes.
+
+**Key Features:**
+- Captures request details: method, path, query string, headers, and body (for non-GET requests)
+- Captures response details: status code, headers, and body (truncated if >1000 characters)
+- Measures execution time using `Stopwatch`
+- Logs request/response information with appropriate log levels:
+  - Error level for 5xx status codes
+  - Warning level for 4xx status codes
+  - Information level for 2xx/3xx status codes
+- Excludes sensitive headers (Authorization, X-API-Key, Cookie, Password) from logs
+- Skips logging for health check endpoints (`/health`, `/live`, `/ready`)
+- Integrates with `AuditLogger` service to store API call audit records for non-health endpoints
+- Automatically resets request/response streams after capturing to ensure normal pipeline processing
+
+**Usage:**
+The middleware is automatically registered in the ASP.NET Core pipeline during application startup.
+
+### RateLimitMiddleware
+
+The `RateLimitMiddleware` enforces rate limiting based on client identifier (IP address or user ID) using a sliding window algorithm to prevent abuse and ensure fair resource allocation.
+
+**Key Features:**
+- Uses sliding window algorithm for accurate rate limiting
+- Identifies clients by authenticated user ID (preferred) or IP address
+- Automatically skips rate limiting for health check endpoints
+- Thread-safe implementation using `ConcurrentDictionary` for bucket storage
+- Automatic bucket expiration to prevent memory leaks (buckets expire after 2× window size)
+- Returns 429 Too Many Requests status code when limit is exceeded
+- Includes `Retry-After` header indicating when client can retry
+- Provides JSON error response with limit details:
+  ```json
+  {
+    "error": "Rate limit exceeded",
+    "retryAfter": 60,
+    "message": "Maximum 1000 requests per 60 seconds"
+  }
+  ```
+
+**RateLimitSettings Configuration:**
+- `RequestsPerWindow`: Maximum requests allowed in the window (default: 1000)
+- `WindowSizeSeconds`: Size of the sliding window in seconds (default: 60)
+
+**Usage:**
+The middleware is automatically registered in the ASP.NET Core pipeline during application startup. Custom settings can be provided via dependency injection.
+
+## Benchmarks
+
 ### CryptoUtility
 
 Provides cryptographic operations for securing sensitive data and generating secure tokens.
