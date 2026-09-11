@@ -14,24 +14,54 @@ namespace JobScheduler.Core.Domain.Entities;
 /// </summary>
 public class JobScheduleHistory
 {
+    /// <summary>
+    /// Gets or sets the unique identifier for the schedule history entry.
+    /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    /// <summary>
+    /// Gets or sets the identifier of the job associated with this history entry.
+    /// </summary>
     public Guid JobId { get; set; }
 
+    /// <summary>
+    /// Gets or sets the name of the property that was changed.
+    /// </summary>
     public string PropertyName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the previous value of the changed property.
+    /// </summary>
     public string? OldValue { get; set; }
 
+    /// <summary>
+    /// Gets or sets the new value of the changed property.
+    /// </summary>
     public string? NewValue { get; set; }
 
+    /// <summary>
+    /// Gets or sets the timestamp when the change occurred.
+    /// </summary>
     public DateTime ChangedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Gets or sets the identifier or name of the user who made the change.
+    /// </summary>
     public string? ChangedBy { get; set; }
 
+    /// <summary>
+    /// Gets or sets the reason for the change.
+    /// </summary>
     public string ChangeReason { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets additional details or context about the change.
+    /// </summary>
     public string? Details { get; set; }
 
+    /// <summary>
+    /// Gets or sets the job entity associated with this history entry.
+    /// </summary>
     public virtual Job Job { get; set; } = null!;
 
     /// <summary>
