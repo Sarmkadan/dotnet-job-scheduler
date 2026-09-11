@@ -4,8 +4,14 @@ using Xunit;
 
 namespace dotnet_job_scheduler.Tests
 {
+    /// <summary>
+    /// Tests for the <see cref="CryptoUtility"/> class.
+    /// </summary>
     public class CryptoUtilityTests
     {
+        /// <summary>
+        /// Verifies that computing the SHA-256 hash of the same input is deterministic and returns the same hash.
+        /// </summary>
         [Fact]
         public void ComputeSha256_Deterministic_ReturnsSameHashForSameInput()
         {
@@ -20,6 +26,9 @@ namespace dotnet_job_scheduler.Tests
             Assert.Equal(hash1, hash2);
         }
 
+        /// <summary>
+        /// Verifies that computing the SHA-256 hash of different inputs returns different hashes.
+        /// </summary>
         [Fact]
         public void ComputeSha256_DifferentInputs_ReturnDifferentHashes()
         {
@@ -35,6 +44,9 @@ namespace dotnet_job_scheduler.Tests
             Assert.NotEqual(hash1, hash2);
         }
 
+        /// <summary>
+        /// Verifies that computing the SHA-256 hash of an empty input returns an empty string.
+        /// </summary>
         [Fact]
         public void ComputeSha256_EmptyInput_ReturnsEmptyString()
         {
@@ -45,6 +57,9 @@ namespace dotnet_job_scheduler.Tests
             Assert.Equal(string.Empty, result);
         }
 
+        /// <summary>
+        /// Verifies that computing the SHA-256 hash of a null input returns an empty string.
+        /// </summary>
         [Fact]
         public void ComputeSha256_NullInput_ReturnsEmptyString()
         {
@@ -55,6 +70,9 @@ namespace dotnet_job_scheduler.Tests
             Assert.Equal(string.Empty, result);
         }
 
+        /// <summary>
+        /// Verifies that an AES-256 encrypt/decrypt round trip returns the original plaintext.
+        /// </summary>
         [Fact]
         public void EncryptAes256_And_DecryptAes256_RoundTrip_ReturnsOriginalPlaintext()
         {
@@ -70,6 +88,9 @@ namespace dotnet_job_scheduler.Tests
             Assert.Equal(plaintext, decrypted);
         }
 
+        /// <summary>
+        /// Verifies that encrypting an empty input with AES-256 returns empty ciphertext and IV.
+        /// </summary>
         [Fact]
         public void EncryptAes256_EmptyInput_ReturnsEmptyCipherAndIv()
         {
@@ -81,6 +102,9 @@ namespace dotnet_job_scheduler.Tests
             Assert.Equal(string.Empty, iv);
         }
 
+        /// <summary>
+        /// Verifies that encrypting a null input with AES-256 returns empty ciphertext and IV.
+        /// </summary>
         [Fact]
         public void EncryptAes256_NullInput_ReturnsEmptyCipherAndIv()
         {
@@ -92,6 +116,9 @@ namespace dotnet_job_scheduler.Tests
             Assert.Equal(string.Empty, iv);
         }
 
+        /// <summary>
+        /// Verifies that decrypting an empty ciphertext with AES-256 returns an empty string.
+        /// </summary>
         [Fact]
         public void DecryptAes256_EmptyCipher_ReturnsEmptyString()
         {
@@ -102,6 +129,9 @@ namespace dotnet_job_scheduler.Tests
             Assert.Equal(string.Empty, result);
         }
 
+        /// <summary>
+        /// Verifies that decrypting a null ciphertext with AES-256 returns an empty string.
+        /// </summary>
         [Fact]
         public void DecryptAes256_NullCipher_ReturnsEmptyString()
         {
