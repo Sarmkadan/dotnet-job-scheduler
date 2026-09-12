@@ -1750,9 +1750,339 @@ The repository includes various example files demonstrating different aspects of
 - **HelloWorldJobHandlerJsonExtensions.cs** - JSON serialization extensions for HelloWorldJobHandler
 - **v2-basic-usage/Program.cs** - Demonstrates basic usage of dotnet-job-scheduler v2.0 features
 
-## Utilities
+## Configuration
 
-The `src/JobScheduler.Core/Utilities` namespace contains utility classes that provide common functionality used throughout the job scheduler.
+The job scheduler uses a strongly-typed configuration system based on the `JobSchedulerSettings` class and its nested configuration objects. This approach provides type safety, IntelliSense support, and centralized configuration management.
+
+### JobSchedulerSettings
+
+The main configuration class that encapsulates all scheduler settings:
+
+```csharp
+public sealed class JobSchedulerSettings
+{
+    // Core settings
+    public string? ConnectionString { get; set; }
+    public int MaxConcurrentJobs { get; set; } = 10;
+    public int DefaultTimeoutSeconds { get; set; } = 300;
+    public int DefaultMaxRetries { get; set; } = 3;
+    public int DefaultRetryBackoffSeconds { get; set; } = 5;
+    public int QueuePollIntervalMs { get; set; } = 5000;
+    public bool EnableCleanup { get; set; } = true;
+    public int CleanupIntervalMs { get; set; } = 300000;
+    public int MaxJobNameLength { get; set; } = 255;
+    public int MaxCronExpressionLength { get; set; } = 255;
+}
+```
+
+#### Nested Configuration Classes
+
+##### NotificationSettings
+Configures notification services (webhooks, Slack, email):
+
+```csharp
+public sealed class NotificationSettings
+{
+    public bool EnableWebhooks { get; set; } = false;
+    public bool EnableSlack { get; set; } = false;
+    public bool EnableEmail { get; set; } = false;
+    public string? SlackWebhookUrl { get; set; }
+    public string? SmtpServer { get; set; }
+    public int SmtpPort { get; set; } = 587;
+    public string? SmtpUsername { get; set; }
+    public string? SmtpPassword { get; set; }
+    public string? SmtpFromEmail { get; set; }
+    public List<string> AlertEmails { get; set; } = new();
+}
+```
+
+##### CachingSettings
+Configures caching behavior:
+
+```csharp
+public sealed class CachingSettings
+{
+    public bool EnableCache { get; set; } = true;
+    public int DefaultCacheDurationMinutes { get; set; } = 60;
+    public int MaxCacheEntries { get; set; } = 10000;
+    public bool EnableDistributedCache { get; set; } = false;
+    public string? RedisConnectionString { get; set; }
+}
+```
+
+##### SecuritySettings
+Configures security and authentication:
+
+```csharp
+public sealed class SecuritySettings
+{
+    public bool EnableApiKeyAuth { get; set; } = false;
+    public List<ApiKeyConfig> ApiKeys { get; set; } = new();
+    public bool RequireHttps { get; set; } = true;
+    public bool EnableCors { get; set; } = false;
+    public List<string> CorsOrigins { get; set; } = new();
+}
+```
+
+##### ApiKeyConfig
+Individual API key configuration:
+
+```csharp
+public sealed class ApiKeyConfig
+{
+    public string Key { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool Active { get; set; } = true;
+    public DateTime? ExpiresAt { get; set; }
+}
+```
+
+##### LoggingSettings
+Configures logging and monitoring:
+
+```csharp
+public sealed class LoggingSettings
+{
+    public string LogLevel { get; set; } = "Information";
+    public bool EnableDetailedLogging { get; set; } = false;
+    public bool EnableAuditLogging { get; set; } = true;
+    public int AuditLogRetentionDays { get; set; } = 90;
+    public string? LogFilePath { get; set; }
+    public bool EnableStructuredLogging { get; set; } = false;
+}
+```
+
+##### PerformanceSettings
+Configures performance monitoring:
+
+```csharp
+public sealed class PerformanceSettings
+{
+    public bool EnablePerformanceMonitoring { get; set; } = true;
+    public int MetricsRetentionMinutes { get; set; } = 1440; // 24 hours
+    public bool EnableSlowQueryLogging { get; set; } = true;
+    public int SlowQueryThresholdMs { get; set; } = 1000;
+    public bool EnablePercentileTracking { get; set; } = true;
+}
+```
+
+##### PersistenceSettings
+Configures database and persistence:
+
+```csharp
+public sealed class PersistenceSettings
+{
+    public string? DatabaseProvider { get; set; } = "SqlServer";
+    public int CommandTimeoutSeconds { get; set; } = 30;
+    public bool EnableAutoMigration { get; set; } = true;
+    public int MaxConnectionPoolSize { get; set; } = 100;
+    public bool EnableQueryLogging { get; set; } = false;
+}
+```
+
+##### DistributedSettings
+Configures distributed scheduler features:
+
+```csharp
+public sealed class DistributedSettings
+{
+    public bool EnableDistributed { get; set; } = false;
+    public string? ServiceName { get; set; }
+    public string? ServiceInstanceId { get; set; }
+    public bool EnableServiceDiscovery { get; set; } = false;
+    public string? ServiceRegistryUrl { get; set; }
+    public int HeartbeatIntervalSeconds { get; set; } = 30;
+    public bool EnableLeaderElection { get; set; } = false;
+    public int LeaderElectionLeaseDurationSeconds { get; set; } = 30;
+}
+```
+
+##### FeatureFlags
+Feature flags for A/B testing and gradual rollouts:
+
+```csharp
+public sealed class FeatureFlags
+{
+    public bool EnableAdvancedScheduling { get; set; } = false;
+    public bool EnableJobChaining { get; set; } = false;
+    public bool EnableWorkflows { get; set; } = false;
+    public bool EnableDistributedLocking { get; set; } = false;
+}
+```
+
+### DotnetJobSchedulerOptions
+
+Used for binding configuration via the Options pattern in ASP.NET Core:
+
+```csharp
+public class DotnetJobSchedulerOptions
+{
+    public string ConnectionString { get; set; } = string.Empty;
+    public int MaxConcurrentJobs { get; set; }
+    public int DefaultTimeoutSeconds { get; set; }
+    public int DefaultMaxRetries { get; set; }
+    public int DefaultRetryBackoffSeconds { get; set; }
+    public int QueuePollIntervalMs { get; set; }
+    public bool EnableCleanup { get; set; }
+    public int CleanupIntervalMs { get; set; }
+}
+```
+
+### appsettings.json Example
+
+Here's an example `appsettings.json` configuration:
+
+```json
+{
+  "JobSchedulerSettings": {
+    "ConnectionString": "Server=localhost;Database=JobScheduler;Trusted_Connection=True;",
+    "MaxConcurrentJobs": 10,
+    "DefaultTimeoutSeconds": 300,
+    "DefaultMaxRetries": 3,
+    "DefaultRetryBackoffSeconds": 5,
+    "QueuePollIntervalMs": 5000,
+    "EnableCleanup": true,
+    "CleanupIntervalMs": 300000,
+    "MaxJobNameLength": 255,
+    "MaxCronExpressionLength": 255,
+    "NotificationSettings": {
+      "EnableWebhooks": false,
+      "EnableSlack": false,
+      "EnableEmail": false,
+      "SlackWebhookUrl": "",
+      "SmtpServer": "smtp.example.com",
+      "SmtpPort": 587,
+      "SmtpUsername": "scheduler@example.com",
+      "SmtpPassword": "your-password",
+      "SmtpFromEmail": "scheduler@example.com",
+      "AlertEmails": [
+        "admin@example.com",
+        "ops@example.com"
+      ]
+    },
+    "CachingSettings": {
+      "EnableCache": true,
+      "DefaultCacheDurationMinutes": 60,
+      "MaxCacheEntries": 10000,
+      "EnableDistributedCache": false,
+      "RedisConnectionString": "localhost:6379"
+    },
+    "SecuritySettings": {
+      "EnableApiKeyAuth": false,
+      "ApiKeys": [
+        {
+          "Key": "your-api-key-here",
+          "Name": "production-key",
+          "Active": true,
+          "ExpiresAt": "2027-01-01T00:00:00Z"
+        }
+      ],
+      "RequireHttps": true,
+      "EnableCors": false,
+      "CorsOrigins": [
+        "https://example.com",
+        "https://admin.example.com"
+      ]
+    },
+    "LoggingSettings": {
+      "LogLevel": "Information",
+      "EnableDetailedLogging": false,
+      "EnableAuditLogging": true,
+      "AuditLogRetentionDays": 90,
+      "LogFilePath": "logs/scheduler.log",
+      "EnableStructuredLogging": false
+    },
+    "PerformanceSettings": {
+      "EnablePerformanceMonitoring": true,
+      "MetricsRetentionMinutes": 1440,
+      "EnableSlowQueryLogging": true,
+      "SlowQueryThresholdMs": 1000,
+      "EnablePercentileTracking": true
+    },
+    "PersistenceSettings": {
+      "DatabaseProvider": "SqlServer",
+      "CommandTimeoutSeconds": 30,
+      "EnableAutoMigration": true,
+      "MaxConnectionPoolSize": 100,
+      "EnableQueryLogging": false
+    },
+    "DistributedSettings": {
+      "EnableDistributed": false,
+      "ServiceName": "job-scheduler",
+      "ServiceInstanceId": "instance-1",
+      "EnableServiceDiscovery": false,
+      "ServiceRegistryUrl": "http://consul:8500",
+      "HeartbeatIntervalSeconds": 30,
+      "EnableLeaderElection": false,
+      "LeaderElectionLeaseDurationSeconds": 30
+    },
+    "FeatureFlags": {
+      "EnableAdvancedScheduling": false,
+      "EnableJobChaining": false,
+      "EnableWorkflows": false,
+      "EnableDistributedLocking": false
+    }
+  }
+}
+```
+
+### Key Settings Reference
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| ConnectionString | string | null | Database connection string |
+| MaxConcurrentJobs | int | 10 | Maximum number of jobs that may run concurrently |
+| DefaultTimeoutSeconds | int | 300 | Default job timeout in seconds |
+| DefaultMaxRetries | int | 3 | Default maximum number of retry attempts |
+| DefaultRetryBackoffSeconds | int | 5 | Default retry backoff in seconds |
+| QueuePollIntervalMs | int | 5000 | Queue polling interval in milliseconds |
+| EnableCleanup | bool | true | Whether automatic cleanup is enabled |
+| CleanupIntervalMs | int | 300000 | Cleanup interval in milliseconds (5 minutes) |
+| MaxJobNameLength | int | 255 | Maximum job name length |
+| MaxCronExpressionLength | int | 255 | Maximum cron expression length |
+| NotificationSettings.EnableWebhooks | bool | false | Enable webhook notifications |
+| NotificationSettings.EnableSlack | bool | false | Enable Slack notifications |
+| NotificationSettings.EnableEmail | bool | false | Enable email notifications |
+| NotificationSettings.SmtpPort | int | 587 | SMTP server port |
+| CachingSettings.EnableCache | bool | true | Whether caching is enabled |
+| CachingSettings.DefaultCacheDurationMinutes | int | 60 | Default cache duration in minutes |
+| CachingSettings.MaxCacheEntries | int | 10000 | Maximum number of cache entries |
+| SecuritySettings.EnableApiKeyAuth | bool | false | Whether API key authentication is enabled |
+| SecuritySettings.RequireHttps | bool | true | Whether HTTPS is required |
+| LoggingSettings.LogLevel | string | "Information" | Minimum logging level |
+| LoggingSettings.EnableAuditLogging | bool | true | Whether audit logging is enabled |
+| LoggingSettings.AuditLogRetentionDays | int | 90 | Audit log retention period in days |
+| PerformanceSettings.EnablePerformanceMonitoring | bool | true | Whether performance monitoring is enabled |
+| PerformanceSettings.MetricsRetentionMinutes | int | 1440 | Metrics retention period in minutes (24 hours) |
+| PerformanceSettings.EnableSlowQueryLogging | bool | true | Whether slow query logging is enabled |
+| PerformanceSettings.SlowQueryThresholdMs | int | 1000 | Slow query threshold in milliseconds |
+| PersistenceSettings.DatabaseProvider | string | "SqlServer" | Database provider (SqlServer, PostgreSQL, SQLite, etc.) |
+| PersistenceSettings.CommandTimeoutSeconds | int | 30 | Database command timeout in seconds |
+| PersistenceSettings.EnableAutoMigration | bool | true | Whether automatic database migration is enabled |
+| PersistenceSettings.MaxConnectionPoolSize | int | 100 | Maximum database connection pool size |
+| DistributedSettings.EnableDistributed | bool | false | Whether distributed scheduling is enabled |
+| DistributedSettings.HeartbeatIntervalSeconds | int | 30 | Heartbeat interval in seconds |
+| DistributedSettings.EnableLeaderElection | bool | false | Whether leader election is enabled |
+| DistributedSettings.LeaderElectionLeaseDurationSeconds | int | 30 | Leader election lease duration in seconds |
+| FeatureFlags.EnableAdvancedScheduling | bool | false | Whether advanced scheduling is enabled |
+| FeatureFlags.EnableJobChaining | bool | false | Whether job chaining is enabled |
+| FeatureFlags.EnableWorkflows | bool | false | Whether workflows are enabled |
+| FeatureFlags.EnableDistributedLocking | bool | false | Whether distributed locking is enabled |
+
+### DotnetJobSchedulerOptions Reference
+
+| Property | Type | Description |
+|----------|------|-------------|
+| ConnectionString | string | The connection string to use for database operations |
+| MaxConcurrentJobs | int | The maximum number of concurrent jobs to run |
+| DefaultTimeoutSeconds | int | The default timeout in seconds for job execution |
+| DefaultMaxRetries | int | The default maximum number of retries for a job |
+| DefaultRetryBackoffSeconds | int | The default retry backoff interval in seconds |
+| QueuePollIntervalMs | int | The interval in milliseconds to poll the queue for new jobs |
+| EnableCleanup | bool | Whether to enable cleanup of completed jobs |
+| CleanupIntervalMs | int | The interval in milliseconds to run the cleanup job |
+
+## Utilities
 
 ## Middleware
 
