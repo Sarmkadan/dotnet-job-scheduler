@@ -55,6 +55,7 @@ public sealed class EventPublisherTests
 
         // Act
         await _publisher.PublishAsync(testEvent);
+        await Task.Delay(500); // Allow background channel processing
 
         // Assert
         Assert.True(eventReceived);
@@ -95,6 +96,7 @@ public sealed class EventPublisherTests
 
         // Act
         await _publisher.PublishAsync(testEvent);
+        await Task.Delay(500); // Allow background channel processing
 
         // Assert
         Assert.Equal(3, receivedCount);
@@ -512,6 +514,7 @@ public sealed class EventPublisherTests
 
         // Act
         var exception = await Record.ExceptionAsync(() => _publisher.PublishAsync(testEvent));
+        await Task.Delay(500); // Allow background channel processing
 
         // Assert
         Assert.Null(exception); // Should not throw

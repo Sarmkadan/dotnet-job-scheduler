@@ -91,9 +91,7 @@ public class JobScheduleHistoryValidationTests
     [Fact]
     public void IsValid_NullInstance_ThrowsArgumentNullException()
     {
-        JobScheduleHistory? history = null;
-
-        Assert.Throws<ArgumentNullException>(() => history!.IsValid());
+        Assert.Throws<ArgumentNullException>(() => JobScheduleHistoryValidation.IsValid(null!));
     }
 
     [Fact]

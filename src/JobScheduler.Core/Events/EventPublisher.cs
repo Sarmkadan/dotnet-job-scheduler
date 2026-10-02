@@ -296,7 +296,7 @@ public sealed class EventPublisher : IEventPublisher, IDisposable
             var request = new PublishRequest(
                 EventType: eventType,
                 EventData: eventData,
-                Handlers: handlers.OfType<Func<TEvent, Task>>().Cast<Func<ISchedulerEvent, Task>>().ToList()
+                Handlers: handlers.OfType<Func<TEvent, Task>>().Select(h => new Func<ISchedulerEvent, Task>(e => h((TEvent)e))).ToList()
             );
 
             // Send to bounded channel - will wait if channel is full
@@ -348,9 +348,8 @@ public sealed class EventPublisher : IEventPublisher, IDisposable
     /// </summary>
     /// <param name="subscriptionToken">The subscription token to unsubscribe</param>
     /// <exception cref="ArgumentNullException">subscriptionToken is null</exception>
-    public void Unsubscribe<TEvent>(object subscriptionToken) where TEvent : ISchedulerEvent
+    public void Unsubscribe<TEvent>(object? subscriptionToken) where TEvent : ISchedulerEvent
     {
-        ArgumentNullException.ThrowIfNull(subscriptionToken);
         if (subscriptionToken is not SubscriptionToken token)
             return;
 

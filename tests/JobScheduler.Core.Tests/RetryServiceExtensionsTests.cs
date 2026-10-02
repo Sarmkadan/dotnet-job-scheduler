@@ -216,7 +216,7 @@ public class RetryServiceExtensionsTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
-            await _retryService.IsRetryBudgetExceededAsync(jobId, timeWindowMinutes: 0));
+            await RetryServiceExtensions.IsRetryBudgetExceededAsync(_retryService, jobId, timeWindowMinutes: 0));
     }
 
     #endregion

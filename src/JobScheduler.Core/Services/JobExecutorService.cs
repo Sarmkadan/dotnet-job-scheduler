@@ -253,17 +253,19 @@ public class JobExecutorService
                         });
                     }
 
-
                     // Also publish a failed event for backward compatibility
-                    await _eventPublisher!.PublishAsync(new JobExecutionFailedEvent
+                    if (shouldPublishEvents)
                     {
-                        JobId = job.Id,
-                        ExecutionId = execution.Id,
-                        JobName = job.Name,
-                        ErrorMessage = execution.ErrorMessage,
-                        RetryAttempt = attemptNumber,
-                        WillRetry = willRetry
-                    });
+                        await _eventPublisher!.PublishAsync(new JobExecutionFailedEvent
+                        {
+                            JobId = job.Id,
+                            ExecutionId = execution.Id,
+                            JobName = job.Name,
+                            ErrorMessage = execution.ErrorMessage,
+                            RetryAttempt = attemptNumber,
+                            WillRetry = willRetry
+                        });
+                    }
                     finalExecution = execution;
                 }
                 catch (Exception ex)
@@ -290,6 +292,8 @@ public class JobExecutorService
                             WillRetry = willRetry
                         });
                     }
+
+                    finalExecution = execution;
                 }
             }
             finally

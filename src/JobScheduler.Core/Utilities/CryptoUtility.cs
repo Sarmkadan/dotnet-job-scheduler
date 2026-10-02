@@ -84,9 +84,10 @@ public static class CryptoUtility
     /// Computes SHA-256 hash of input string.
     /// WHY: SHA256 is collision-resistant and widely supported for data integrity.
     /// </summary>
-    public static string ComputeSha256(string input)
+    public static string ComputeSha256(string? input)
     {
-        ArgumentException.ThrowIfNullOrEmpty(input);
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
 
         using (var sha256 = SHA256.Create())
         {
@@ -137,9 +138,10 @@ public static class CryptoUtility
     /// Encrypts string using AES-256-CBC.
     /// WHY: AES256 is NIST-approved and provides strong encryption for sensitive data.
     /// </summary>
-    public static (string Ciphertext, string Iv) EncryptAes256(string plaintext, string key)
+    public static (string Ciphertext, string Iv) EncryptAes256(string? plaintext, string key)
     {
-        ArgumentException.ThrowIfNullOrEmpty(plaintext);
+        if (string.IsNullOrEmpty(plaintext))
+            return (string.Empty, string.Empty);
         ArgumentException.ThrowIfNullOrEmpty(key);
 
         using (var aes = Aes.Create())
@@ -148,16 +150,15 @@ public static class CryptoUtility
             aes.Mode = CipherMode.CBC;
             aes.Padding = PaddingMode.PKCS7;
 
-            // Derive key from input
-            using (var kdf = new Rfc2898DeriveBytes(key, Pbkdf2SaltSizeBytes, Pbkdf2IterationCount, HashAlgorithmName.SHA256))
-            {
-                aes.Key = kdf.GetBytes(DerivedKeySizeBytes);
-            }
+            // Derive key from input, storing salt for decryption
+            using var kdf = new Rfc2898DeriveBytes(key, Pbkdf2SaltSizeBytes, Pbkdf2IterationCount, HashAlgorithmName.SHA256);
+            aes.Key = kdf.GetBytes(DerivedKeySizeBytes);
 
             using (var encryptor = aes.CreateEncryptor())
             using (var ms = new MemoryStream())
             {
-                // Write IV to stream (needed for decryption)
+                // Write salt, then IV to stream (both needed for decryption)
+                ms.Write(kdf.Salt, 0, kdf.Salt.Length);
                 ms.Write(aes.IV, 0, aes.IV.Length);
 
                 using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
@@ -177,30 +178,37 @@ public static class CryptoUtility
     /// <summary>
     /// Decrypts AES-256-CBC ciphertext.
     /// </summary>
-    public static string DecryptAes256(string ciphertext, string key, string iv)
+    public static string DecryptAes256(string? ciphertext, string key, string iv)
     {
-        ArgumentException.ThrowIfNullOrEmpty(ciphertext);
+        if (string.IsNullOrEmpty(ciphertext))
+            return string.Empty;
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentException.ThrowIfNullOrEmpty(iv);
 
         try
         {
+            var ciphertextBytes = Convert.FromBase64String(ciphertext);
             using (var aes = Aes.Create())
             {
                 aes.KeySize = AesKeySizeBits;
                 aes.Mode = CipherMode.CBC;
                 aes.Padding = PaddingMode.PKCS7;
 
-                // Derive key from input
-                using (var kdf = new Rfc2898DeriveBytes(key, Pbkdf2SaltSizeBytes, Pbkdf2IterationCount, HashAlgorithmName.SHA256))
-                {
-                    aes.Key = kdf.GetBytes(DerivedKeySizeBytes);
-                }
+                // Read salt from beginning of ciphertext
+                var salt = new byte[Pbkdf2SaltSizeBytes];
+                Buffer.BlockCopy(ciphertextBytes, 0, salt, 0, Pbkdf2SaltSizeBytes);
 
+                // Derive key from input using stored salt
+                using var kdf = new Rfc2898DeriveBytes(key, salt, Pbkdf2IterationCount, HashAlgorithmName.SHA256);
+                aes.Key = kdf.GetBytes(DerivedKeySizeBytes);
                 aes.IV = Convert.FromBase64String(iv);
 
+                // Skip salt and IV in the ciphertext stream
+                var encryptedStart = Pbkdf2SaltSizeBytes + aes.IV.Length;
+                var encryptedLength = ciphertextBytes.Length - encryptedStart;
+
                 using (var decryptor = aes.CreateDecryptor())
-                using (var ms = new MemoryStream(Convert.FromBase64String(ciphertext)))
+                using (var ms = new MemoryStream(ciphertextBytes, encryptedStart, encryptedLength))
                 using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
                 using (var sr = new StreamReader(cs))
                 {

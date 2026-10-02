@@ -115,8 +115,8 @@ public class JobPipelineExtensionsTests
         {
             Steps = new List<JobPipelineStep>
             {
-                new JobPipelineStep(),
-                new JobPipelineStep()
+                new JobPipelineStep { StopOnFailure = false },
+                new JobPipelineStep { StopOnFailure = false }
             }
         };
 

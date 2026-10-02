@@ -56,7 +56,7 @@ public static class TimeUtility
             return null;
 
         if (DateTime.TryParse(isoString, CultureInfo.InvariantCulture,
-            DateTimeStyles.RoundtripKind | DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var result))
+            DateTimeStyles.RoundtripKind, out var result))
             return result.ToUniversalTime();
 
         return null;

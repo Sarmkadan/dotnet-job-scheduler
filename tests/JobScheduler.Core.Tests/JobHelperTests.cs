@@ -50,7 +50,7 @@ public sealed class JobHelperTests
     public void GetJobStatusDescription_WithNullJob_ReturnsUnknown()
     {
         var result = JobHelper.GetJobStatusDescription(null!);
-        Assert.Equal("Unknown", result);
+        Assert.Equal("Unknown status", result);
     }
 
     [Theory]

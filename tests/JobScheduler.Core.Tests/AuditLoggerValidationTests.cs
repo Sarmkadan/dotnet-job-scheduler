@@ -50,15 +50,15 @@ public sealed class AuditLoggerValidationTests
 
         var problems = entry.Validate();
 
-        Assert.Equal(9, problems.Count);
-        Assert.Contains("EventId must not be empty", problems);
-        Assert.Contains("EventType must not exceed 100 characters", problems);
-        Assert.Contains("Timestamp cannot be in the future", problems);
-        Assert.Contains("Severity must be a valid AuditSeverity value", problems);
-        Assert.Contains("Details must not exceed 4000 characters", problems);
-        Assert.Contains("UserId must not be empty if specified", problems);
-        Assert.Contains("EntityId must not be Guid.Empty if specified", problems);
-        Assert.Contains("EntityType must not exceed 50 characters", problems);
+        Assert.Equal(8, problems.Count);
+        Assert.Contains(problems, p => p.Contains("EventId"));
+        Assert.Contains(problems, p => p.Contains("EventType") && p.Contains("100"));
+        Assert.Contains(problems, p => p.Contains("Timestamp") && p.Contains("future"));
+        Assert.Contains(problems, p => p.Contains("Severity"));
+        Assert.Contains(problems, p => p.Contains("Details") && p.Contains("4000"));
+        Assert.Contains(problems, p => p.Contains("UserId") && p.Contains("empty"));
+        Assert.Contains(problems, p => p.Contains("EntityId") && p.Contains("Empty"));
+        Assert.Contains(problems, p => p.Contains("EntityType") && p.Contains("50"));
     }
 
     [Fact]

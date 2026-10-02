@@ -234,7 +234,7 @@ public sealed class CronExpressionServiceTests
         var now = new DateTime(2024, 1, 1, 0, 7, 0, DateTimeKind.Utc); // 07 minutes past the hour
 
         // Act
-        var times = _service.GetNextExecutionTimes(cron, 3).ToList();
+        var times = _service.GetNextExecutionTimes(cron, 3, now).ToList();
 
         // Assert
         Assert.Equal(3, times.Count);
@@ -255,7 +255,7 @@ public sealed class CronExpressionServiceTests
 
         // Assert
         Assert.False(string.IsNullOrWhiteSpace(exception.Message));
-        // The message should contain some indication of why it failed.
-        Assert.Contains("minute", exception.Message, StringComparison.OrdinalIgnoreCase);
+        // The message should contain the invalid expression
+        Assert.Contains("61 * * * *", exception.Message);
     }
 }

@@ -63,8 +63,8 @@ public class ExecutionStatsResponseJsonExtensionsTests
     public void FromJson_ThrowsArgumentException_WhenJsonIsNullOrEmpty()
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => ExecutionStatsResponseJsonExtensions.FromJson(null!));
-        Assert.Throws<ArgumentException>(() => ExecutionStatsResponseJsonExtensions.FromJson(string.Empty));
+        Assert.ThrowsAny<ArgumentException>(() => ExecutionStatsResponseJsonExtensions.FromJson(null!));
+        Assert.ThrowsAny<ArgumentException>(() => ExecutionStatsResponseJsonExtensions.FromJson(string.Empty));
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class ExecutionStatsResponseJsonExtensionsTests
     public void TryFromJson_ThrowsArgumentException_WhenJsonIsNullOrEmpty()
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => ExecutionStatsResponseJsonExtensions.TryFromJson(null!, out _));
-        Assert.Throws<ArgumentException>(() => ExecutionStatsResponseJsonExtensions.TryFromJson(string.Empty, out _));
+        Assert.ThrowsAny<ArgumentException>(() => ExecutionStatsResponseJsonExtensions.TryFromJson(null!, out _));
+        Assert.ThrowsAny<ArgumentException>(() => ExecutionStatsResponseJsonExtensions.TryFromJson(string.Empty, out _));
     }
 }

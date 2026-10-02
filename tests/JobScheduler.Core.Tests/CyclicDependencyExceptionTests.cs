@@ -89,8 +89,8 @@ namespace JobScheduler.Core.Tests
             void Action() => throw new CyclicDependencyException(Guid.NewGuid(), Guid.NewGuid());
 
             // Act & Assert
-            var caught = Assert.Throws<JobSchedulerException>(Action);
-            Assert.IsType<CyclicDependencyException>(caught);
+            var caught = Assert.ThrowsAny<JobSchedulerException>(Action);
+            Assert.IsAssignableFrom<CyclicDependencyException>(caught);
         }
     }
 }

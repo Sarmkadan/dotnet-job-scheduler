@@ -56,7 +56,7 @@ public sealed class JobPipeline
 
         var validationResult = await dependencyService.ValidateGraphAsync(cancellationToken);
 
-        if (!validationResult.IsValid)
+        if (validationResult is not null && !validationResult.IsValid)
         {
             var cyclePath = validationResult.CycleNodes;
             throw new CyclicDependencyException(

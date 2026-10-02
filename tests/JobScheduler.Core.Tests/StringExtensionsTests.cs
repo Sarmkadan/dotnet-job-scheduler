@@ -45,7 +45,8 @@ public sealed class StringExtensionsTests
 
         // Assert
         Assert.NotNull(truncated);
-        Assert.True(truncated.Length <= maxLength);
+        Assert.Equal("Hello...", truncated);
+        Assert.True(truncated.Length <= maxLength + 3); // maxLength + ellipsis
     }
 
     [Fact]

@@ -22,7 +22,7 @@ public class JobSchedulerException : Exception
     /// </summary>
     /// <param name="message">The error message.</param>
     public JobSchedulerException(string message)
-        : base(string.IsNullOrEmpty(message) ? "An error occurred in the job scheduler." : message)
+        : base(message ?? throw new ArgumentNullException(nameof(message)))
     {
     }
 
@@ -32,8 +32,9 @@ public class JobSchedulerException : Exception
     /// <param name="message">The error message.</param>
     /// <param name="errorCode">The error code.</param>
     public JobSchedulerException(string message, string errorCode)
-        : base(string.IsNullOrEmpty(message) ? "An error occurred in the job scheduler." : message)
+        : base(message ?? throw new ArgumentNullException(nameof(message)))
     {
+        ArgumentNullException.ThrowIfNull(errorCode);
         ErrorCode = errorCode;
     }
 

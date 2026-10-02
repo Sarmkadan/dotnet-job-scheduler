@@ -214,12 +214,12 @@ public class Job
     }
 
     /// <summary>
-    /// Calculates the success rate of the job as a percentage.
+    /// Calculates the success rate of the job as a value between 0 and 1.
     /// </summary>
-    /// <returns>The success rate percentage (0-100). Returns 0 if no executions have occurred.</returns>
+    /// <returns>The success rate (0.0 to 1.0). Returns 0 if no executions have occurred.</returns>
     public double GetSuccessRate()
     {
-        return TotalExecutions == 0 ? 0 : (double)SuccessfulExecutions / TotalExecutions * 100;
+        return TotalExecutions == 0 ? 0 : (double)SuccessfulExecutions / TotalExecutions;
     }
 
     /// <summary>

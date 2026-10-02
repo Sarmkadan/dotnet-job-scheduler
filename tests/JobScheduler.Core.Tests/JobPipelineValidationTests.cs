@@ -102,10 +102,13 @@ public class JobPipelineValidationTests
     }
 
     [Fact]
-    public void IsValid_NullInput_ThrowsArgumentNullException()
+    public void IsValid_NullInput_ReturnsFalse()
     {
-        // Act and Assert
-        Assert.Throws<ArgumentNullException>(() => JobPipelineValidation.IsValid(null));
+        // Act
+        var result = JobPipelineValidation.IsValid(null);
+
+        // Assert
+        Assert.False(result);
     }
 
     [Fact]

@@ -42,7 +42,7 @@ namespace JobScheduler.Core.Tests
         public void FormatDetails_WithNullErrorCode_ReturnsMessageOnly()
         {
             // Arrange
-            var exception = new JobSchedulerException("Test error message", errorCode: null!);
+            var exception = new JobSchedulerException("Test error message");
 
             // Act
             var result = exception.FormatDetails();

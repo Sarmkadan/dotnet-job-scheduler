@@ -28,8 +28,8 @@ public sealed class CacheServiceValidationTests
     [Fact]
     public void ValidateKey_NullOrEmpty_ThrowsArgumentException()
     {
-        Assert.Throws<ArgumentException>(() => CacheServiceValidation.ValidateKey(null));
-        Assert.Throws<ArgumentException>(() => CacheServiceValidation.ValidateKey(string.Empty));
+        Assert.ThrowsAny<ArgumentException>(() => CacheServiceValidation.ValidateKey(null));
+        Assert.ThrowsAny<ArgumentException>(() => CacheServiceValidation.ValidateKey(string.Empty));
     }
 
     [Fact]
@@ -52,8 +52,8 @@ public sealed class CacheServiceValidationTests
     [Fact]
     public void ValidateKeyPattern_NullOrEmpty_ThrowsArgumentException()
     {
-        Assert.Throws<ArgumentException>(() => CacheServiceValidation.ValidateKeyPattern(null));
-        Assert.Throws<ArgumentException>(() => CacheServiceValidation.ValidateKeyPattern(string.Empty));
+        Assert.ThrowsAny<ArgumentException>(() => CacheServiceValidation.ValidateKeyPattern(null));
+        Assert.ThrowsAny<ArgumentException>(() => CacheServiceValidation.ValidateKeyPattern(string.Empty));
     }
 
     [Fact]

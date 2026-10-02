@@ -48,9 +48,10 @@ public sealed class JobsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<JobResponse>> CreateJob([FromBody] CreateJobRequest request)
+    public async Task<ActionResult<JobResponse>> CreateJob([FromBody] CreateJobRequest? request)
     {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request is null)
+            return BadRequest(new { error = "Request body is required." });
         try
         {
             var job = new Job

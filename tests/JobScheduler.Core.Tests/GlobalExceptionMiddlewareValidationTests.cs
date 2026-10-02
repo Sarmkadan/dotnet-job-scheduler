@@ -91,13 +91,14 @@ public class GlobalExceptionMiddlewareValidationTests
     }
 
     [Fact]
-    public void EnsureValid_ThrowsArgumentException_WhenValueIsValid()
+    public void EnsureValid_DoesNotThrow_WhenValueIsValid()
     {
         // Arrange
         var value = new ErrorResponse { Message = "Test message", Timestamp = DateTime.UtcNow };
 
-        // Act and Assert
-        Assert.Throws<ArgumentException>(() => GlobalExceptionMiddlewareValidation.EnsureValid(value));
+        // Act and Assert - should not throw for valid input
+        var exception = Record.Exception(() => GlobalExceptionMiddlewareValidation.EnsureValid(value));
+        Assert.Null(exception);
     }
 
     [Fact]

@@ -9,7 +9,7 @@ public class ExecutionMetricsExtensionsTests
     public void IsConsistentlyReliable_HappyPath_ReturnsTrue()
     {
         // Arrange
-        var metrics = new ExecutionMetrics { SuccessRate = 0.95, TotalExecutions = 15 };
+        var metrics = new ExecutionMetrics { SuccessRate = 0.95, TotalExecutions = 15, SuccessfulExecutions = 14 };
 
         // Act
         var result = metrics.IsConsistentlyReliable();

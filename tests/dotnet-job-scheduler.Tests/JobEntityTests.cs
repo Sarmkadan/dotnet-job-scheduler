@@ -139,7 +139,7 @@ public sealed class JobEntityTests
         var rate = job.GetSuccessRate();
 
         // Assert
-        rate.Should().BeApproximately(66.67, 0.01);
+        rate.Should().BeApproximately(0.6667, 0.01);
     }
 
     [Fact]

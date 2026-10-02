@@ -91,9 +91,10 @@ public static class JobHelper
     /// Gets a human-readable status description for a job.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is null.</exception>
-    public static string GetJobStatusDescription(Job job)
+    public static string GetJobStatusDescription(Job? job)
     {
-        ArgumentNullException.ThrowIfNull(job);
+        if (job is null)
+            return "Unknown status";
 
         return job.Status switch
         {
@@ -129,9 +130,8 @@ public static class JobHelper
     /// Gets execution frequency description based on cron expression.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="cronExpression"/> is null.</exception>
-    public static string GetExecutionFrequencyDescription(string cronExpression)
+    public static string GetExecutionFrequencyDescription(string? cronExpression)
     {
-        ArgumentNullException.ThrowIfNull(cronExpression);
         if (string.IsNullOrWhiteSpace(cronExpression))
             return "Never";
 
@@ -161,11 +161,11 @@ public static class JobHelper
         if (job.TotalExecutions == 0)
             return 50;
 
-        var successRate = job.GetSuccessRate();
-        var score = (int)(successRate * 0.7); // 70% weight for success rate
+        var successRatePercent = job.GetSuccessRate() * 100;
+        var score = (int)(successRatePercent * 0.7); // 70% weight for success rate
 
         // Adjust for recent failures
-        var failureRate = 100 - successRate;
+        var failureRate = 100 - successRatePercent;
         if (failureRate > HighFailureRatePercent)
             score -= (int)(failureRate - HighFailureRatePercent);
 
@@ -181,7 +181,7 @@ public static class JobHelper
         if (job.Status == JobStatus.FailedPermanently)
             return "Review job configuration and error details. Fix and reactivate if needed.";
 
-        if (job.GetSuccessRate() < LowSuccessRatePercent &&
+        if (job.GetSuccessRate() * 100 < LowSuccessRatePercent &&
             job.TotalExecutions > MinExecutionsForRecommendation)
             return "Success rate is low. Review handler implementation and parameters.";
 
@@ -229,7 +229,7 @@ public static class JobHelper
         if (job.Status == JobStatus.Failed && job.TotalExecutions > 10)
             return true;
 
-        if (job.GetSuccessRate() < LowSuccessRatePercent &&
+        if (job.GetSuccessRate() * 100 < LowSuccessRatePercent &&
             job.TotalExecutions > MinExecutionsForRecommendation)
             return true;
 

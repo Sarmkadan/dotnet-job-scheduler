@@ -36,7 +36,6 @@ public sealed class JobPipelineService
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(dependencyService);
-        ArgumentNullException.ThrowIfNull(logger);
 
         _context = context;
         _dependencyService = dependencyService;
@@ -60,7 +59,6 @@ public sealed class JobPipelineService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentNullException.ThrowIfNull(createdBy);
 
         _logger?.LogInformation(
             "CreatePipelineAsync called with Name={Name}, StepCount={StepCount}, CreatedBy={CreatedBy}",

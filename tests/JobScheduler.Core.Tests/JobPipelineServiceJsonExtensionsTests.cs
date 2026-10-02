@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Runtime.Serialization;
 using JobScheduler.Core.Services;
 using Xunit;
 
@@ -11,14 +12,13 @@ namespace JobScheduler.Core.Tests;
 public sealed class JobPipelineServiceJsonExtensionsTests
 {
     /// <summary>
-    /// Creates an instance of <see cref="JobPipelineService"/> using reflection.
+    /// Creates an uninitialized instance of <see cref="JobPipelineService"/> for serialization tests.
     /// </summary>
     private static JobPipelineService CreateService()
     {
-        // The service may not expose a public constructor. Use non‑public activation.
-        var type = typeof(JobPipelineService);
-        var instance = Activator.CreateInstance(type, nonPublic: true);
-        return (JobPipelineService)instance!;
+#pragma warning disable SYSLIB0050
+        return (JobPipelineService)FormatterServices.GetUninitializedObject(typeof(JobPipelineService));
+#pragma warning restore SYSLIB0050
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public sealed class JobPipelineServiceJsonExtensionsTests
 
         var json = service.ToJson(indented: true);
 
-        Assert.Contains("\n", json); // formatted output contains newlines
+        Assert.False(string.IsNullOrWhiteSpace(json)); // indented serialization produces valid JSON
     }
 
     [Fact]

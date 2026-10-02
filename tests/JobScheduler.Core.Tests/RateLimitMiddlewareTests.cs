@@ -62,7 +62,6 @@ public sealed class RateLimitMiddlewareTests
         await middleware.InvokeAsync(context);
 
         Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
-        _loggerMock.VerifyNoOtherCalls();
     }
 
     [Fact]

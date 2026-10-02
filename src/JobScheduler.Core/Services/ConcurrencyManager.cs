@@ -40,6 +40,17 @@ public class ConcurrencyManager
     }
 
     /// <summary>
+    /// Creates a concurrency manager with a logger and the default global limit.
+    /// </summary>
+    /// <param name="executionRepository">The execution repository for tracking running jobs.</param>
+    /// <param name="logger">Logger for diagnostic messages.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="executionRepository"/> is null.</exception>
+    public ConcurrencyManager(IExecutionRepository executionRepository, ILogger<ConcurrencyManager> logger)
+        : this(executionRepository, SchedulerConstants.DefaultMaxConcurrentJobs, logger)
+    {
+    }
+
+    /// <summary>
     /// Creates a concurrency manager.
     /// </summary>
     /// <param name="executionRepository">The execution repository for tracking running jobs.</param>
