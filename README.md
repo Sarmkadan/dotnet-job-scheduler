@@ -2052,6 +2052,88 @@ Here's an example `appsettings.json` configuration:
 
 ## Utilities
 
+## Cron expressions
+
+The job scheduler uses the NCronTab library for parsing and evaluating cron expressions. The `CronExpressionService` provides validation, parsing, and next-execution-time calculation for cron expressions.
+
+### Supported format
+
+Cron expressions can have either 5 fields (standard) or 6 fields (with seconds):
+
+```
+# 5-field (minute hour day month day-of-week)
+* * * * *
+
+# 6-field (second minute hour day month day-of-week)
+* * * * * *
+```
+
+### Field ranges
+
+| Field | Allowed values |
+|-------|----------------|
+| Second (optional) | 0-59 |
+| Minute | 0-59 |
+| Hour | 0-23 |
+| Day of month | 1-31 |
+| Month | 1-12 or JAN-DEC |
+| Day of week | 0-7 or SUN-SAT (where both 0 and 7 represent Sunday) |
+
+### Special characters
+
+| Character | Description | Example |
+|-----------|-------------|---------|
+| `*` | All values | `*` in minute field means every minute |
+| `/` | Step values | `*/15` in minute field means every 15 minutes |
+| `-` | Range | `1-5` in day-of-week field means Monday through Friday |
+| `,` | List | `1,3,5` in hour field means 1 AM, 3 AM, and 5 AM |
+| `L` | **Not supported** | Last day of month/week |
+| `W` | **Not supported** | Nearest weekday to given day |
+| `#` | **Not supported** | Nth day of week in month |
+
+### Named months and days
+
+Months and days can be specified using names (case-insensitive):
+
+- Months: JAN, FEB, MAR, APR, MAY, JUN, JUL, AUG, SEP, OCT, NOV, DEC
+- Days: SUN, MON, TUE, WED, THU, FRI, SAT
+
+### Timezone handling
+
+The scheduler supports timezone-aware cron expression evaluation through the `GetNextExecutionTimeInZone` method. When a timezone is specified:
+
+- The cron expression is evaluated as if the clock were in that timezone
+- Daylight Saving Time transitions are handled correctly
+- The returned DateTime is always in UTC
+- If a time falls in a DST gap (non-existent time), the scheduler advances by one minute to find a valid time
+
+Examples:
+- `"0 9 * * *"` with timezone `"America/New_York"` fires at 09:00 EST/EDT daily
+- The result is converted to UTC for internal processing
+
+### Real-world examples
+
+| Cron expression | Description |
+|-----------------|-------------|
+| `0 0 * * *` | Daily at midnight |
+| `0 9 * * 1-5` | Every weekday at 09:00 |
+| `0 0 1 * *` | First day of month at midnight |
+| `*/30 * * * * *` | Every 30 seconds (6-field expression) |
+| `0 */2 * * *` | Every two hours |
+| `0 0 * * 0` | Every Sunday at midnight |
+| `0 0 * * SUN` | Every Sunday at midnight using name |
+| `0 0 1,15 * *` | At midnight on the 1st and 15th of each month |
+| `0 0 1-15 * *` | At midnight every day from the 1st to the 15th |
+| `0 0 */3 * *` | At midnight every three days |
+
+### Validation examples
+
+The following expressions are **not supported** and will be rejected:
+- `0 0 * * *L` (L for last day of month)
+- `0 0 * * *W` (W for nearest weekday)
+- `0 0 * * *#2` (# for second Friday of month)
+
+
 ## Middleware
 
 The `src/JobScheduler.Core/Middleware` namespace contains middleware components that handle cross-cutting concerns in the ASP.NET Core pipeline.
