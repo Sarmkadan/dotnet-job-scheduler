@@ -41,6 +41,9 @@ public sealed class DistributedJobLockService : IDistributedJobLockService
         TimeSpan lockDuration,
         CancellationToken cancellationToken = default)
     {
+        if (jobId == Guid.Empty)
+            throw new ArgumentException("Job ID cannot be empty.", nameof(jobId));
+
         if (string.IsNullOrWhiteSpace(holderInstanceId))
             throw new ArgumentException("Holder instance ID cannot be empty.", nameof(holderInstanceId));
 
@@ -117,6 +120,11 @@ public sealed class DistributedJobLockService : IDistributedJobLockService
         string holderInstanceId,
         CancellationToken cancellationToken = default)
     {
+        if (jobId == Guid.Empty)
+            throw new ArgumentException("Job ID cannot be empty.", nameof(jobId));
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(holderInstanceId);
+
         var existing = await _context.DistributedJobLocks
             .FirstOrDefaultAsync(l => l.JobId == jobId, cancellationToken);
 
@@ -137,6 +145,9 @@ public sealed class DistributedJobLockService : IDistributedJobLockService
     /// <returns>True if the lock is held and not expired; otherwise false.</returns>
     public async Task<bool> IsLockedAsync(Guid jobId, CancellationToken cancellationToken = default)
     {
+        if (jobId == Guid.Empty)
+            throw new ArgumentException("Job ID cannot be empty.", nameof(jobId));
+
         var now = DateTime.UtcNow;
         var existing = await _context.DistributedJobLocks
             .FirstOrDefaultAsync(l => l.JobId == jobId, cancellationToken);
@@ -159,6 +170,14 @@ public sealed class DistributedJobLockService : IDistributedJobLockService
         TimeSpan lockDuration,
         CancellationToken cancellationToken = default)
     {
+        if (jobId == Guid.Empty)
+            throw new ArgumentException("Job ID cannot be empty.", nameof(jobId));
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(holderInstanceId);
+
+        if (lockDuration <= TimeSpan.Zero)
+            throw new ArgumentException("Lock duration must be positive.", nameof(lockDuration));
+
         var existing = await _context.DistributedJobLocks
             .FirstOrDefaultAsync(l => l.JobId == jobId, cancellationToken);
 

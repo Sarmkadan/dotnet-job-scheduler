@@ -334,4 +334,164 @@ public sealed class DistributedJobLockServiceTests
         await Assert.ThrowsAsync<ArgumentException>(
             () => service.TryAcquireLockAsync(Guid.NewGuid(), "node-1", TimeSpan.Zero));
     }
+
+    /// <summary>
+    /// Tests that TryAcquireLockAsync throws an ArgumentException when the job ID is an empty GUID.
+    /// </summary>
+    /// <returns>A task that completes when the test is finished.</returns>
+    [Fact]
+    public async Task TryAcquireLockAsync_WithEmptyJobId_ThrowsArgumentException()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.TryAcquireLockAsync(Guid.Empty, "node-1", TimeSpan.FromMinutes(1)));
+        ex.ParamName.Should().Be("jobId");
+    }
+
+    /// <summary>
+    /// Tests that TryAcquireLockAsync throws an ArgumentException when the holder ID is null.
+    /// </summary>
+    /// <returns>A task that completes when the test is finished.</returns>
+    [Fact]
+    public async Task TryAcquireLockAsync_WithNullHolderId_ThrowsArgumentException()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.TryAcquireLockAsync(Guid.NewGuid(), null!, TimeSpan.FromMinutes(1)));
+        ex.ParamName.Should().Be("holderInstanceId");
+    }
+
+    /// <summary>
+    /// Tests that ReleaseLockAsync throws an ArgumentException when the job ID is an empty GUID.
+    /// </summary>
+    /// <returns>A task that completes when the test is finished.</returns>
+    [Fact]
+    public async Task ReleaseLockAsync_WithEmptyJobId_ThrowsArgumentException()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.ReleaseLockAsync(Guid.Empty, "node-1"));
+        ex.ParamName.Should().Be("jobId");
+    }
+
+    /// <summary>
+    /// Tests that ReleaseLockAsync throws an ArgumentNullException when the holder ID is null.
+    /// </summary>
+    /// <returns>A task that completes when the test is finished.</returns>
+    [Fact]
+    public async Task ReleaseLockAsync_WithNullHolderId_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentNullException>(
+            () => service.ReleaseLockAsync(Guid.NewGuid(), null!));
+        ex.ParamName.Should().Be("holderInstanceId");
+    }
+
+    /// <summary>
+    /// Tests that ReleaseLockAsync throws an ArgumentException when the holder ID is empty.
+    /// </summary>
+    /// <returns>A task that completes when the test is finished.</returns>
+    [Fact]
+    public async Task ReleaseLockAsync_WithEmptyHolderId_ThrowsArgumentException()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.ReleaseLockAsync(Guid.NewGuid(), ""));
+        ex.ParamName.Should().Be("holderInstanceId");
+    }
+
+    /// <summary>
+    /// Tests that IsLockedAsync throws an ArgumentException when the job ID is an empty GUID.
+    /// </summary>
+    /// <returns>A task that completes when the test is finished.</returns>
+    [Fact]
+    public async Task IsLockedAsync_WithEmptyJobId_ThrowsArgumentException()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.IsLockedAsync(Guid.Empty));
+        ex.ParamName.Should().Be("jobId");
+    }
+
+    /// <summary>
+    /// Tests that RenewLockAsync throws an ArgumentException when the job ID is an empty GUID.
+    /// </summary>
+    /// <returns>A task that completes when the test is finished.</returns>
+    [Fact]
+    public async Task RenewLockAsync_WithEmptyJobId_ThrowsArgumentException()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.RenewLockAsync(Guid.Empty, "node-1", TimeSpan.FromMinutes(1)));
+        ex.ParamName.Should().Be("jobId");
+    }
+
+    /// <summary>
+    /// Tests that RenewLockAsync throws an ArgumentNullException when the holder ID is null.
+    /// </summary>
+    /// <returns>A task that completes when the test is finished.</returns>
+    [Fact]
+    public async Task RenewLockAsync_WithNullHolderId_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentNullException>(
+            () => service.RenewLockAsync(Guid.NewGuid(), null!, TimeSpan.FromMinutes(1)));
+        ex.ParamName.Should().Be("holderInstanceId");
+    }
+
+    /// <summary>
+    /// Tests that RenewLockAsync throws an ArgumentException when the holder ID is empty.
+    /// </summary>
+    /// <returns>A task that completes when the test is finished.</returns>
+    [Fact]
+    public async Task RenewLockAsync_WithEmptyHolderId_ThrowsArgumentException()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.RenewLockAsync(Guid.NewGuid(), "", TimeSpan.FromMinutes(1)));
+        ex.ParamName.Should().Be("holderInstanceId");
+    }
+
+    /// <summary>
+    /// Tests that RenewLockAsync throws an ArgumentException when the lock duration is non-positive.
+    /// </summary>
+    /// <returns>A task that completes when the test is finished.</returns>
+    [Fact]
+    public async Task RenewLockAsync_WithNonPositiveDuration_ThrowsArgumentException()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.RenewLockAsync(Guid.NewGuid(), "node-1", TimeSpan.Zero));
+        ex.ParamName.Should().Be("lockDuration");
+    }
 }
