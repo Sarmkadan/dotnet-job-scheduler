@@ -1451,6 +1451,44 @@ curl -X DELETE "http://localhost:5000/api/Executions/cleanup" \
 
 The `JobsController` manages scheduled jobs under the `/api/Jobs` route.
 
+## Load Balancing
+
+The scheduler does not include its own HTTP load balancer. To spread REST API traffic across several instances, run the service behind an external load balancer (nginx, HAProxy, a cloud LB, or a Kubernetes Service). Scheduled job execution is coordinated separately, so adding instances does not cause duplicate runs.
+
+### Health checks for the load balancer
+
+Point the load balancer's health probe at the liveness endpoint:
+
+- `GET /api/health/live` - returns 200 while the process is running. Use it for "is this instance alive" checks.
+- `GET /api/health/ready` - returns 200 only when the database is reachable, otherwise 503. Use it to pull instances out of rotation while they cannot reach the database.
+
+Example (Kubernetes):
+
+```yaml
+readinessProbe:
+  httpGet:
+    path: /api/health/ready
+    port: 5000
+  periodSeconds: 5
+  failureThreshold: 3
+livenessProbe:
+  httpGet:
+    path: /api/health/live
+    port: 5000
+  periodSeconds: 10
+```
+
+### Requirements for multiple instances
+
+- All instances must share the same scheduler database (`JobSchedulerContext`, SQLite file or a shared server database).
+- Each instance needs a unique, stable instance ID. Leader election defaults to the machine name, so set it explicitly when instances share a host or run in containers that get new hostnames.
+- Only the leader fires scheduled jobs (see [Leader election](#leader-election)). Individual jobs are additionally guarded by the database-backed locks described in [Distributed locking](#distributed-locking).
+- Keep SQLite-based deployments on a single host. SQLite file locking does not work across machines, so use a server database for multi-host setups.
+
+### Sticky sessions
+
+The REST API is stateless, so round-robin distribution is fine. Sticky sessions are not required.
+
 ## Leader election
 
 The job scheduler supports distributed leader election to ensure only one scheduler node fires jobs at each scheduled interval in a multi-instance deployment.
