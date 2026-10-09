@@ -56,13 +56,14 @@ public sealed class WebhookNotificationService
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is null.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="execution"/> is null.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="config.WebhookUrl"/> is null or empty.</exception>
     public async Task SendExecutionNotificationAsync(Job job, JobExecution execution, WebhookConfig config)
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(execution);
         ArgumentNullException.ThrowIfNull(config);
-        if (config is null || string.IsNullOrEmpty(config.WebhookUrl))
-            return;
+        if (string.IsNullOrEmpty(config.WebhookUrl))
+            throw new ArgumentException("Webhook URL is required", nameof(config.WebhookUrl));
 
         var payload = new WebhookPayload
         {
@@ -251,7 +252,7 @@ public sealed class WebhookPayload
 
     /// <summary>
     /// Gets or sets the timestamp when the webhook event occurred.
-    /// </summary>
+    /// </>
     public DateTime Timestamp { get; set; }
 
     /// <summary>
