@@ -5,6 +5,7 @@
 // =============================================================================
 
 using System;
+using System.Diagnostics;
 using JobScheduler.Core.Constants;
 
 namespace JobScheduler.Core.Domain.Entities;
@@ -13,6 +14,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// Represents a scheduled job in the distributed job scheduler system.
 /// Contains job configuration, scheduling rules, and retry policies.
 /// </summary>
+[DebuggerDisplay("{Id} [{CronExpression}] next={NextExecutionAt}")]
 public class Job
 {
     /// <summary>
@@ -164,7 +166,7 @@ public class Job
     /// Returns a string representation of the job.
     /// </summary>
     /// <returns>A string representation of the job.</returns>
-    public override string ToString() => $"Job {{ Id = {Id}, Name = {Name}, Description = {Description}, CronExpression = {CronExpression}, TimeZoneId = {TimeZoneId}, Priority = {Priority} }}";
+    public override string ToString() => $"{Id} [{CronExpression}] next={NextExecutionAt:O}";
 
     /// <summary>
     /// Validates the job configuration before scheduling.

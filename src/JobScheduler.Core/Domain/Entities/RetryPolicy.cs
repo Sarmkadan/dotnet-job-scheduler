@@ -5,6 +5,7 @@
 // =============================================================================
 
 using System;
+using System.Diagnostics;
 using JobScheduler.Core.Constants;
 
 namespace JobScheduler.Core.Domain.Entities;
@@ -13,6 +14,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// Defines the retry behavior and backoff strategy for failed job executions.
 /// Supports exponential, linear, and fixed backoff strategies.
 /// </summary>
+[DebuggerDisplay("{Strategy} max={MaxRetries} init={InitialBackoffSeconds}s cap={MaxBackoffSeconds}s")]
 public sealed class RetryPolicy
 {
     /// <summary>
@@ -159,7 +161,7 @@ public sealed class RetryPolicy
     /// Returns a concise string representation of the retry policy.
     /// </summary>
     /// <returns>A string containing the policy's key configuration details.</returns>
-    public override string ToString() => $"RetryPolicy {{ Id = {Id}, JobId = {JobId}, MaxRetries = {MaxRetries}, InitialBackoffSeconds = {InitialBackoffSeconds}, MaxBackoffSeconds = {MaxBackoffSeconds}, Strategy = {Strategy} }}";
+    public override string ToString() => $"{Strategy} max={MaxRetries} init={InitialBackoffSeconds}s cap={MaxBackoffSeconds}s";
 }
 
 /// <summary>

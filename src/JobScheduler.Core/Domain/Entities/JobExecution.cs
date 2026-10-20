@@ -5,6 +5,7 @@
 // =============================================================================
 
 using System;
+using System.Diagnostics;
 using JobScheduler.Core.Constants;
 
 namespace JobScheduler.Core.Domain.Entities;
@@ -13,6 +14,7 @@ namespace JobScheduler.Core.Domain.Entities;
 /// Represents a single execution attempt of a job.
 /// Tracks execution lifecycle, timing, and error details.
 /// </summary>
+[DebuggerDisplay("{JobId} #{AttemptNumber} {Status} {DurationMilliseconds}ms")]
 public class JobExecution
 {
     /// <summary>Unique identifier for this execution.</summary>
@@ -197,5 +199,5 @@ public class JobExecution
         };
     }
 
-    public override string ToString() => $"JobExecution {{ Id = {Id}, JobId = {JobId}, Status = {Status}, StartedAt = {StartedAt}, CompletedAt = {CompletedAt}, DurationMilliseconds = {DurationMilliseconds} }}";
+    public override string ToString() => $"{JobId} #{AttemptNumber} {Status} {DurationMilliseconds}ms";
 }
