@@ -174,30 +174,12 @@ public class Job
     /// <returns>True if the job configuration is valid for scheduling; otherwise, false.</returns>
     public bool IsValidForScheduling()
     {
-        if (string.IsNullOrWhiteSpace(Name) || Name.Length > SchedulerConstants.MaxJobNameLength)
-            return false;
-
-        if (string.IsNullOrWhiteSpace(CronExpression) || CronExpression.Length > SchedulerConstants.MaxCronExpressionLength)
-            return false;
-
-        if (string.IsNullOrWhiteSpace(HandlerType))
-            return false;
-
-        if (MaxRetries < 0 || MaxRetries > 100)
-            return false;
-
-        if (ExecutionTimeoutSeconds <= 0 || ExecutionTimeoutSeconds > 86400)
-            return false;
-
-        if (MaxConcurrentExecutions <= 0 || MaxConcurrentExecutions > SchedulerConstants.MaxJobsPerPriority)
-            return false;
-
         if (DisallowConcurrentExecution && MaxConcurrentExecutions > 1)
         {
             MaxConcurrentExecutions = 1;
         }
 
-        return true;
+        return JobValidation.Validate(this).Count == 0;
     }
 
     /// <summary>

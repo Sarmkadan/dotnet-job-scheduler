@@ -128,19 +128,7 @@ public sealed class RetryPolicy
     /// Validates the retry policy configuration.
     /// </summary>
     /// <returns>True if the configuration is valid; otherwise, false.</returns>
-    public bool IsValid()
-    {
-        if (MaxRetries < 0 || MaxRetries > 100)
-            return false;
-
-        if (InitialBackoffSeconds <= 0 || InitialBackoffSeconds > MaxBackoffSeconds)
-            return false;
-
-        if (BackoffMultiplier < 1.0 || BackoffMultiplier > 10.0)
-            return false;
-
-        return true;
-    }
+    public bool IsValid() => RetryPolicyValidation.Validate(this).Count == 0;
 
     /// <summary>
     /// Gets a string description of the retry strategy.

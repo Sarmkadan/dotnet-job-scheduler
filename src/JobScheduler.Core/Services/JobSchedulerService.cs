@@ -95,8 +95,11 @@ public sealed class JobSchedulerService
         if (string.IsNullOrWhiteSpace(job.Name))
             throw new ArgumentException("Job name cannot be null or whitespace.", nameof(job.Name));
 
-        if (!job.IsValidForScheduling())
-            throw new JobValidationException("Job configuration is invalid");
+        // Normalises DisallowConcurrentExecution into MaxConcurrentExecutions before the job is stored.
+        job.IsValidForScheduling();
+
+        // Throws with every violated rule, not just the first one.
+        job.EnsureValid();
 
         if (!_cronService.IsValidCronExpression(job.CronExpression))
             throw new CronExpressionException(job.CronExpression, "Invalid cron expression");
@@ -104,6 +107,10 @@ public sealed class JobSchedulerService
         var existingJob = await _jobRepository.GetByNameAsync(job.Name);
         if (existingJob is not null)
             throw new JobValidationException($"Job with name '{job.Name}' already exists", nameof(job.Name));
+
+        var existingJobById = await _jobRepository.GetByIdAsync(job.Id);
+        if (existingJobById is not null)
+            throw new JobValidationException($"Job with Id '{job.Id}' already exists", nameof(job.Id));
 
         job.CreatedBy = createdBy;
         job.Status = JobStatus.Scheduled;
