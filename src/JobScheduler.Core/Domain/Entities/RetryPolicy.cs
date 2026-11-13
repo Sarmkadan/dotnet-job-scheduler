@@ -7,6 +7,7 @@
 using System;
 using System.Diagnostics;
 using JobScheduler.Core.Constants;
+using JobScheduler.Core.Exceptions;
 
 namespace JobScheduler.Core.Domain.Entities;
 
@@ -76,6 +77,38 @@ public sealed class RetryPolicy
     /// Timestamp when the retry policy was last updated.
     /// </summary>
     public DateTime? UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Validates the retry policy configuration and throws exceptions for invalid properties.
+    /// </summary>
+    /// <exception cref="JobValidationException">Thrown when any retry policy property is invalid.</exception>
+    public void EnsureValid()
+    {
+        if (MaxRetries < 0)
+        {
+            throw new JobValidationException($"MaxRetries must be >= 0. Current value: {MaxRetries}", nameof(MaxRetries));
+        }
+
+        if (InitialBackoffSeconds < 0)
+        {
+            throw new JobValidationException($"InitialBackoffSeconds must be >= 0. Current value: {InitialBackoffSeconds}", nameof(InitialBackoffSeconds));
+        }
+
+        if (MaxBackoffSeconds < 0)
+        {
+            throw new JobValidationException($"MaxBackoffSeconds must be >= 0. Current value: {MaxBackoffSeconds}", nameof(MaxBackoffSeconds));
+        }
+
+        if (InitialBackoffSeconds > MaxBackoffSeconds)
+        {
+            throw new JobValidationException($"InitialBackoffSeconds must be <= MaxBackoffSeconds. Current values: Initial={InitialBackoffSeconds}, Max={MaxBackoffSeconds}", nameof(InitialBackoffSeconds));
+        }
+
+        if (BackoffMultiplier < 1)
+        {
+            throw new JobValidationException($"BackoffMultiplier must be >= 1. Current value: {BackoffMultiplier}", nameof(BackoffMultiplier));
+        }
+    }
 
     /// <summary>
     /// Calculates the delay before the next retry attempt based on the strategy.

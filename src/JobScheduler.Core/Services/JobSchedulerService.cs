@@ -87,37 +87,36 @@ public sealed class JobSchedulerService
     /// Creates and schedules a new job.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="job"/> is null.</exception>
+    /// <exception cref="JobValidationException">Thrown when the job configuration is invalid.</exception>
     public async Task<Job> CreateJobAsync(Job job, string? createdBy = null)
     {
         ArgumentNullException.ThrowIfNull(job);
 
-        // Fix: Add validation for job.Name to prevent null, empty, or whitespace values.
-        if (string.IsNullOrWhiteSpace(job.Name))
-            throw new ArgumentException("Job name cannot be null or whitespace.", nameof(job.Name));
-
-        // Normalises DisallowConcurrentExecution into MaxConcurrentExecutions before the job is stored.
-        job.IsValidForScheduling();
-
-        // Throws with every violated rule, not just the first one.
+        // Validate the job configuration
         job.EnsureValid();
 
-        if (!_cronService.IsValidCronExpression(job.CronExpression))
-            throw new CronExpressionException(job.CronExpression, "Invalid cron expression");
-
+        // Check for duplicate job name
         var existingJob = await _jobRepository.GetByNameAsync(job.Name);
         if (existingJob is not null)
             throw new JobValidationException($"Job with name '{job.Name}' already exists", nameof(job.Name));
 
+        // Check for duplicate job ID
         var existingJobById = await _jobRepository.GetByIdAsync(job.Id);
         if (existingJobById is not null)
             throw new JobValidationException($"Job with Id '{job.Id}' already exists", nameof(job.Id));
 
+        // Validate cron expression
+        if (!_cronService.IsValidCronExpression(job.CronExpression))
+            throw new CronExpressionException(job.CronExpression, "Invalid cron expression");
+
+        // Set job properties
         job.CreatedBy = createdBy;
         job.Status = JobStatus.Scheduled;
         job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
             ? _cronService.GetNextExecutionTime(job.CronExpression)
             : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId);
 
+        // Save the job
         await _jobRepository.AddAsync(job);
         await _jobRepository.SaveChangesAsync();
 
@@ -130,127 +129,126 @@ public sealed class JobSchedulerService
     /// <summary>
     /// Processes scheduled jobs that are due for execution.
     /// </summary>
-public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationToken cancellationToken = default)
-{
-    var dueJobs = await _jobRepository.GetScheduledJobsForExecutionAsync();
-    var misfiredJobs = await _jobRepository.GetMisfiredJobsAsync();
-    var executions = new List<JobExecution>();
-
-    // Process regular due jobs first
-    foreach (var job in dueJobs)
+    public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationToken cancellationToken = default)
     {
-        if (cancellationToken.IsCancellationRequested)
-            break;
+        var dueJobs = await _jobRepository.GetScheduledJobsForExecutionAsync();
+        var misfiredJobs = await _jobRepository.GetMisfiredJobsAsync();
+        var executions = new List<JobExecution>();
 
-        try
+        // Process regular due jobs first
+        foreach (var job in dueJobs)
         {
-            // Check if job can execute based on concurrency and job-specific constraints
-            if (!await _concurrencyManager.CanExecuteAsync(job))
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
+            try
             {
-                _logger?.LogDebug("Job {JobId} skipped: concurrency limit reached", job.Id);
-                continue;
+                // Check if job can execute based on concurrency and job-specific constraints
+                if (!await _concurrencyManager.CanExecuteAsync(job))
+                {
+                    _logger?.LogDebug("Job {JobId} skipped: concurrency limit reached", job.Id);
+                    continue;
+                }
+
+                // Additional check using job's CanExecuteNow method for immediate execution validation
+                var currentRunningCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);
+                if (!job.CanExecuteNow(currentRunningCount))
+                {
+                    _logger?.LogDebug("Job {JobId} skipped: job state prevents execution (active: {IsActive}, suspended: {IsSuspended}, current concurrent: {CurrentCount})",
+                        job.Id, job.IsActive, job.Status == JobStatus.Suspended, currentRunningCount);
+                    continue;
+                }
+
+                var execution = await _executorService.ExecuteJobAsync(job, cancellationToken);
+                executions.Add(execution);
+
+                // Schedule next execution
+                if (job.IsActive && job.Status != JobStatus.FailedPermanently)
+                {
+                    job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
+                        ? _cronService.GetNextExecutionTime(job.CronExpression, DateTime.UtcNow)
+                        : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId, DateTime.UtcNow);
+                    _jobRepository.Update(job);
+                    await _jobRepository.SaveChangesAsync();
+                }
             }
-
-            // Additional check using job's CanExecuteNow method for immediate execution validation
-            var currentRunningCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);
-            if (!job.CanExecuteNow(currentRunningCount))
+            catch (ConcurrencyException ex)
             {
-                _logger?.LogDebug("Job {JobId} skipped: job state prevents execution (active: {IsActive}, suspended: {IsSuspended}, current concurrent: {CurrentCount})",
-                    job.Id, job.IsActive, job.Status == JobStatus.Suspended, currentRunningCount);
-                continue;
+                // ConcurrencyException means another scheduler instance claimed this job.
+                // This is expected in a distributed environment and should not be treated as an error.
+                _logger?.LogDebug(ex, "Job {JobId} skipped: another scheduler instance claimed the job", job.Id);
             }
-
-            var execution = await _executorService.ExecuteJobAsync(job, cancellationToken);
-            executions.Add(execution);
-
-            // Schedule next execution
-            if (job.IsActive && job.Status != JobStatus.FailedPermanently)
+            catch (Exception ex)
             {
-                job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
-                    ? _cronService.GetNextExecutionTime(job.CronExpression, DateTime.UtcNow)
-                    : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId, DateTime.UtcNow);
-                _jobRepository.Update(job);
-                await _jobRepository.SaveChangesAsync();
+                _logger?.LogError(ex, "Error executing job {JobId}", job.Id);
             }
         }
-        catch (ConcurrencyException ex)
+
+        // Process misfired jobs with misfire policy
+        foreach (var job in misfiredJobs)
         {
-            // ConcurrencyException means another scheduler instance claimed this job.
-            // This is expected in a distributed environment and should not be treated as an error.
-            _logger?.LogDebug(ex, "Job {JobId} skipped: another scheduler instance claimed the job", job.Id);
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
+            try
+            {
+                if (!await _concurrencyManager.CanExecuteAsync(job))
+                {
+                    _logger?.LogDebug("Job {JobId} skipped: concurrency limit reached", job.Id);
+                    continue;
+                }
+
+                // Additional check using job's CanExecuteNow method for immediate execution validation
+                var currentRunningCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);
+                if (!job.CanExecuteNow(currentRunningCount))
+                {
+                    _logger?.LogDebug("Job {JobId} skipped: job state prevents execution (active: {IsActive}, suspended: {IsSuspended}, current concurrent: {CurrentCount})",
+                        job.Id, job.IsActive, job.Status == JobStatus.Suspended, currentRunningCount);
+                    continue;
+                }
+
+                // Apply misfire policy
+                switch (job.MisfirePolicy)
+                {
+                    case MisfirePolicy.FireOnceNow:
+                        _logger?.LogInformation("Job {JobId} ({JobName}) misfired but will execute once now (MisfirePolicy.FireOnceNow)", job.Id, job.Name);
+                        var execution = await _executorService.ExecuteJobAsync(job, cancellationToken);
+                        executions.Add(execution);
+                        break;
+
+                    case MisfirePolicy.SkipToNext:
+                        _logger?.LogInformation("Job {JobId} ({JobName}) misfired - skipping to next execution (MisfirePolicy.SkipToNext)", job.Id, job.Name);
+                        // Update next execution time to the next scheduled time from the original NextExecutionAt
+                        if (job.NextExecutionAt.HasValue)
+                        {
+                            job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
+                                ? _cronService.GetNextExecutionTime(job.CronExpression, job.NextExecutionAt.Value)
+                                : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId, job.NextExecutionAt.Value);
+                            _jobRepository.Update(job);
+                            await _jobRepository.SaveChangesAsync();
+                        }
+                        break;
+
+                    case MisfirePolicy.FireAll:
+                        _logger?.LogInformation("Job {JobId} ({JobName}) misfired - will execute all missed occurrences (MisfirePolicy.FireAll)", job.Id, job.Name);
+                        // For FireAll, we execute once now and schedule the next occurrence
+                        var fireAllExecution = await _executorService.ExecuteJobAsync(job, cancellationToken);
+                        executions.Add(fireAllExecution);
+                        break;
+                }
+            }
+            catch (ConcurrencyException ex)
+            {
+                _logger?.LogDebug(ex, "Job {JobId} skipped: another scheduler instance claimed the job", job.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error handling misfired job {JobId}", job.Id);
+            }
         }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Error executing job {JobId}", job.Id);
-        }
+
+        return executions;
     }
-
-    // Process misfired jobs with misfire policy
-    foreach (var job in misfiredJobs)
-    {
-        if (cancellationToken.IsCancellationRequested)
-            break;
-
-        try
-        {
-            if (!await _concurrencyManager.CanExecuteAsync(job))
-            {
-                _logger?.LogDebug("Job {JobId} skipped: concurrency limit reached", job.Id);
-                continue;
-            }
-
-            // Additional check using job's CanExecuteNow method for immediate execution validation
-            var currentRunningCount = await _executionRepository.GetCurrentlyRunningCountAsync(job.Id);
-            if (!job.CanExecuteNow(currentRunningCount))
-            {
-                _logger?.LogDebug("Job {JobId} skipped: job state prevents execution (active: {IsActive}, suspended: {IsSuspended}, current concurrent: {CurrentCount})",
-                    job.Id, job.IsActive, job.Status == JobStatus.Suspended, currentRunningCount);
-                continue;
-            }
-
-            // Apply misfire policy
-            switch (job.MisfirePolicy)
-            {
-                case MisfirePolicy.FireOnceNow:
-                    _logger?.LogInformation("Job {JobId} ({JobName}) misfired but will execute once now (MisfirePolicy.FireOnceNow)", job.Id, job.Name);
-                    var execution = await _executorService.ExecuteJobAsync(job, cancellationToken);
-                    executions.Add(execution);
-                    break;
-
-                case MisfirePolicy.SkipToNext:
-                    _logger?.LogInformation("Job {JobId} ({JobName}) misfired - skipping to next execution (MisfirePolicy.SkipToNext)", job.Id, job.Name);
-                    // Update next execution time to the next scheduled time from the original NextExecutionAt
-                    if (job.NextExecutionAt.HasValue)
-                    {
-                        job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
-                            ? _cronService.GetNextExecutionTime(job.CronExpression, job.NextExecutionAt.Value)
-                            : _cronService.GetNextExecutionTimeInZone(job.CronExpression, job.TimeZoneId, job.NextExecutionAt.Value);
-                        _jobRepository.Update(job);
-                        await _jobRepository.SaveChangesAsync();
-                    }
-                    break;
-
-                case MisfirePolicy.FireAll:
-                    _logger?.LogInformation("Job {JobId} ({JobName}) misfired - will execute all missed occurrences (MisfirePolicy.FireAll)", job.Id, job.Name);
-                    // For FireAll, we execute once now and schedule the next occurrence
-                    var fireAllExecution = await _executorService.ExecuteJobAsync(job, cancellationToken);
-                    executions.Add(fireAllExecution);
-                    break;
-            }
-        }
-        catch (ConcurrencyException ex)
-        {
-            _logger?.LogDebug(ex, "Job {JobId} skipped: another scheduler instance claimed the job", job.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Error handling misfired job {JobId}", job.Id);
-        }
-    }
-
-    return executions;
-}
-
 
     /// <summary>
     /// Processes failed executions that are eligible for retry.
@@ -291,13 +289,14 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// <summary>
     /// Updates a job's schedule (cron expression).
     /// </summary>
+    /// <exception cref="JobNotFoundException">Thrown when the job does not exist.</exception>
+    /// <exception cref="CronExpressionException">Thrown when the cron expression is invalid.</exception>
     public async Task<Job> UpdateJobScheduleAsync(Guid jobId, string newCronExpression, string? changedBy = null)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
         if (job is null)
             throw new JobNotFoundException(jobId);
 
-        // Fix: Add validation for newCronExpression to prevent null, empty, or whitespace values.
         if (string.IsNullOrWhiteSpace(newCronExpression))
             throw new ArgumentException("New cron expression cannot be null or whitespace.", nameof(newCronExpression));
 
@@ -324,13 +323,13 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// <summary>
     /// Suspends a job to prevent further execution.
     /// </summary>
+    /// <exception cref="JobNotFoundException">Thrown when the job does not exist.</exception>
     public async Task<Job> SuspendJobAsync(Guid jobId, string? reason = null, string? suspendedBy = null)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
         if (job is null)
             throw new JobNotFoundException(jobId);
 
-        // Fix: Validate reason to ensure it's not an empty or whitespace string if provided.
         if (!string.IsNullOrEmpty(reason) && string.IsNullOrWhiteSpace(reason))
             throw new ArgumentException("Reason cannot be an empty or whitespace string if provided.", nameof(reason));
 
@@ -349,13 +348,13 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// <summary>
     /// Resumes a suspended job.
     /// </summary>
+    /// <exception cref="JobNotFoundException">Thrown when the job does not exist.</exception>
     public async Task<Job> ResumeJobAsync(Guid jobId, string? resumedBy = null)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
         if (job is null)
             throw new JobNotFoundException(jobId);
 
-        // Fix: Validate resumedBy to ensure it's not an empty or whitespace string if provided.
         if (!string.IsNullOrEmpty(resumedBy) && string.IsNullOrWhiteSpace(resumedBy))
             throw new ArgumentException("ResumedBy cannot be an empty or whitespace string if provided.", nameof(resumedBy));
 
@@ -376,6 +375,7 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// <summary>
     /// Deletes a job and all associated executions.
     /// </summary>
+    /// <exception cref="JobNotFoundException">Thrown when the job does not exist.</exception>
     public async Task DeleteJobAsync(Guid jobId)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
@@ -391,6 +391,7 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// <summary>
     /// Gets detailed information about a job.
     /// </summary>
+    /// <exception cref="JobNotFoundException">Thrown when the job does not exist.</exception>
     public async Task<JobDetailsDto> GetJobDetailsAsync(Guid jobId)
     {
         var job = await _jobRepository.GetByIdAsync(jobId);
@@ -446,6 +447,7 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// </summary>
     /// <param name="jobId">The job identifier.</param>
     /// <param name="limit">Maximum number of records to return. Defaults to 20.</param>
+    /// <exception cref="JobNotFoundException">Thrown when the job does not exist.</exception>
     public async Task<IEnumerable<JobExecution>> GetExecutionHistoryAsync(Guid jobId, int limit = DefaultExecutionHistoryLimit)
     {
         if (limit <= 0)
@@ -501,6 +503,7 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
     /// Returns null if the job does not exist.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="request"/> is null.</exception>
+    /// <exception cref="JobValidationException">Thrown when the job configuration is invalid.</exception>
     public async Task<Job?> UpdateJobAsync(Guid jobId, CreateJobRequest request, string? updatedBy = null)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -525,8 +528,8 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
         job.MaxConcurrentExecutions = request.MaxConcurrentExecutions;
         job.IsActive = request.IsActive;
 
-        if (!job.IsValidForScheduling())
-            throw new JobValidationException("Job configuration is invalid");
+        // Validate the updated job configuration
+        job.EnsureValid();
 
         job.NextExecutionAt = string.IsNullOrWhiteSpace(job.TimeZoneId)
             ? _cronService.GetNextExecutionTime(job.CronExpression)
@@ -734,6 +737,33 @@ public async Task<IEnumerable<JobExecution>> ExecuteDueJobsAsync(CancellationTok
         catch
         {
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Validates all jobs in the repository, throwing a JobValidationException if any are invalid.
+    /// </summary>
+    /// <exception cref="JobValidationException">Thrown when any job in the repository is invalid.</exception>
+    public async Task ValidateAllJobsAsync()
+    {
+        var allJobs = await _jobRepository.GetAllAsync();
+        var validationErrors = new List<string>();
+
+        foreach (var job in allJobs)
+        {
+            try
+            {
+                job.EnsureValid();
+            }
+            catch (JobValidationException ex)
+            {
+                validationErrors.Add($"Job {job.Id} ({job.Name}): {ex.Message}");
+            }
+        }
+
+        if (validationErrors.Count > 0)
+        {
+            throw new JobValidationException($"Found {validationErrors.Count} invalid jobs:\n{string.Join("\n", validationErrors)}");
         }
     }
 

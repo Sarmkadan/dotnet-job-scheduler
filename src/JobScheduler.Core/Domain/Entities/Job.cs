@@ -5,8 +5,10 @@
 // =============================================================================
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using JobScheduler.Core.Constants;
+using JobScheduler.Core.Exceptions;
 
 namespace JobScheduler.Core.Domain.Entities;
 
@@ -80,12 +82,12 @@ public class Job
     /// </summary>
     public int MaxConcurrentExecutions { get; set; } = 1;
 
-        /// <summary>
-        /// Gets or sets a value indicating whether concurrent execution of the same job is disallowed.
-        /// When true, only one instance of this job can run at any time, even if MaxConcurrentExecutions > 1.
-        /// This is useful for jobs that should not overlap with themselves (e.g., database migrations, file operations).
-        /// </summary>
-        public bool DisallowConcurrentExecution { get; set; } = false;
+    /// <summary>
+    /// Gets or sets a value indicating whether concurrent execution of the same job is disallowed.
+    /// When true, only one instance of this job can run at any time, even if MaxConcurrentExecutions > 1.
+    /// This is useful for jobs that should not overlap with themselves (e.g., database migrations, file operations).
+    /// </summary>
+    public bool DisallowConcurrentExecution { get; set; } = false;
 
     /// <summary>
     /// Maximum number of retry attempts for failed job executions.
@@ -183,6 +185,48 @@ public class Job
     }
 
     /// <summary>
+    /// Validates the job configuration and throws exceptions for invalid properties.
+    /// </summary>
+    /// <exception cref="JobValidationException">Thrown when any job property is invalid.</exception>
+    public void EnsureValid()
+    {
+        if (Id == Guid.Empty)
+        {
+            throw new JobValidationException("Job Id cannot be empty", nameof(Id));
+        }
+
+        if (string.IsNullOrWhiteSpace(Name))
+        {
+            throw new JobValidationException("Job Name cannot be empty or whitespace", nameof(Name));
+        }
+
+        if (string.IsNullOrWhiteSpace(CronExpression))
+        {
+            throw new JobValidationException("CronExpression cannot be empty or whitespace", nameof(CronExpression));
+        }
+
+        if (string.IsNullOrWhiteSpace(HandlerType))
+        {
+            throw new JobValidationException("HandlerType cannot be empty or whitespace", nameof(HandlerType));
+        }
+
+        if (ExecutionTimeoutSeconds <= 0)
+        {
+            throw new JobValidationException($"ExecutionTimeoutSeconds must be > 0. Current value: {ExecutionTimeoutSeconds}", nameof(ExecutionTimeoutSeconds));
+        }
+
+        if (MaxConcurrentExecutions < 1)
+        {
+            throw new JobValidationException($"MaxConcurrentExecutions must be >= 1. Current value: {MaxConcurrentExecutions}", nameof(MaxConcurrentExecutions));
+        }
+
+        if (RetryPolicy != null)
+        {
+            RetryPolicy.EnsureValid();
+        }
+    }
+
+    /// <summary>
     /// Updates the job's execution metrics after an execution attempt.
     /// </summary>
     /// <param name="success">Whether the job execution was successful.</param>
@@ -217,23 +261,23 @@ public class Job
             UpdatedBy = updatedBy;
     }
 
-        /// <summary>
-        /// Determines whether the job can execute based on its active status, suspension state, and concurrency limits.
-        /// </summary>
-        /// <param name="currentConcurrentCount">The current number of concurrent executions of this job.</param>
-        /// <returns><c>true</c> if the job can execute; otherwise, <c>false</c>.</returns>
-        public bool CanExecuteNow(int currentConcurrentCount)
+    /// <summary>
+    /// Determines whether the job can execute based on its active status, suspension state, and concurrency limits.
+    /// </summary>
+    /// <param name="currentConcurrentCount">The current number of concurrent executions of this job.</param>
+    /// <returns><c>true</c> if the job can execute; otherwise, <c>false</c>.</returns>
+    public bool CanExecuteNow(int currentConcurrentCount)
+    {
+        // If DisallowConcurrentExecution is true, only allow execution if no instances are currently running
+        if (DisallowConcurrentExecution)
         {
-            // If DisallowConcurrentExecution is true, only allow execution if no instances are currently running
-            if (DisallowConcurrentExecution)
-            {
-                return IsActive && Status != JobStatus.Suspended && Status != JobStatus.Cancelled &&
-                       currentConcurrentCount == 0;
-            }
-
             return IsActive && Status != JobStatus.Suspended && Status != JobStatus.Cancelled &&
-                   currentConcurrentCount < MaxConcurrentExecutions;
+                   currentConcurrentCount == 0;
         }
+
+        return IsActive && Status != JobStatus.Suspended && Status != JobStatus.Cancelled &&
+               currentConcurrentCount < MaxConcurrentExecutions;
+    }
 
     /// <summary>
     /// Gets the effective retry policy for this job, falling back to default values if not configured.
