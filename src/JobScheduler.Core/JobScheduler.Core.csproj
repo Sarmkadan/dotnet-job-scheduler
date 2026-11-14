@@ -32,7 +32,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
     <PackageReference Include="CronExpressionDescriptor" Version="2.27.0" />
     <PackageReference Include="NCronTab" Version="3.3.3" />
-    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="11.0.0" />
 </ItemGroup>
 
 <ItemGroup>
