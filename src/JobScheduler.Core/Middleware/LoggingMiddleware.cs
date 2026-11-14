@@ -18,6 +18,16 @@ namespace JobScheduler.Core.Middleware;
 /// </summary>
 public sealed class LoggingMiddleware
 {
+    private const string RequestStartedTemplate = "InvokeAsync started for {Method} {Path}";
+    private const string UnhandledExceptionTemplate = "Unhandled exception while processing {Method} {Path}";
+    private const string RequestResponseTemplate = "HTTP {Method} {Path} - {StatusCode} ({ExecutionTimeMs}ms) - User: {UserId}";
+    private const string AnonymousUser = "Anonymous";
+
+    private const string AuthorizationHeader = "Authorization";
+    private const string ApiKeyHeader = "X-API-Key";
+    private const string CookieHeader = "Cookie";
+    private const string PasswordHeader = "Password";
+
     private readonly RequestDelegate _next;
     private readonly ILogger<LoggingMiddleware> _logger;
 
@@ -40,7 +50,7 @@ public sealed class LoggingMiddleware
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task InvokeAsync(HttpContext context, AuditLogger auditLogger)
     {
-        _logger.LogInformation("InvokeAsync started for {Method} {Path}", context.Request.Method, context.Request.Path);
+        _logger.LogInformation(RequestStartedTemplate, context.Request.Method, context.Request.Path);
         var stopwatch = Stopwatch.StartNew();
         var request = await CaptureRequestAsync(context);
 
@@ -56,7 +66,7 @@ public sealed class LoggingMiddleware
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled exception while processing {Method} {Path}", request.Method, request.Path);
+                _logger.LogError(ex, UnhandledExceptionTemplate, request.Method, request.Path);
                 throw;
             }
             finally
@@ -159,12 +169,12 @@ public sealed class LoggingMiddleware
                       LogLevel.Information;
 
         _logger.Log(logLevel,
-            "HTTP {Method} {Path} - {StatusCode} ({ExecutionTimeMs}ms) - User: {UserId}",
+            RequestResponseTemplate,
             request.Method,
             request.Path,
             response.StatusCode,
             elapsedMs,
-            context.User?.Identity?.Name ?? "Anonymous");
+            context.User?.Identity?.Name ?? AnonymousUser);
     }
 
     /// <summary>
@@ -175,7 +185,7 @@ public sealed class LoggingMiddleware
     private static Dictionary<string, string> ExtractSafeHeaders(IHeaderDictionary headers)
     {
         var safeHeaders = new Dictionary<string, string>();
-        var sensitiveHeaders = new[] { "Authorization", "X-API-Key", "Cookie", "Password" };
+        var sensitiveHeaders = new[] { AuthorizationHeader, ApiKeyHeader, CookieHeader, PasswordHeader };
 
         foreach (var header in headers)
         {
