@@ -226,6 +226,95 @@ public sealed class JobHistoryServiceTests
 	}
 
 	/// <summary>
+	/// Tests that <see cref="JobHistoryService.GetTopFailingJobsAsync"/> ranks jobs by failed execution count and ignores non-failed statuses.
+	/// </summary>
+	[Fact]
+	public async Task GetTopFailingJobsAsync_WithMixedExecutions_ReturnsJobsOrderedByFailureCount()
+	{
+		// Arrange
+		var flaky = CreateJob("flaky-job");
+		var broken = CreateJob("broken-job");
+		var healthy = CreateJob("healthy-job");
+
+		var executions = new List<JobExecution>
+		{
+			CreateExecution(flaky.Id, ExecutionStatus.Failed),
+			CreateExecution(broken.Id, ExecutionStatus.Failed),
+			CreateExecution(broken.Id, ExecutionStatus.Failed),
+			CreateExecution(broken.Id, ExecutionStatus.Failed),
+			CreateExecution(healthy.Id, ExecutionStatus.Success),
+			CreateExecution(healthy.Id, ExecutionStatus.Success),
+			CreateExecution(flaky.Id, ExecutionStatus.TimedOut)
+		};
+
+		_executionRepoMock
+			.Setup(r => r.GetExecutionsByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+			.ReturnsAsync(executions);
+		_jobRepoMock.Setup(r => r.GetByIdAsync(flaky.Id)).ReturnsAsync(flaky);
+		_jobRepoMock.Setup(r => r.GetByIdAsync(broken.Id)).ReturnsAsync(broken);
+		_jobRepoMock.Setup(r => r.GetByIdAsync(healthy.Id)).ReturnsAsync(healthy);
+
+		var service = CreateService();
+
+		// Act
+		var result = await service.GetTopFailingJobsAsync(DateTime.UtcNow.AddHours(-24), count: 10);
+
+		// Assert
+		result.Should().HaveCount(2);
+		result[0].JobId.Should().Be(broken.Id);
+		result[0].JobName.Should().Be("broken-job");
+		result[0].FailureCount.Should().Be(3);
+		result[1].JobId.Should().Be(flaky.Id);
+		result[1].FailureCount.Should().Be(1);
+	}
+
+	/// <summary>
+	/// Tests that <see cref="JobHistoryService.GetTopFailingJobsAsync"/> returns at most the requested number of jobs.
+	/// </summary>
+	[Fact]
+	public async Task GetTopFailingJobsAsync_WithCountLimit_ReturnsOnlyTopEntries()
+	{
+		// Arrange
+		var jobs = Enumerable.Range(1, 3).Select(i => CreateJob($"job-{i}")).ToList();
+		var executions = jobs
+			.SelectMany((job, index) => Enumerable.Range(0, index + 1)
+				.Select(_ => CreateExecution(job.Id, ExecutionStatus.Failed)))
+			.ToList();
+
+		_executionRepoMock
+			.Setup(r => r.GetExecutionsByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+			.ReturnsAsync(executions);
+		foreach (var job in jobs)
+			_jobRepoMock.Setup(r => r.GetByIdAsync(job.Id)).ReturnsAsync(job);
+
+		var service = CreateService();
+
+		// Act
+		var result = await service.GetTopFailingJobsAsync(DateTime.UtcNow.AddHours(-24), count: 2);
+
+		// Assert
+		result.Should().HaveCount(2);
+		result[0].JobId.Should().Be(jobs[2].Id);
+		result[0].FailureCount.Should().Be(3);
+		result[1].JobId.Should().Be(jobs[1].Id);
+		result[1].FailureCount.Should().Be(2);
+	}
+
+	/// <summary>
+	/// Tests that <see cref="JobHistoryService.GetTopFailingJobsAsync"/> throws <see cref="ArgumentOutOfRangeException"/> when count is less than 1.
+	/// </summary>
+	[Fact]
+	public async Task GetTopFailingJobsAsync_WithNonPositiveCount_ThrowsArgumentOutOfRangeException()
+	{
+		// Arrange
+		var service = CreateService();
+
+		// Act & Assert
+		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+			() => service.GetTopFailingJobsAsync(DateTime.UtcNow.AddHours(-24), count: 0));
+	}
+
+	/// <summary>
 	/// Tests that <see cref="PagedResult{T}"/> properties are computed correctly for pagination metadata.
 	/// </summary>
 	[Fact]

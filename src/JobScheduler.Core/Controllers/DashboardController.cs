@@ -29,6 +29,16 @@ public sealed class DashboardController : ControllerBase
     private const int TopJobsCount = 10;
 
     /// <summary>
+    /// The upper bound on the number of jobs a caller may request from the top-failing endpoint.
+    /// </summary>
+    private const int MaxTopFailingJobsCount = 100;
+
+    /// <summary>
+    /// The number of hours covered by the top-failing jobs window.
+    /// </summary>
+    private const int FailureWindowHours = 24;
+
+    /// <summary>
     /// The failed-job count above which a health warning is generated.
     /// </summary>
     private const int FailedJobsWarningThreshold = 100;
@@ -40,6 +50,7 @@ public sealed class DashboardController : ControllerBase
 
     private readonly JobSchedulerService _schedulerService;
     private readonly PerformanceMonitor _performanceMonitor;
+    private readonly JobHistoryService _historyService;
     private readonly ILogger<DashboardController> _logger;
 
     /// <summary>
@@ -47,14 +58,17 @@ public sealed class DashboardController : ControllerBase
     /// </summary>
     /// <param name="schedulerService">The job scheduler service used to retrieve system data.</param>
     /// <param name="performanceMonitor">The performance monitor used to retrieve performance metrics.</param>
+    /// <param name="historyService">The history service used to query recent execution failures.</param>
     /// <param name="logger">The logger used for logging controller operations.</param>
     public DashboardController(
         JobSchedulerService schedulerService,
         PerformanceMonitor performanceMonitor,
+        JobHistoryService historyService,
         ILogger<DashboardController> logger)
     {
         _schedulerService = schedulerService ?? throw new ArgumentNullException(nameof(schedulerService));
         _performanceMonitor = performanceMonitor ?? throw new ArgumentNullException(nameof(performanceMonitor));
+        _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -232,6 +246,45 @@ public sealed class DashboardController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving failing jobs");
             return StatusCode(500, new { error = "Failed to retrieve failing jobs" });
+        }
+    }
+
+    /// <summary>
+    /// Lists the jobs with the most failed executions in the last 24 hours.
+    /// Useful for spotting jobs that are currently breaking repeatedly.
+    /// </summary>
+    /// <param name="count">Number of jobs to return. Defaults to 10 and is clamped to the range 1-100.</param>
+    [HttpGet("top-failing")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiSuccessResponse<List<TopFailingJobResponse>>>> GetTopFailingJobs(
+        [FromQuery] int count = TopJobsCount)
+    {
+        try
+        {
+            var limit = Math.Clamp(count, 1, MaxTopFailingJobsCount);
+            var since = DateTime.UtcNow.AddHours(-FailureWindowHours);
+
+            var failing = await _historyService.GetTopFailingJobsAsync(since, limit);
+
+            var responses = failing.Select(j => new TopFailingJobResponse
+            {
+                JobId = j.JobId,
+                JobName = j.JobName,
+                FailedCount = j.FailureCount
+            }).ToList();
+
+            return Ok(new ApiSuccessResponse<List<TopFailingJobResponse>>
+            {
+                Success = true,
+                Message = "Operation successful",
+                Data = responses,
+                Timestamp = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving top failing jobs");
+            return StatusCode(500, new { error = "Failed to retrieve top failing jobs" });
         }
     }
 
@@ -518,6 +571,35 @@ public sealed class SlowestJobResponse
     public override string ToString()
     {
         return $"SlowestJobResponse {{ JobId = {JobId}, JobName = {JobName}, AverageExecutionTimeMs = {AverageExecutionTimeMs}, MaxExecutionTimeMs = {MaxExecutionTimeMs}, ExecutionCount = {ExecutionCount} }}";
+    }
+}
+
+/// <summary>
+/// A job ranked by its failed execution count over the last 24 hours.
+/// </summary>
+public sealed class TopFailingJobResponse
+{
+    /// <summary>
+    /// Gets or sets the unique identifier of the job.
+    /// </summary>
+    public Guid JobId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the job.
+    /// </summary>
+    public string JobName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the number of failed executions in the last 24 hours.
+    /// </summary>
+    public int FailedCount { get; set; }
+
+    /// <summary>
+    /// Returns a string summarizing the top failing job.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"TopFailingJobResponse {{ JobId = {JobId}, JobName = {JobName}, FailedCount = {FailedCount} }}";
     }
 }
 

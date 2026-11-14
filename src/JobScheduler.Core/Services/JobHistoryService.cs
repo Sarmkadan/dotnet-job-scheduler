@@ -214,6 +214,50 @@ public sealed class JobHistoryService
         return BuildSummary(executions, jobId: null, jobName: null);
     }
 
+    /// <summary>
+    /// Returns the jobs with the most failed executions started at or after <paramref name="from"/>.
+    /// Results are ordered by failure count descending. Only <see cref="ExecutionStatus.Failed"/> counts as a failure.
+    /// </summary>
+    /// <param name="from">Start of the analysis window (UTC), inclusive.</param>
+    /// <param name="count">Maximum number of jobs to return.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count"/> is less than 1.</exception>
+    public async Task<IReadOnlyList<TopFailingJob>> GetTopFailingJobsAsync(
+        DateTime from,
+        int count,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
+
+        _logger?.LogInformation("GetTopFailingJobsAsync called since {From} for top {Count}", from, count);
+
+        var executions = await _executionRepository.GetExecutionsByDateRangeAsync(from, DateTime.MaxValue);
+
+        var topCounts = executions
+            .Where(e => e.Status == ExecutionStatus.Failed)
+            .GroupBy(e => e.JobId)
+            .Select(g => new { JobId = g.Key, FailureCount = g.Count() })
+            .OrderByDescending(x => x.FailureCount)
+            .Take(count)
+            .ToList();
+
+        var result = new List<TopFailingJob>(topCounts.Count);
+        foreach (var entry in topCounts)
+        {
+            var job = await _jobRepository.GetByIdAsync(entry.JobId);
+            result.Add(new TopFailingJob
+            {
+                JobId = entry.JobId,
+                JobName = job?.Name ?? string.Empty,
+                FailureCount = entry.FailureCount
+            });
+        }
+
+        _logger?.LogDebug("Top failing jobs query returned {Count} jobs", result.Count);
+
+        return result.AsReadOnly();
+    }
+
     private static JobExecutionSummary BuildSummary(
         IEnumerable<JobExecution> executions,
         Guid? jobId,
@@ -253,6 +297,21 @@ public sealed class JobHistoryService
             LastStatus = latest.Status
         };
     }
+}
+
+/// <summary>
+/// A job ranked by its number of failed executions within an analysis window.
+/// </summary>
+public sealed class TopFailingJob
+{
+    /// <summary>The unique identifier of the job.</summary>
+    public Guid JobId { get; init; }
+
+    /// <summary>The name of the job, or an empty string when the job no longer exists.</summary>
+    public string JobName { get; init; } = string.Empty;
+
+    /// <summary>The number of failed executions in the analysis window.</summary>
+    public int FailureCount { get; init; }
 }
 
 /// <summary>
