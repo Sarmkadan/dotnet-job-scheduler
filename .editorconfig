@@ -10,6 +10,8 @@ insert_final_newline = true
 
 [*.cs]
 indent_size = 4
+file_header_template = Copyright (c) 2026 Vladyslav Zaiets. Licensed under the MIT License.
+csharp_style_namespace_declarations = file_scoped:warning
 csharp_new_line_before_open_brace = all
 csharp_new_line_before_else = true
 csharp_new_line_before_catch = true
@@ -26,9 +28,9 @@ csharp_preserve_single_line_statements = false
 csharp_preserve_single_line_blocks = true
 csharp_using_directive_placement = outside_namespace:warning
 csharp_prefer_braces = true:warning
-csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_for_built_in_types = true:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
-csharp_style_var_elsewhere = false:suggestion
+csharp_style_var_elsewhere = true:suggestion
 csharp_style_expression_bodied_methods = when_on_single_line:suggestion
 csharp_style_expression_bodied_properties = when_on_single_line:suggestion
 dotnet_sort_system_directives_first = true
@@ -37,7 +39,7 @@ dotnet_style_qualification_for_property = false:warning
 dotnet_style_qualification_for_method = false:warning
 dotnet_style_qualification_for_event = false:warning
 
-[*.{json,yml,yaml}]
+[*.{json,yml,yaml,csproj}]
 indent_size = 2
 
 [*.md]
