@@ -43,6 +43,12 @@ public sealed class PipelinesController : ControllerBase
     /// Creates a new pipeline from an ordered list of job IDs.
     /// Sequential dependency edges are automatically registered between consecutive steps.
     /// </summary>
+    /// <param name="request">The pipeline definition containing the name and ordered job IDs.</param>
+    /// <returns>The created pipeline, with a location header pointing to <see cref="GetPipeline"/>.</returns>
+    /// <response code="201">The pipeline was created.</response>
+    /// <response code="400">The name is missing or the pipeline has fewer than two steps.</response>
+    /// <response code="404">One of the referenced jobs does not exist.</response>
+    /// <response code="500">An unexpected error occurred while creating the pipeline.</response>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -78,6 +84,11 @@ public sealed class PipelinesController : ControllerBase
     /// <summary>
     /// Returns a specific pipeline by ID with all steps and job details.
     /// </summary>
+    /// <param name="id">The unique identifier of the pipeline.</param>
+    /// <returns>The pipeline with its steps and job details.</returns>
+    /// <response code="200">The pipeline was found and returned.</response>
+    /// <response code="404">No pipeline exists with the given ID.</response>
+    /// <response code="500">An unexpected error occurred while retrieving the pipeline.</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -101,6 +112,9 @@ public sealed class PipelinesController : ControllerBase
     /// <summary>
     /// Returns all pipelines ordered by creation date (newest first).
     /// </summary>
+    /// <returns>All pipelines; an empty collection when none exist.</returns>
+    /// <response code="200">The pipelines were returned.</response>
+    /// <response code="500">An unexpected error occurred while listing pipelines.</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<PipelineResponse>>> ListPipelines()
@@ -121,6 +135,10 @@ public sealed class PipelinesController : ControllerBase
     /// Deletes a pipeline and removes its inter-step dependency edges.
     /// Individual jobs referenced by the pipeline are not deleted.
     /// </summary>
+    /// <param name="id">The unique identifier of the pipeline to delete.</param>
+    /// <response code="204">The pipeline was deleted.</response>
+    /// <response code="404">No pipeline exists with the given ID.</response>
+    /// <response code="500">An unexpected error occurred while deleting the pipeline.</response>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -146,6 +164,11 @@ public sealed class PipelinesController : ControllerBase
     /// Returns the current execution status of each step in the pipeline.
     /// Indicates which steps have completed, failed, or are ready to run.
     /// </summary>
+    /// <param name="id">The unique identifier of the pipeline.</param>
+    /// <returns>The per-step status of the pipeline.</returns>
+    /// <response code="200">The pipeline status was returned.</response>
+    /// <response code="404">No pipeline exists with the given ID.</response>
+    /// <response code="500">An unexpected error occurred while retrieving the pipeline status.</response>
     [HttpGet("{id:guid}/status")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
