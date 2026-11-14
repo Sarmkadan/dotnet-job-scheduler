@@ -19,11 +19,15 @@ namespace JobScheduler.Core.Services;
 /// </summary>
 public sealed class CacheService : IDisposable
 {
+    private const int DefaultExpirationHours = 1;
+    private const int CleanupIntervalMinutes = 5;
+    private const int MaxExpiredEntriesPerSweep = 1000;
+
     private readonly IMemoryCache _cache;
     private readonly ILogger<CacheService> _logger;
     private readonly ConcurrentDictionary<string, byte> _keys; // Track all cache keys for invalidation
     private readonly System.Threading.Timer? _cleanupTimer;
-    private readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(5);
+    private readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(CleanupIntervalMinutes);
     private readonly object _cleanupLock = new object();
 
     /// <summary>
@@ -115,7 +119,7 @@ public sealed class CacheService : IDisposable
             }
             else
             {
-                cacheOptions.SetAbsoluteExpiration(TimeSpan.FromHours(1)); // Default 1 hour
+                cacheOptions.SetAbsoluteExpiration(TimeSpan.FromHours(DefaultExpirationHours));
             }
 
             _cache.Set(key, value, cacheOptions);
@@ -253,7 +257,6 @@ public sealed class CacheService : IDisposable
         {
             var expiredKeys = new List<string>();
             var processedCount = 0;
-            const int batchSize = 1000;
 
             // Collect expired keys in batches to avoid blocking
             foreach (var key in _keys.Keys)
@@ -268,7 +271,7 @@ public sealed class CacheService : IDisposable
                 }
 
                 // Limit batch size to prevent long-running operations
-                if (expiredKeys.Count >= batchSize)
+                if (expiredKeys.Count >= MaxExpiredEntriesPerSweep)
                 {
                     break;
                 }
@@ -283,7 +286,7 @@ public sealed class CacheService : IDisposable
 
             if (expiredKeys.Count > 0)
             {
-                _logger.LogInformation("Removed {Count} expired cache entries (batch of {BatchSize})", expiredKeys.Count, batchSize);
+                _logger.LogInformation("Removed {Count} expired cache entries (batch of {BatchSize})", expiredKeys.Count, MaxExpiredEntriesPerSweep);
             }
         }
         catch (Exception ex)
@@ -322,19 +325,23 @@ public sealed class CacheService : IDisposable
 /// </summary>
 public static class CacheKeyGenerator
 {
+    private const string JobPrefix = "job:";
+    private const string JobNamePrefix = "job:name:";
+    private const string JobsPrefix = "jobs:";
+
     /// <summary>
     /// Creates a cache key for a job identifier.
     /// </summary>
     /// <param name="jobId">The job identifier.</param>
     /// <returns>The cache key for the job.</returns>
-    public static string JobKey(Guid jobId) => $"job:{jobId}";
+    public static string JobKey(Guid jobId) => $"{JobPrefix}{jobId}";
 
     /// <summary>
     /// Creates a cache key for a job name.
     /// </summary>
     /// <param name="jobName">The job name.</param>
     /// <returns>The cache key for the named job.</returns>
-    public static string JobKey(string jobName) => $"job:name:{jobName}";
+    public static string JobKey(string jobName) => $"{JobNamePrefix}{jobName}";
 
     /// <summary>
     /// Creates a cache key for a page of job executions.
@@ -342,27 +349,27 @@ public static class CacheKeyGenerator
     /// <param name="jobId">The job identifier.</param>
     /// <param name="pageNumber">The page number.</param>
     /// <returns>The cache key for the requested job executions page.</returns>
-    public static string JobExecutionsKey(Guid jobId, int pageNumber = 1) => $"job:{jobId}:executions:page:{pageNumber}";
+    public static string JobExecutionsKey(Guid jobId, int pageNumber = 1) => $"{JobPrefix}{jobId}:executions:page:{pageNumber}";
 
     /// <summary>
     /// Creates a cache key for job statistics.
     /// </summary>
     /// <param name="jobId">The job identifier.</param>
     /// <returns>The cache key for the job statistics.</returns>
-    public static string JobStatsKey(Guid jobId) => $"job:{jobId}:stats";
+    public static string JobStatsKey(Guid jobId) => $"{JobPrefix}{jobId}:stats";
 
     /// <summary>
     /// Gets the cache key for all jobs.
     /// </summary>
     /// <returns>The cache key for all jobs.</returns>
-    public static string AllJobsKey() => "jobs:all";
+    public static string AllJobsKey() => $"{JobsPrefix}all";
 
     /// <summary>
     /// Creates a cache key for jobs with a specified status.
     /// </summary>
     /// <param name="status">The job status.</param>
     /// <returns>The cache key for jobs with the specified status.</returns>
-    public static string JobsByStatusKey(string status) => $"jobs:status:{status}";
+    public static string JobsByStatusKey(string status) => $"{JobsPrefix}status:{status}";
 
     /// <summary>
     /// Gets the cache key for system statistics.
