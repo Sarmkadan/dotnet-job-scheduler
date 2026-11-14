@@ -36,6 +36,9 @@ public sealed class Program
             await host.Services.InitializeDatabaseAsync();
             host.Services.ValidateSchedulerConfiguration();
 
+            // Reject invalid stored jobs before the polling loop can pick them up.
+            await host.Services.ValidateStoredJobsAsync();
+
             var logger = host.Services.GetRequiredService<ILogger<Program>>();
             logger.LogInformation("Job Scheduler starting...");
 

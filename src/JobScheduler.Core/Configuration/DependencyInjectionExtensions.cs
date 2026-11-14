@@ -6,6 +6,7 @@
 // =====================================================================
 
 using System;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Caching.Memory;
@@ -13,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using JobScheduler.Core.Constants;
 using JobScheduler.Core.Data;
 using JobScheduler.Core.Data.Repositories;
+using JobScheduler.Core.Exceptions;
 using JobScheduler.Core.Services;
 using JobScheduler.Core.Events;
 using JobScheduler.Core.Middleware;
@@ -157,6 +159,25 @@ public static class DependencyInjectionExtensions
         var context = scope.ServiceProvider.GetRequiredService<JobSchedulerContext>();
 
         await context.Database.MigrateAsync();
+    }
+
+    /// <summary>
+    /// Validates every job currently in the job store before the scheduler starts.
+    /// Throws a single <see cref="JobValidationException"/> listing all invalid jobs.
+    /// </summary>
+    /// <param name="serviceProvider">The <see cref="IServiceProvider"/> to resolve the scheduler from.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="serviceProvider"/> is <see langword="null"/>.</exception>
+    /// <exception cref="JobValidationException">Thrown when any stored job is invalid.</exception>
+    public static async Task ValidateStoredJobsAsync(this IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        // Scoped resolution for the same reason as ValidateSchedulerConfiguration: the
+        // scheduler depends on a scoped DbContext.
+        using var scope = serviceProvider.CreateScope();
+        var schedulerService = scope.ServiceProvider.GetRequiredService<JobSchedulerService>();
+        await schedulerService.ValidateAllJobsAsync();
     }
 
     /// <summary>

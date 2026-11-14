@@ -37,9 +37,11 @@ public static class RetryPolicyValidation
             errors.Add($"MaxRetries must be between 0 and {MaxRetriesLimit}. Current value: {value.MaxRetries}.");
         }
 
-        if (value.InitialBackoffSeconds <= 0 || value.InitialBackoffSeconds > value.MaxBackoffSeconds)
+        // WHY: Must agree with RetryPolicy.EnsureValid. A zero initial delay is legal (retry immediately);
+        // rejecting it here would silently replace a registered policy with defaults at runtime.
+        if (value.InitialBackoffSeconds < 0 || value.InitialBackoffSeconds > value.MaxBackoffSeconds)
         {
-            errors.Add($"InitialBackoffSeconds must be > 0 and <= MaxBackoffSeconds. Current values: Initial={value.InitialBackoffSeconds}, Max={value.MaxBackoffSeconds}.");
+            errors.Add($"InitialBackoffSeconds must be >= 0 and <= MaxBackoffSeconds. Current values: Initial={value.InitialBackoffSeconds}, Max={value.MaxBackoffSeconds}.");
         }
 
         if (value.BackoffMultiplier < MinBackoffMultiplier || value.BackoffMultiplier > MaxBackoffMultiplier)

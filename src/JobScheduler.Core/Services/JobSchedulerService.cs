@@ -92,8 +92,13 @@ public sealed class JobSchedulerService
     {
         ArgumentNullException.ThrowIfNull(job);
 
-        // Validate the job configuration
+        // Validate the job configuration (includes the retry policy)
         job.EnsureValid();
+
+        // Parse the cron expression now so a bad schedule is rejected at registration,
+        // not on the first tick. ParseCronExpression throws a CronExpressionException that
+        // names the expression and the parser's reason, unlike the bool-returning IsValidCronExpression.
+        _cronService.ParseCronExpression(job.CronExpression);
 
         // Check for duplicate job name
         var existingJob = await _jobRepository.GetByNameAsync(job.Name);
@@ -104,10 +109,6 @@ public sealed class JobSchedulerService
         var existingJobById = await _jobRepository.GetByIdAsync(job.Id);
         if (existingJobById is not null)
             throw new JobValidationException($"Job with Id '{job.Id}' already exists", nameof(job.Id));
-
-        // Validate cron expression
-        if (!_cronService.IsValidCronExpression(job.CronExpression))
-            throw new CronExpressionException(job.CronExpression, "Invalid cron expression");
 
         // Set job properties
         job.CreatedBy = createdBy;
@@ -741,7 +742,9 @@ public sealed class JobSchedulerService
     }
 
     /// <summary>
-    /// Validates all jobs in the repository, throwing a JobValidationException if any are invalid.
+    /// Validates all jobs in the repository, throwing a single JobValidationException that lists every invalid job.
+    /// Each job is checked for field and retry policy rules and for a parseable cron expression.
+    /// WHY: Reporting all bad jobs at once lets an operator fix the whole batch in one pass instead of restarting per error.
     /// </summary>
     /// <exception cref="JobValidationException">Thrown when any job in the repository is invalid.</exception>
     public async Task ValidateAllJobsAsync()
@@ -756,6 +759,21 @@ public sealed class JobSchedulerService
                 job.EnsureValid();
             }
             catch (JobValidationException ex)
+            {
+                validationErrors.Add($"Job {job.Id} ({job.Name}): {ex.Message}");
+            }
+
+            // A blank cron expression is already reported by EnsureValid above.
+            if (string.IsNullOrWhiteSpace(job.CronExpression))
+            {
+                continue;
+            }
+
+            try
+            {
+                _cronService.ParseCronExpression(job.CronExpression);
+            }
+            catch (CronExpressionException ex)
             {
                 validationErrors.Add($"Job {job.Id} ({job.Name}): {ex.Message}");
             }
