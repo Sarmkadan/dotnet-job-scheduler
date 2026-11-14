@@ -252,7 +252,7 @@ public sealed class WebhookPayload
 
     /// <summary>
     /// Gets or sets the timestamp when the webhook event occurred.
-    /// </>
+    /// </summary>
     public DateTime Timestamp { get; set; }
 
     /// <summary>

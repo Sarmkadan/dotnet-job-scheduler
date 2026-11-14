@@ -57,7 +57,7 @@ public sealed class JobsController : ControllerBase
             var job = new Job
             {
                 Name = request.Name,
-                Description = request.Description,
+                Description = request.Description ?? string.Empty,
                 CronExpression = request.CronExpression,
                 HandlerType = request.HandlerType,
                 HandlerParameters = request.HandlerParameters,

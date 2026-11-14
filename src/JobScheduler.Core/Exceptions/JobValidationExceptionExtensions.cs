@@ -12,9 +12,13 @@ public static class JobValidationExceptionExtensions
     /// <returns>A formatted error message.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="exception"/> is <see langword="null"/>.</exception>
     public static string GetFormattedMessage(this JobValidationException exception)
-        => string.IsNullOrEmpty(exception?.PropertyName) is true
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+
+        return string.IsNullOrEmpty(exception.PropertyName) is true
             ? exception.Message
             : $"Validation error on {exception.PropertyName}: {exception.Message}";
+    }
 
     /// <summary>
     /// Creates a new <see cref="JobValidationException"/> with the same message and property name.

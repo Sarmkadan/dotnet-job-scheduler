@@ -65,7 +65,7 @@ public static class JobsControllerExtensions
 
         if (errors.Count > 0)
         {
-            controller.Response.Headers.Add("X-Bulk-Create-Errors", string.Join("||", errors));
+            controller.Response.Headers["X-Bulk-Create-Errors"] = string.Join("||", errors);
         }
 
         return controller.Ok(paginatedResponse);

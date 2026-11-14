@@ -27,8 +27,8 @@ namespace dotnet_job_scheduler.Benchmarks
         [Params(true, false)]
         public bool IsValidGraph;
 
-        private JobPipeline _pipeline;
-        private MockJobDependencyService _dependencyService;
+        private JobPipeline _pipeline = null!;
+        private MockJobDependencyService _dependencyService = null!;
 
         /// <summary>
         /// Sets up the benchmark by initializing a JobPipeline and a mock dependency service.

@@ -63,7 +63,7 @@ public sealed class RateLimitMiddleware
         {
             _logger.LogWarning("Rate limit exceeded for client {ClientId}", clientId);
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            context.Response.Headers.Add("Retry-After", _settings.WindowSizeSeconds.ToString());
+            context.Response.Headers["Retry-After"] = _settings.WindowSizeSeconds.ToString();
 
             await context.Response.WriteAsJsonAsync(new
             {

@@ -14,7 +14,7 @@ public class CreatePipelineRequestExtensionsTests
         return new CreatePipelineRequest
         {
             Name = "TestPipeline",
-            Description = null,
+            Description = null!,
             Steps = new List<PipelineStepRequest>()
         };
     }

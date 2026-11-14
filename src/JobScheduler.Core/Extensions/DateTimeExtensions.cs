@@ -47,8 +47,6 @@ public static class DateTimeExtensions
     /// <exception cref="ArgumentException">Thrown if the DateTime kind is Unspecified and the date is in the past.</exception>
     public static bool IsInThePast(this DateTime dateTime)
     {
-        if (dateTime == null)
-            throw new ArgumentNullException(nameof(dateTime));
 
         var utcNow = TimeProvider.UtcNowAsDateTime;
         return dateTime.Kind == DateTimeKind.Utc
@@ -108,10 +106,6 @@ public static class DateTimeExtensions
     /// <returns><see langword="true"/> if both DateTime values represent the same day; otherwise, <see langword="false"/>.</returns>
     public static bool IsSameDay(this DateTime dateTime, DateTime other)
     {
-        if (dateTime == null)
-            throw new ArgumentNullException(nameof(dateTime));
-        if (other == null)
-            throw new ArgumentNullException(nameof(other));
 
         return dateTime.Date == other.Date;
     }
@@ -123,8 +117,6 @@ public static class DateTimeExtensions
     /// <returns>A new DateTime with seconds and milliseconds set to zero.</returns>
     public static DateTime RoundToNearestMinute(this DateTime dateTime)
     {
-        if (dateTime == null)
-            throw new ArgumentNullException(nameof(dateTime));
 
         return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0, dateTime.Kind);
     }
@@ -136,8 +128,6 @@ public static class DateTimeExtensions
     /// <returns>A new DateTime with minutes, seconds, and milliseconds set to zero.</returns>
     public static DateTime RoundToNearestHour(this DateTime dateTime)
     {
-        if (dateTime == null)
-            throw new ArgumentNullException(nameof(dateTime));
 
         return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0, dateTime.Kind);
     }
@@ -149,8 +139,6 @@ public static class DateTimeExtensions
     /// <returns>A DateTime representing midnight of the same day in the local time zone.</returns>
     public static DateTime StartOfDay(this DateTime dateTime)
     {
-        if (dateTime == null)
-            throw new ArgumentNullException(nameof(dateTime));
 
         return dateTime.Date;
     }
@@ -162,8 +150,6 @@ public static class DateTimeExtensions
     /// <returns>A DateTime representing 23:59:59 of the same day in the local time zone.</returns>
     public static DateTime EndOfDay(this DateTime dateTime)
     {
-        if (dateTime == null)
-            throw new ArgumentNullException(nameof(dateTime));
 
         return dateTime.Date.AddDays(1).AddSeconds(-1);
     }
@@ -175,8 +161,6 @@ public static class DateTimeExtensions
     /// <returns>A DateTime representing midnight of the Monday of the current week.</returns>
     public static DateTime StartOfWeek(this DateTime dateTime)
     {
-        if (dateTime == null)
-            throw new ArgumentNullException(nameof(dateTime));
 
         var daysToSubtract = (int)dateTime.DayOfWeek;
         return daysToSubtract == 0
@@ -191,8 +175,6 @@ public static class DateTimeExtensions
     /// <returns>A DateTime representing midnight of the first day of the current month.</returns>
     public static DateTime StartOfMonth(this DateTime dateTime)
     {
-        if (dateTime == null)
-            throw new ArgumentNullException(nameof(dateTime));
 
         return new DateTime(dateTime.Year, dateTime.Month, 1);
     }
@@ -204,8 +186,6 @@ public static class DateTimeExtensions
     /// <returns>A DateTime representing 23:59:59 of the last day of the current month.</returns>
     public static DateTime EndOfMonth(this DateTime dateTime)
     {
-        if (dateTime == null)
-            throw new ArgumentNullException(nameof(dateTime));
 
         var startOfNextMonth = dateTime.StartOfMonth().AddMonths(1);
         return startOfNextMonth.AddSeconds(-1);

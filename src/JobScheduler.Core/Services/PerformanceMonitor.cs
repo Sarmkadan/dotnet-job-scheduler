@@ -181,6 +181,10 @@ public sealed class PerformanceMonitor
     public double GetCpuUtilization()
     {
         _logger.LogInformation("GetCpuUtilization called");
+        // WHY: PerformanceCounter is Windows-only; elsewhere it throws PlatformNotSupportedException.
+        if (!OperatingSystem.IsWindows())
+            return 0;
+
         try
         {
             using (var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total"))

@@ -414,7 +414,7 @@ public sealed class ConcurrencyManagerTests
     /// without going negative.
     /// </summary>
     [Fact]
-    public void DecrementConcurrencyCount_Concurrent_ThreadSafe()
+    public async Task DecrementConcurrencyCount_Concurrent_ThreadSafe()
     {
         // Arrange
         var jobId = Guid.NewGuid();
@@ -433,7 +433,7 @@ public sealed class ConcurrencyManagerTests
             .Select(_ => Task.Run(() => manager.DecrementConcurrencyCount(jobId)))
             .ToList();
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
 
         // Assert - Should never go below zero
         var finalCount = manager.GetGlobalConcurrencyCount();

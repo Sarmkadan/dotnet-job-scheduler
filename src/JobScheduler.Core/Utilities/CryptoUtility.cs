@@ -151,14 +151,14 @@ public static class CryptoUtility
             aes.Padding = PaddingMode.PKCS7;
 
             // Derive key from input, storing salt for decryption
-            using var kdf = new Rfc2898DeriveBytes(key, Pbkdf2SaltSizeBytes, Pbkdf2IterationCount, HashAlgorithmName.SHA256);
-            aes.Key = kdf.GetBytes(DerivedKeySizeBytes);
+            var salt = RandomNumberGenerator.GetBytes(Pbkdf2SaltSizeBytes);
+            aes.Key = Rfc2898DeriveBytes.Pbkdf2(key, salt, Pbkdf2IterationCount, HashAlgorithmName.SHA256, DerivedKeySizeBytes);
 
             using (var encryptor = aes.CreateEncryptor())
             using (var ms = new MemoryStream())
             {
                 // Write salt, then IV to stream (both needed for decryption)
-                ms.Write(kdf.Salt, 0, kdf.Salt.Length);
+                ms.Write(salt, 0, salt.Length);
                 ms.Write(aes.IV, 0, aes.IV.Length);
 
                 using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
@@ -199,8 +199,7 @@ public static class CryptoUtility
                 Buffer.BlockCopy(ciphertextBytes, 0, salt, 0, Pbkdf2SaltSizeBytes);
 
                 // Derive key from input using stored salt
-                using var kdf = new Rfc2898DeriveBytes(key, salt, Pbkdf2IterationCount, HashAlgorithmName.SHA256);
-                aes.Key = kdf.GetBytes(DerivedKeySizeBytes);
+                aes.Key = Rfc2898DeriveBytes.Pbkdf2(key, salt, Pbkdf2IterationCount, HashAlgorithmName.SHA256, DerivedKeySizeBytes);
                 aes.IV = Convert.FromBase64String(iv);
 
                 // Skip salt and IV in the ciphertext stream
@@ -275,11 +274,8 @@ public static class CryptoUtility
             var salt = new byte[Pbkdf2SaltSizeBytes];
             rng.GetBytes(salt);
 
-            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256))
-            {
-                var hash = pbkdf2.GetBytes(DerivedKeySizeBytes);
-                return (Convert.ToBase64String(hash), Convert.ToBase64String(salt));
-            }
+            var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, HashAlgorithmName.SHA256, DerivedKeySizeBytes);
+            return (Convert.ToBase64String(hash), Convert.ToBase64String(salt));
         }
     }
 
@@ -295,12 +291,9 @@ public static class CryptoUtility
         try
         {
             var saltBytes = Convert.FromBase64String(salt);
-            using (var pbkdf2 = new Rfc2898DeriveBytes(password, saltBytes, iterations, HashAlgorithmName.SHA256))
-            {
-                var hashBytes = pbkdf2.GetBytes(DerivedKeySizeBytes);
-                var hashString = Convert.ToBase64String(hashBytes);
-                return CompareStringsSecurely(hashString, hash);
-            }
+            var hashBytes = Rfc2898DeriveBytes.Pbkdf2(password, saltBytes, iterations, HashAlgorithmName.SHA256, DerivedKeySizeBytes);
+            var hashString = Convert.ToBase64String(hashBytes);
+            return CompareStringsSecurely(hashString, hash);
         }
         catch
         {

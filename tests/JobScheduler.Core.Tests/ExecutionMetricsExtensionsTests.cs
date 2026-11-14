@@ -22,7 +22,7 @@ public class ExecutionMetricsExtensionsTests
     public void IsConsistentlyReliable_NullInput_ThrowsArgumentNullException()
     {
         // Act and Assert
-        Assert.Throws<ArgumentNullException>(() => ((ExecutionMetrics?)null).IsConsistentlyReliable());
+        Assert.Throws<ArgumentNullException>(() => ((ExecutionMetrics?)null!).IsConsistentlyReliable());
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class ExecutionMetricsExtensionsTests
     public void GetAverageExecutionDurationInSeconds_NullInput_ThrowsArgumentNullException()
     {
         // Act and Assert
-        Assert.Throws<ArgumentNullException>(() => ((ExecutionMetrics?)null).GetAverageExecutionDurationInSeconds());
+        Assert.Throws<ArgumentNullException>(() => ((ExecutionMetrics?)null!).GetAverageExecutionDurationInSeconds());
     }
 
     [Fact]
@@ -62,6 +62,6 @@ public class ExecutionMetricsExtensionsTests
     public void HasHighFailureRate_NullInput_ThrowsArgumentNullException()
     {
         // Act and Assert
-        Assert.Throws<ArgumentNullException>(() => ((ExecutionMetrics?)null).HasHighFailureRate());
+        Assert.Throws<ArgumentNullException>(() => ((ExecutionMetrics?)null!).HasHighFailureRate());
     }
 }

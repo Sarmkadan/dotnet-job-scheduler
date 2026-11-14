@@ -24,7 +24,6 @@ namespace JobScheduler.Core.Services
         public static bool IsSlowerThan(this MetricsSummary s, TimeSpan threshold)
         {
             if (s == null) throw new ArgumentNullException(nameof(s));
-            if (threshold == null) throw new ArgumentNullException(nameof(threshold));
 
             return s.AverageExecutionTimeMs > threshold.TotalMilliseconds;
         }
@@ -32,7 +31,7 @@ namespace JobScheduler.Core.Services
         /// <summary>
         /// Gets the success rate as a percentage.
         /// </summary>
-        /// <param="s">The metrics summary to evaluate.</param>
+        /// <param name="s">The metrics summary to evaluate.</param>
         /// <returns>The success rate percentage (0-100).</returns>
         public static double GetSuccessRatePercent(this MetricsSummary s)
         {
@@ -43,8 +42,8 @@ namespace JobScheduler.Core.Services
         /// <summary>
         /// Gets the slowest performance metrics by execution time.
         /// </summary>
-        /// <param="source">The sequence of performance metrics.</param>
-        /// <param="count">The number of slowest metrics to return.</param>
+        /// <param name="source">The sequence of performance metrics.</param>
+        /// <param name="count">The number of slowest metrics to return.</param>
         /// <returns>A sequence containing the specified number of slowest performance metrics, ordered from slowest to fastest.</returns>
         public static IEnumerable<PerformanceMetric> Slowest(this IEnumerable<PerformanceMetric> source, int count)
         {
@@ -59,7 +58,7 @@ namespace JobScheduler.Core.Services
         /// <summary>
         /// Calculates the average duration from a sequence of performance timeline points.
         /// </summary>
-        /// <param="source">The sequence of performance timeline points.</param>
+        /// <param name="source">The sequence of performance timeline points.</param>
         /// <returns>The average execution time in milliseconds across all timeline points.</returns>
         public static long AverageDuration(this IEnumerable<PerformanceTimelinePoint> source)
         {
@@ -75,7 +74,7 @@ namespace JobScheduler.Core.Services
         /// <summary>
         /// Gets a descriptive string representation of the metrics summary.
         /// </summary>
-        /// <param="s">The metrics summary to describe.</param>
+        /// <param name="s">The metrics summary to describe.</param>
         /// <returns>A formatted string containing key metrics.</returns>
         public static string Describe(this MetricsSummary s)
         {

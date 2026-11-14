@@ -89,7 +89,7 @@ namespace JobScheduler.Core.Tests
             string? message = null;
 
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new JobSchedulerException(message));
+            Assert.Throws<ArgumentNullException>(() => new JobSchedulerException(message!));
         }
 
         [Fact]
@@ -99,7 +99,7 @@ namespace JobScheduler.Core.Tests
             string? errorCode = null;
 
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new JobSchedulerException("Test message", errorCode));
+            Assert.Throws<ArgumentNullException>(() => new JobSchedulerException("Test message", errorCode!));
         }
     }
 }

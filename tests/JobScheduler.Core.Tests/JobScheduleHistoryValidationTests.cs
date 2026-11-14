@@ -38,7 +38,7 @@ public class JobScheduleHistoryValidationTests
             Id = Guid.Empty,
             JobId = Guid.Empty,
             PropertyName = "   ",
-            ChangeReason = null,
+            ChangeReason = null!,
             ChangedAt = default
         };
 
@@ -111,7 +111,7 @@ public class JobScheduleHistoryValidationTests
         {
             Id = Guid.Empty,
             JobId = Guid.Empty,
-            PropertyName = null,
+            PropertyName = null!,
             ChangeReason = "",
             ChangedAt = default
         };

@@ -35,7 +35,7 @@ public static class AuditLogEntryExtensions
     /// </summary>
     /// <param name="entries">The sequence of audit log entries to filter.</param>
     /// <param name="eventType">The event type to filter by (case-sensitive).</param>
-    /// <returns>An IEnumerable<AuditLogEntry> containing entries with the matching event type.</returns>
+    /// <returns>An IEnumerable&lt;AuditLogEntry&gt; containing entries with the matching event type.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="entries"/> is null.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="eventType"/> is null.</exception>
     public static IEnumerable<AuditLogEntry> FilterByEventType(this IEnumerable<AuditLogEntry> entries, string eventType)
@@ -53,7 +53,7 @@ public static class AuditLogEntryExtensions
     /// </summary>
     /// <param name="entries">The sequence of audit log entries to filter.</param>
     /// <param name="userId">The user ID to filter by. Use null to filter for entries with no user ID.</param>
-    /// <returns>An IEnumerable<AuditLogEntry> containing entries with the matching user ID.</returns>
+    /// <returns>An IEnumerable&lt;AuditLogEntry&gt; containing entries with the matching user ID.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="entries"/> is null.</exception>
     public static IEnumerable<AuditLogEntry> FilterByUser(this IEnumerable<AuditLogEntry> entries, string? userId)
     {

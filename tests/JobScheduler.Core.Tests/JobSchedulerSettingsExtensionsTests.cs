@@ -34,7 +34,7 @@ namespace JobScheduler.Core.Tests
         public void Validate_NullSettings_ThrowsArgumentNullException()
         {
             // Act and Assert
-            Assert.Throws<ArgumentNullException>(() => JobSchedulerSettingsExtensions.Validate(null));
+            Assert.Throws<ArgumentNullException>(() => JobSchedulerSettingsExtensions.Validate(null!));
         }
 
         [Fact]

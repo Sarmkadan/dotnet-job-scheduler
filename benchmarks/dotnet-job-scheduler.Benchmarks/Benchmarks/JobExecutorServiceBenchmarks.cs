@@ -70,7 +70,7 @@ public sealed class JobExecutorServiceBenchmarks
             Status = JobStatus.Scheduled
         };
 
-        var execution = await _executorService!.ExecuteJobAsync(job, _successHandler, "test-server", default);
+        var execution = await _executorService!.ExecuteJobAsync(job, _successHandler!, "test-server", default);
         _ = execution.Status;
     }
 
@@ -89,7 +89,7 @@ public sealed class JobExecutorServiceBenchmarks
             Status = JobStatus.Scheduled
         };
 
-        var execution = await _executorService!.ExecuteJobAsync(job, _failingHandler, "test-server", default);
+        var execution = await _executorService!.ExecuteJobAsync(job, _failingHandler!, "test-server", default);
         _ = execution.Status;
     }
 
@@ -108,7 +108,7 @@ public sealed class JobExecutorServiceBenchmarks
             Status = JobStatus.Scheduled
         };
 
-        var execution = await _executorService!.ExecuteJobAsync(job, _slowHandler, "test-server", default);
+        var execution = await _executorService!.ExecuteJobAsync(job, _slowHandler!, "test-server", default);
         _ = execution.Status;
     }
 
@@ -128,7 +128,7 @@ public sealed class JobExecutorServiceBenchmarks
             Status = JobStatus.Scheduled
         };
 
-        var execution = await _executorService!.ExecuteJobAsync(job, _successHandler, "test-server", default);
+        var execution = await _executorService!.ExecuteJobAsync(job, _successHandler!, "test-server", default);
         _ = execution.Status;
     }
 
@@ -147,7 +147,7 @@ public sealed class JobExecutorServiceBenchmarks
             Status = JobStatus.Scheduled
         };
 
-        var execution = await _executorService!.ExecuteJobAsync(highPriorityJob, _successHandler, "test-server", default);
+        var execution = await _executorService!.ExecuteJobAsync(highPriorityJob, _successHandler!, "test-server", default);
         _ = execution.Status;
     }
 
@@ -166,7 +166,7 @@ public sealed class JobExecutorServiceBenchmarks
             Status = JobStatus.Scheduled
         };
 
-        var execution = await _executorService!.ExecuteJobAsync(job, _successHandler, "test-server", default);
+        var execution = await _executorService!.ExecuteJobAsync(job, _successHandler!, "test-server", default);
         _ = execution.MemoryUsageMb;
         _ = execution.CpuUsagePercent;
     }

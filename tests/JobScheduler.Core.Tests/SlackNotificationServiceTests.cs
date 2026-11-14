@@ -73,7 +73,7 @@ public sealed class SlackNotificationServiceTests
 
         // Assert
         Assert.NotNull(handler.CapturedRequest);
-        var payload = DeserializePayload(handler.CapturedRequest!.Content);
+        var payload = DeserializePayload(handler.CapturedRequest!.Content!);
         Assert.Equal($"Job {job.Name} execution failed", payload.Text);
         Assert.Single(payload.Attachments);
         var attachment = payload.Attachments[0];
@@ -125,7 +125,7 @@ public sealed class SlackNotificationServiceTests
 
         // Assert
         Assert.NotNull(handler.CapturedRequest);
-        var payload = DeserializePayload(handler.CapturedRequest!.Content);
+        var payload = DeserializePayload(handler.CapturedRequest!.Content!);
         Assert.Equal($"Job {job.Name} executed successfully", payload.Text);
         var attachment = payload.Attachments[0];
         Assert.Equal("good", attachment.Color);
@@ -149,7 +149,7 @@ public sealed class SlackNotificationServiceTests
 
         // Assert
         Assert.NotNull(handler.CapturedRequest);
-        var payload = DeserializePayload(handler.CapturedRequest!.Content);
+        var payload = DeserializePayload(handler.CapturedRequest!.Content!);
         var attachment = payload.Attachments[0];
         Assert.Equal("danger", attachment.Color);
         Assert.Equal("AlertTitle", attachment.Title);

@@ -52,7 +52,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
         _serviceProvider = _services.BuildServiceProvider();
 
         // Initialize database
-        _dbContext = _serviceProvider.GetRequiredService<JobSchedulerContext>();
+        _dbContext = _serviceProvider!.GetRequiredService<JobSchedulerContext>();
         await _dbContext.Database.EnsureCreatedAsync();
     }
 
@@ -118,7 +118,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
         createdJobs.Select(j => j.Name).Should().Contain(new[] { "hourly-job", "daily-job", "weekly-job" });
 
         // Verify in repository
-        var repository = _serviceProvider.GetRequiredService<IJobRepository>();
+        var repository = _serviceProvider!.GetRequiredService<IJobRepository>();
         var activeJobs = await repository.GetActiveJobsAsync();
         activeJobs.Count().Should().Be(3);
     }
@@ -141,12 +141,12 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
         // Act & Assert - the repository returns the tracked instance, so each state is
         // asserted before the next transition is applied.
         await jobScheduler.SuspendJobAsync(createdJob.Id);
-        var suspendedJob = await _serviceProvider.GetRequiredService<IJobRepository>()
+        var suspendedJob = await _serviceProvider!.GetRequiredService<IJobRepository>()
             .GetByIdAsync(createdJob.Id);
         suspendedJob?.Status.Should().Be(JobStatus.Suspended);
 
         await jobScheduler.ResumeJobAsync(createdJob.Id);
-        var resumedJob = await _serviceProvider.GetRequiredService<IJobRepository>()
+        var resumedJob = await _serviceProvider!.GetRequiredService<IJobRepository>()
             .GetByIdAsync(createdJob.Id);
         resumedJob?.Status.Should().Be(JobStatus.Scheduled);
     }
@@ -169,7 +169,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
 
         // Act
         await jobScheduler.UpdateJobScheduleAsync(createdJob.Id, "0 12 * * *");
-        var updatedJob = await _serviceProvider.GetRequiredService<IJobRepository>()
+        var updatedJob = await _serviceProvider!.GetRequiredService<IJobRepository>()
             .GetByIdAsync(createdJob.Id);
 
         // Assert
@@ -194,7 +194,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
 
         // Act
         await jobScheduler.DeleteJobAsync(createdJob.Id);
-        var deletedJob = await _serviceProvider.GetRequiredService<IJobRepository>()
+        var deletedJob = await _serviceProvider!.GetRequiredService<IJobRepository>()
             .GetByIdAsync(createdJob.Id);
 
         // Assert
@@ -218,7 +218,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
         };
 
         // Setup mock repository with concurrency counts
-        var executionRepo = _serviceProvider.GetRequiredService<IExecutionRepository>();
+        var executionRepo = _serviceProvider!.GetRequiredService<IExecutionRepository>();
 
         // Act - First execution should be allowed
         var canExecuteFirst = await concurrencyManager.CanExecuteAsync(job);
@@ -256,7 +256,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         var jobScheduler = _serviceProvider!.GetRequiredService<JobSchedulerService>();
-        var scheduleService = _serviceProvider.GetRequiredService<ScheduleService>();
+        var scheduleService = _serviceProvider!.GetRequiredService<ScheduleService>();
 
         var job = new Job
         {
@@ -284,7 +284,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         var jobScheduler = _serviceProvider!.GetRequiredService<JobSchedulerService>();
-        var retryService = _serviceProvider.GetRequiredService<RetryService>();
+        var retryService = _serviceProvider!.GetRequiredService<RetryService>();
 
         var job = new Job
         {
@@ -318,7 +318,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         var jobScheduler = _serviceProvider!.GetRequiredService<JobSchedulerService>();
-        var executor = _serviceProvider.GetRequiredService<JobExecutorService>();
+        var executor = _serviceProvider!.GetRequiredService<JobExecutorService>();
 
         var job = new Job
         {
@@ -344,7 +344,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         var jobScheduler = _serviceProvider!.GetRequiredService<JobSchedulerService>();
-        var executionRepo = _serviceProvider.GetRequiredService<IExecutionRepository>();
+        var executionRepo = _serviceProvider!.GetRequiredService<IExecutionRepository>();
 
         var job = new Job
         {
@@ -374,7 +374,7 @@ public sealed class JobSchedulerIntegrationTests : IAsyncLifetime
     {
         // Arrange
         var jobScheduler = _serviceProvider!.GetRequiredService<JobSchedulerService>();
-        var repository = _serviceProvider.GetRequiredService<IJobRepository>();
+        var repository = _serviceProvider!.GetRequiredService<IJobRepository>();
 
         // Act - Create jobs with different configurations
         var highPriorityJob = await jobScheduler.CreateJobAsync(new Job

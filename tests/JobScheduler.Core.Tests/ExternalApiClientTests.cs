@@ -82,7 +82,7 @@ namespace JobScheduler.Core.Tests
         public async Task GetAsync_ReturnsFailure_OnTimeout()
         {
             var url = "https://api.example.com/data";
-            SetupHandler(null, (req, ct) => throw new OperationCanceledException());
+            SetupHandler(null!, (req, ct) => throw new OperationCanceledException());
 
             var result = await _client.GetAsync<MyData>(url);
 
@@ -258,7 +258,7 @@ namespace JobScheduler.Core.Tests
         public async Task IsApiAvailableAsync_ReturnsFalse_OnException()
         {
             var url = "https://api.example.com/health";
-            SetupHandler(null, (req, ct) => throw new HttpRequestException());
+            SetupHandler(null!, (req, ct) => throw new HttpRequestException());
 
             var result = await _client.IsApiAvailableAsync(url);
 

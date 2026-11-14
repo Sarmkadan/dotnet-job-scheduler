@@ -10,9 +10,9 @@ namespace dotnet_job_scheduler.Benchmarks
     /// </summary>
     public class JobSchedulerExceptionBenchmarks
     {
-        private string _message;
-        private string _errorCode;
-        private Exception _innerException;
+        private string _message = string.Empty;
+        private string _errorCode = string.Empty;
+        private Exception _innerException = null!;
 
         [Params(10, 100, 1000)]
         public int Count { get; set; }

@@ -113,6 +113,6 @@ public sealed class CacheServiceBenchmarks
             var key = $"clear-test-{i}";
             _ = await _cacheService!.GetOrSetAsync(key, () => Task.FromResult<string?>("value"), TimeSpan.FromHours(1));
         }
-        await _cacheService.ClearAllAsync();
+        await _cacheService!.ClearAllAsync();
     }
 }

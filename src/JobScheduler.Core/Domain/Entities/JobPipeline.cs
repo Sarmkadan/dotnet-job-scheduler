@@ -89,7 +89,8 @@ public sealed class JobPipelineStep
     /// <summary>Gets or sets the zero-based execution order within the pipeline.</summary>
     public int StepOrder { get; set; }
 
-    ///
+    /// <summary>
+    /// Gets or sets a value indicating whether the pipeline halts when this step fails.
     /// When true the pipeline halts if this step fails.
     /// When false subsequent steps are still attempted even if this one fails.
     /// Defaults to true.

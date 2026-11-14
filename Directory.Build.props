@@ -1,0 +1,21 @@
+<Project>
+
+<!-- Shared compiler settings for every project under the repo root. Individual .csproj files must not repeat these. -->
+<PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <!--
+      Narrow exceptions to TreatWarningsAsErrors. Each one is a known, deliberately deferred issue:
+      - CS1591: public members without XML docs (about 100 sites). Documenting them is a separate sweep.
+      - NU1510: Microsoft.Extensions.* PackageReferences that may be pruned. Removing them is a packaging change.
+      - NU1903: SQLitePCLRaw.lib.e_sqlite3 2.1.11 (pulled in by Microsoft.EntityFrameworkCore.Sqlite) has
+        GHSA-2m69-gcr7-jv3q with no patched version. It needs a dependency upgrade decision, not a suppression.
+    -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);CS1591;NU1510;NU1903</WarningsNotAsErrors>
+</PropertyGroup>
+
+</Project>

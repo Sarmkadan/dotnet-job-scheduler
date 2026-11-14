@@ -91,7 +91,7 @@ public sealed class SystemTimeProvider : ITimeProvider
     /// Returns a string representation of the current SystemTimeProvider.
     /// </summary>
     /// <returns>
-    /// A string in the format: SystemTimeProvider { UtcNow = <UtcNow in 'O' format>, TimeZone = <local time zone id> }
+    /// A string in the format: SystemTimeProvider { UtcNow = &lt;UtcNow in 'O' format&gt;, TimeZone = &lt;local time zone id&gt; }
     /// </returns>
     public override string ToString()
     {
@@ -181,7 +181,7 @@ public sealed class TestTimeProvider : ITimeProvider
     /// Returns a string representation of the current TestTimeProvider.
     /// </summary>
     /// <returns>
-    /// A string in the format: TestTimeProvider { UtcNow = <UtcNow in 'O' format>, TimeZone = <time zone id> }
+    /// A string in the format: TestTimeProvider { UtcNow = &lt;UtcNow in 'O' format&gt;, TimeZone = &lt;time zone id&gt; }
     /// </returns>
     public override string ToString()
     {

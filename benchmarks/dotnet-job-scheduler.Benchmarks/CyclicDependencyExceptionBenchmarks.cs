@@ -39,7 +39,7 @@ public class CyclicDependencyExceptionBenchmarks
     [Benchmark]
     public CyclicDependencyException CreateWithInner()
     {
-        return new CyclicDependencyException(_jobId, _dependsOnJobId, _innerException);
+        return new CyclicDependencyException(_jobId, _dependsOnJobId, _innerException!);
     }
 
     /// <summary>
