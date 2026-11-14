@@ -47,6 +47,7 @@ public sealed class CsvExportFormatter
     /// Multiplier for converting a ratio to a percentage.
     /// </summary>
     private const int PercentMultiplier = 100;
+
     /// <summary>
     /// Exports jobs to CSV format.
     /// </summary>
