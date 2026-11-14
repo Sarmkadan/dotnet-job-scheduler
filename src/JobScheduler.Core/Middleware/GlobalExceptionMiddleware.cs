@@ -18,6 +18,8 @@ namespace JobScheduler.Core.Middleware;
 /// </summary>
 public sealed class GlobalExceptionMiddleware
 {
+    private const string JsonContentType = "application/json";
+
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionMiddleware> _logger;
 
@@ -63,7 +65,7 @@ public sealed class GlobalExceptionMiddleware
     /// <param name="exception">The exception that occurred.</param>
     private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        context.Response.ContentType = "application/json";
+        context.Response.ContentType = JsonContentType;
 
         var response = new ErrorResponse
         {
