@@ -54,6 +54,8 @@ public sealed class JobsController : ControllerBase
             return BadRequest(new { error = "Request body is required." });
         try
         {
+            request.Validate();
+
             var job = new Job
             {
                 Name = request.Name,
@@ -164,6 +166,8 @@ public sealed class JobsController : ControllerBase
         ArgumentNullException.ThrowIfNull(request);
         try
         {
+            request.Validate();
+
             var updated = await _schedulerService.UpdateJobAsync(id, request, User?.Identity?.Name);
             if (updated is null)
                 return NotFound(new { error = "Job not found" });

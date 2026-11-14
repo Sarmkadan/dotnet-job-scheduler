@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using JobScheduler.Core.Constants;
 using JobScheduler.Core.Domain.Entities;
 using JobScheduler.Core.Domain.Models;
+using JobScheduler.Core.Exceptions;
 
 namespace JobScheduler.Core.Services;
 
@@ -142,6 +143,9 @@ public static class JobSchedulerServiceExtensions
     /// <exception cref="ArgumentException">
     /// Thrown if <paramref name="request"/>.Name is null, empty, or whitespace.
     /// </exception>
+    /// <exception cref="JobValidationException">
+    /// Thrown if any field of <paramref name="request"/> is out of bounds or oversized.
+    /// </exception>
     public static async Task<Job> CreateJobAsync(
         this JobSchedulerService service,
         CreateJobRequest request,
@@ -153,6 +157,7 @@ public static class JobSchedulerServiceExtensions
         ArgumentException.ThrowIfNullOrEmpty(request.Name, nameof(request));
         ArgumentException.ThrowIfNullOrEmpty(request.CronExpression, nameof(request));
         ArgumentException.ThrowIfNullOrEmpty(request.HandlerType, nameof(request));
+        request.Validate();
 
         var job = new Job
         {

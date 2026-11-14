@@ -4,9 +4,11 @@
 // CTO & Software Architect
 // =============================================================================
 
+using System;
 using System.ComponentModel.DataAnnotations;
 using JobScheduler.Core.Constants;
 using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Exceptions;
 
 namespace JobScheduler.Core.Domain.Models;
 
@@ -87,17 +89,76 @@ public sealed class CreateJobRequest
     public bool IsActive { get; set; } = true;
 
     /// <summary>
+    /// Maximum length, in characters, of <see cref="HandlerParameters"/>. Bounds the payload persisted per job.
+    /// </summary>
+    public const int MaxHandlerParametersLength = 8192;
+
+    /// <summary>
     /// Determines whether the CreateJobRequest is valid.
     /// </summary>
     /// <returns>True if the request is valid; otherwise, false.</returns>
-    public bool IsValid()
+    public bool IsValid() => FindFirstError() is null;
+
+    /// <summary>
+    /// Validates every field of the request and throws on the first violation.
+    /// </summary>
+    /// <exception cref="JobValidationException">
+    /// Thrown when a field is missing, out of bounds, or oversized. <see cref="JobValidationException.PropertyName"/> identifies the offending field.
+    /// </exception>
+    public void Validate()
     {
-        return !string.IsNullOrWhiteSpace(Name) &&
-               !string.IsNullOrWhiteSpace(CronExpression) &&
-               !string.IsNullOrWhiteSpace(HandlerType) &&
-               MaxRetries >= 0 &&
-               ExecutionTimeoutSeconds > 0 &&
-               MaxConcurrentExecutions > 0;
+        if (FindFirstError() is { } error)
+        {
+            throw new JobValidationException(error.Message, error.Property);
+        }
+    }
+
+    /// <summary>
+    /// Checks each field against its bounds and returns the first violation found.
+    /// </summary>
+    /// <returns>The offending property name and message, or <c>null</c> when the request is valid.</returns>
+    private (string Property, string Message)? FindFirstError()
+    {
+        if (string.IsNullOrWhiteSpace(Name))
+            return (nameof(Name), "Name is required.");
+        if (Name.Length is < 3 or > SchedulerConstants.MaxJobNameLength)
+            return (nameof(Name), $"Name must be between 3 and {SchedulerConstants.MaxJobNameLength} characters.");
+
+        if (Description is { Length: > 1000 })
+            return (nameof(Description), "Description must be at most 1000 characters.");
+
+        if (string.IsNullOrWhiteSpace(CronExpression))
+            return (nameof(CronExpression), "CronExpression is required.");
+        if (CronExpression.Length is < 5 or > SchedulerConstants.MaxCronExpressionLength)
+            return (nameof(CronExpression), $"CronExpression must be between 5 and {SchedulerConstants.MaxCronExpressionLength} characters.");
+
+        if (TimeZoneId is { Length: > 100 })
+            return (nameof(TimeZoneId), "TimeZoneId must be at most 100 characters.");
+
+        if (string.IsNullOrWhiteSpace(HandlerType))
+            return (nameof(HandlerType), "HandlerType is required.");
+        if (HandlerType.Length > 512)
+            return (nameof(HandlerType), "HandlerType must be at most 512 characters.");
+
+        if (HandlerParameters is { Length: > MaxHandlerParametersLength })
+            return (nameof(HandlerParameters), $"HandlerParameters must be at most {MaxHandlerParametersLength} characters.");
+
+        if (!Enum.IsDefined(Priority))
+            return (nameof(Priority), $"Priority '{Priority}' is not a defined value.");
+
+        if (MaxConcurrentExecutions is < 1 or > 1000)
+            return (nameof(MaxConcurrentExecutions), $"MaxConcurrentExecutions must be between 1 and 1000. Current value: {MaxConcurrentExecutions}.");
+
+        if (MaxRetries is < 0 or > 100)
+            return (nameof(MaxRetries), $"MaxRetries must be between 0 and 100. Current value: {MaxRetries}.");
+
+        if (RetryBackoffSeconds is < 1 or > 3600)
+            return (nameof(RetryBackoffSeconds), $"RetryBackoffSeconds must be between 1 and 3600. Current value: {RetryBackoffSeconds}.");
+
+        if (ExecutionTimeoutSeconds is < 1 or > 86400)
+            return (nameof(ExecutionTimeoutSeconds), $"ExecutionTimeoutSeconds must be between 1 and 86400. Current value: {ExecutionTimeoutSeconds}.");
+
+        return null;
     }
 
     /// <summary>
