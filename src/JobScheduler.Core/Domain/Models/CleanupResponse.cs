@@ -15,12 +15,12 @@ namespace JobScheduler.Core.Domain.Models;
 public sealed class CleanupResponse
 {
     /// <summary>
-    /// Number of deleted items.
+    /// Number of deleted job execution records.
     /// </summary>
     public int DeletedCount { get; set; }
 
     /// <summary>
-    /// The cutoff date used for the cleanup operation.
+    /// The UTC cutoff date used for the cleanup operation. Executions older than this date were deleted.
     /// </summary>
     public DateTime CutoffDate { get; set; }
 
