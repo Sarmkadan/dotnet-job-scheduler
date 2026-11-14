@@ -808,6 +808,318 @@ RetryStatistics statistics = await retries.GetRetryStatisticsAsync(job.Id);
 Console.WriteLine($"Failure rate: {statistics.RecentFailureRate:F1}%");
 ```
 
+## Retries and failure handling
+
+This section covers how a job's `RetryPolicy` shapes retries, how to get alerted when
+attempts fail, how to bound a job's run time, and how to read failure history. The
+examples start from the same setup. `AddJobSchedulerHealthCheck()` registers
+`ExecutionTracker`, which the last example needs.
+
+```csharp
+using JobScheduler.Core.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+var services = new ServiceCollection()
+    .AddLogging()
+    .AddJobScheduler(o => o.ConnectionString = "Data Source=scheduler.db")
+    .AddJobSchedulerHealthCheck()
+    .BuildServiceProvider();
+```
+
+### Configuring a RetryPolicy
+
+`RetryPolicy` is attached to a job through `Job.RetryPolicy`. Its fields are:
+
+- `MaxRetries`: retries after the first attempt (default 3).
+- `InitialBackoffSeconds`: the base delay (default 5).
+- `MaxBackoffSeconds`: the cap on any single delay (`MaxDelay`, default 300).
+- `BackoffMultiplier`: the growth factor for exponential backoff (default 2.0).
+- `Strategy`: `BackoffStrategy.Fixed`, `Linear`, or `Exponential`.
+- `RetryOnTimeout` (default `true`) and `RetryOnCancellation` (default `false`).
+- `RetryableExceptions`: a comma-separated list of exception type names. Leave it empty to retry every exception.
+
+`CalculateBackoffDelay(n)` gives the wait before retry `n`, and the result is always
+capped at `MaxBackoffSeconds`:
+
+| Strategy | Formula | Example with `InitialBackoffSeconds = 5`, `MaxBackoffSeconds = 60` |
+|---|---|---|
+| `Fixed` | `Initial` | 5s, 5s, 5s, ... |
+| `Linear` | `Initial * n` | 5s, 10s, 15s, 20s, ... |
+| `Exponential` | `Initial * Multiplier^(n-1)` | 5s, 10s, 20s, 40s, 60s (capped) |
+
+There is no jitter option. Delays are deterministic, so `MaxBackoffSeconds` is the
+only upper bound.
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using JobScheduler.Core.Configuration;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+var services = new ServiceCollection()
+    .AddLogging()
+    .AddJobScheduler(o => o.ConnectionString = "Data Source=scheduler.db")
+    .AddJobSchedulerHealthCheck()
+    .BuildServiceProvider();
+
+// Fixed: every retry waits 10 seconds.
+var fixedPolicy = new RetryPolicy
+{
+    Strategy = BackoffStrategy.Fixed,
+    MaxRetries = 3,
+    InitialBackoffSeconds = 10,
+    MaxBackoffSeconds = 10
+};
+
+// Exponential: waits 5s, 10s, 20s, 40s, then 60s (capped by MaxBackoffSeconds).
+var exponentialPolicy = new RetryPolicy
+{
+    Strategy = BackoffStrategy.Exponential,
+    MaxRetries = 5,
+    InitialBackoffSeconds = 5,
+    BackoffMultiplier = 2.0,
+    MaxBackoffSeconds = 60
+};
+
+// Linear: waits 5s, 10s, 15s, ... capped at 60s.
+var linearPolicy = new RetryPolicy
+{
+    Strategy = BackoffStrategy.Linear,
+    MaxRetries = 5,
+    InitialBackoffSeconds = 5,
+    MaxBackoffSeconds = 60
+};
+
+exponentialPolicy.EnsureValid(); // throws JobValidationException for invalid values
+
+var job = new Job
+{
+    Name = "invoice-sync",
+    CronExpression = "*/15 * * * *",
+    HandlerType = typeof(InvoiceSyncHandler).AssemblyQualifiedName!,
+    RetryPolicy = exponentialPolicy
+};
+
+using var scope = services.CreateScope();
+var scheduler = scope.ServiceProvider.GetRequiredService<JobSchedulerService>();
+Job created = await scheduler.CreateJobAsync(job, "ops-team");
+Console.WriteLine($"Created {created.Name} with {created.RetryPolicy}");
+
+public sealed class InvoiceSyncHandler : IJobHandler
+{
+    public Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken) => Task.FromResult("ok");
+}
+```
+
+`EnsureValid()` requires `MaxRetries >= 0`, `InitialBackoffSeconds` and `MaxBackoffSeconds`
+to be non-negative with `Initial <= Max`, and `BackoffMultiplier >= 1`.
+
+### Alerting on failures
+
+`IEventPublisher` is registered as a singleton. Subscribe to the event types you care
+about and dispose the returned tokens to stop receiving them. Handlers run in the
+background, and a handler that throws is logged without blocking the other handlers.
+
+- `JobExecutionFailedEvent`: fires for each failed attempt. Check `WillRetry` to tell a
+  transient failure from a final one.
+- `JobExecutionTimedOutEvent`: fires for each timed-out attempt. A timeout also publishes
+  a `JobExecutionFailedEvent`, so subscribe to only one of them per alert to avoid
+  duplicate alerts.
+- `JobExecutionExhaustedEvent`: fires once, when the last attempt fails and no retries
+  remain. It carries `TotalAttempts` and `MaxRetries`.
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using JobScheduler.Core.Configuration;
+using JobScheduler.Core.Events;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+var services = new ServiceCollection()
+    .AddLogging()
+    .AddJobScheduler(o => o.ConnectionString = "Data Source=scheduler.db")
+    .AddJobSchedulerHealthCheck()
+    .BuildServiceProvider();
+
+// IEventPublisher is registered as a singleton, so subscriptions live for the app's lifetime.
+var events = services.GetRequiredService<IEventPublisher>();
+var logger = services.GetRequiredService<ILogger<JobFailureAlerts>>();
+using var alerts = new JobFailureAlerts(events, logger);
+
+public sealed class JobFailureAlerts : IDisposable
+{
+    private readonly IDisposable _failed;
+    private readonly IDisposable _timedOut;
+    private readonly IDisposable _exhausted;
+
+    public JobFailureAlerts(IEventPublisher events, ILogger<JobFailureAlerts> logger)
+    {
+        // Fires for every failed attempt, including attempts that will be retried.
+        _failed = events.Subscribe<JobExecutionFailedEvent>(e =>
+        {
+            logger.LogWarning(
+                "Job {JobName} attempt {Attempt} failed: {Error} (will retry: {WillRetry})",
+                e.JobName, e.RetryAttempt, e.ErrorMessage, e.WillRetry);
+            return Task.CompletedTask;
+        });
+
+        // Timeouts are also published as JobExecutionFailedEvent, so this handler is for timeout-specific routing only.
+        _timedOut = events.Subscribe<JobExecutionTimedOutEvent>(e =>
+        {
+            logger.LogWarning("Job {JobName} timed out after {Seconds}s", e.JobName, e.TimeoutSeconds);
+            return Task.CompletedTask;
+        });
+
+        // Fires once, after the last attempt failed and no retries remain.
+        _exhausted = events.Subscribe<JobExecutionExhaustedEvent>(async e =>
+        {
+            logger.LogError(
+                "Job {JobName} failed permanently after {Attempts} attempts (max retries {MaxRetries}): {Error}",
+                e.JobName, e.TotalAttempts, e.MaxRetries, e.ErrorMessage);
+            await Task.Delay(TimeSpan.Zero); // replace with a real notification call, e.g. an HTTP alert
+        });
+    }
+
+    public void Dispose()
+    {
+        _failed.Dispose();
+        _timedOut.Dispose();
+        _exhausted.Dispose();
+    }
+}
+```
+
+### Per-job timeout
+
+`Job.ExecutionTimeoutSeconds` sets the limit for a single attempt. The default is 300
+seconds. The executor cancels the handler's `CancellationToken` when the limit is reached,
+so the handler must pass that token to the work it awaits. A handler that ignores the
+token keeps running after the timeout.
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using JobScheduler.Core.Configuration;
+using JobScheduler.Core.Domain.Entities;
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+var services = new ServiceCollection()
+    .AddLogging()
+    .AddJobScheduler(o => o.ConnectionString = "Data Source=scheduler.db")
+    .AddJobSchedulerHealthCheck()
+    .BuildServiceProvider();
+
+var job = new Job
+{
+    Name = "nightly-export",
+    CronExpression = "0 2 * * *",
+    HandlerType = typeof(NightlyExportHandler).AssemblyQualifiedName!,
+    ExecutionTimeoutSeconds = 900 // 15 minutes; the default is 300
+};
+
+job.EnsureValid(); // throws JobValidationException if the timeout is <= 0
+
+public sealed class NightlyExportHandler : IJobHandler
+{
+    public async Task<string> ExecuteAsync(Job job, CancellationToken cancellationToken)
+    {
+        // Pass the token to every awaited call so the timeout can stop the work.
+        await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+        return "exported 1204 rows";
+    }
+}
+```
+
+### Reading failure history
+
+`ExecutionTracker` returns per-job counters (`SuccessCount`, `FailureCount`,
+`LastStatus`, `CurrentlyRunning`) through `GetSnapshotAsync()`. It does not return
+individual attempts. To see the failed attempts themselves, use
+`JobSchedulerService.GetRecentFailedExecutionsAsync` across all jobs, or
+`GetExecutionHistoryAsync` for one job. Both return `JobExecution` rows with
+`AttemptNumber`, `ErrorMessage`, and `StartedAt`.
+
+```csharp
+using System;
+using System.Linq;
+using JobScheduler.Core.Configuration;
+using JobScheduler.Core.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+var services = new ServiceCollection()
+    .AddLogging()
+    .AddJobScheduler(o => o.ConnectionString = "Data Source=scheduler.db")
+    .AddJobSchedulerHealthCheck() // registers ExecutionTracker
+    .BuildServiceProvider();
+
+using var scope = services.CreateScope();
+var tracker = scope.ServiceProvider.GetRequiredService<ExecutionTracker>();
+var scheduler = scope.ServiceProvider.GetRequiredService<JobSchedulerService>();
+
+// Per-job counters: failures, last status, and running count.
+var snapshots = await tracker.GetSnapshotAsync();
+foreach (var snapshot in snapshots.Values.Where(s => s.FailureCount > 0))
+{
+    Console.WriteLine($"{snapshot.JobName}: {snapshot.FailureCount} failed, last status {snapshot.LastStatus}");
+}
+
+// ExecutionTracker returns counts only. For the individual failed attempts, query the scheduler.
+var recentFailures = await scheduler.GetRecentFailedExecutionsAsync(DateTime.UtcNow.AddHours(-24), limit: 20);
+foreach (var failure in recentFailures)
+{
+    Console.WriteLine($"{failure.StartedAt:O} job={failure.JobId} attempt={failure.AttemptNumber} error={failure.ErrorMessage}");
+}
+```
+
+### What happens when a job throws
+
+For a job run through `JobExecutorService`, each attempt follows these steps:
+
+1. The executor saves a new `JobExecution` for the attempt with status `Running` and
+   `AttemptNumber` set to the attempt number, then publishes `JobExecutionStartedEvent`.
+2. The handler runs with a token that is cancelled after `ExecutionTimeoutSeconds`, or
+   when the caller cancels.
+3. If the handler throws, the attempt is marked `Failed` with the exception message and
+   stack trace. `JobExecutionFailedEvent` is published with `WillRetry` set to `true`
+   only if the exception type matches `RetryableExceptions` (or the list is empty) and
+   `AttemptNumber <= MaxRetries`.
+4. If `WillRetry` is `true`, the executor waits `CalculateBackoffDelay(attempt)` and
+   runs the next attempt. A job therefore runs at most `MaxRetries + 1` times in one
+   execution.
+5. When the last attempt fails and the retry budget is spent, `JobExecutionExhaustedEvent`
+   is published once. A non-retryable exception ends the run as `Failed` without this
+   event.
+
+Timeouts and cancellations follow different rules:
+
+- **Timeout**: the attempt is marked `TimedOut`, and both `JobExecutionTimedOutEvent`
+  and `JobExecutionFailedEvent` are published. The attempt is retried when
+  `RetryOnTimeout` is `true` (the default). Timed-out retries run without the backoff
+  delay. `JobExecutionExhaustedEvent` is not published for timeouts.
+- **Cancellation** (for example, graceful shutdown): the attempt is marked `Cancelled`
+  and retried only when `RetryOnCancellation` is `true`. No exhausted event is published.
+
+Two further notes:
+
+- Retries happen only when the executor has an `IEventPublisher`. Resolving the executor
+  from the DI container always provides one. A manually constructed executor without a
+  publisher makes one attempt per run.
+- `JobSchedulerService.ProcessRetriesAsync`, which the host runs on its polling loop, also picks
+  up failed executions marked retryable. It can queue attempts beyond `RetryPolicy.MaxRetries`
+  for a job that already used its inline retries, so do not rely on `MaxRetries` alone as the
+  hard upper bound in production until this is resolved.
+
 ## DashboardController REST API
 
 `DashboardController` exposes monitoring data under the `/api/Dashboard` route.
