@@ -101,7 +101,7 @@ public sealed class JobSchedulerServiceTests
         var service = CreateService();
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateJobAsync(job));
+        await Assert.ThrowsAsync<JobValidationException>(() => service.CreateJobAsync(job));
     }
 
     /// <summary>

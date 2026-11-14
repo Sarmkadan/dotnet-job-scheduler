@@ -170,7 +170,7 @@ public sealed class EventPublisherTests
     /// Tests that unsubscribing with a valid token removes the handler.
     /// </summary>
     [Fact]
-    public void Unsubscribe_WithValidToken_RemovesHandler()
+    public async Task Unsubscribe_WithValidToken_RemovesHandler()
     {
         // Arrange
         var handlerCalled = false;
@@ -187,7 +187,8 @@ public sealed class EventPublisherTests
         };
 
         // Act - publish before unsubscribing
-        _publisher.PublishAsync(testEvent).Wait();
+        await _publisher.PublishAsync(testEvent);
+        await Task.Delay(500); // Allow background channel processing
         Assert.True(handlerCalled);
 
         // Reset for second test
@@ -195,7 +196,8 @@ public sealed class EventPublisherTests
 
         // Act - unsubscribe and publish again
         _publisher.Unsubscribe<SchedulerErrorEvent>(subscriptionToken);
-        _publisher.PublishAsync(testEvent).Wait();
+        await _publisher.PublishAsync(testEvent);
+        await Task.Delay(500); // Allow background channel processing
 
         // Assert
         Assert.False(handlerCalled);
@@ -473,6 +475,7 @@ public sealed class EventPublisherTests
 
         // Act - publish before disposing
         await _publisher.PublishAsync(testEvent);
+        await Task.Delay(500); // Allow background channel processing
         Assert.True(handlerCalled);
 
         // Reset
@@ -481,6 +484,7 @@ public sealed class EventPublisherTests
         // Act - dispose token and publish
         subscriptionToken.Dispose();
         await _publisher.PublishAsync(testEvent);
+        await Task.Delay(500); // Allow background channel processing
 
         // Assert
         Assert.False(handlerCalled);

@@ -378,10 +378,10 @@ public sealed class EventPublisher : IEventPublisher, IDisposable
 
         try
         {
-            var result = await tcs.Task.ConfigureAwait(false);
+            var result = await tcs.Task.WaitAsync(timeout).ConfigureAwait(false);
             return (TEvent)result;
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (ex is OperationCanceledException or TimeoutException)
         {
             _waitingTasks.TryRemove(waitKey, out _);
             throw;
