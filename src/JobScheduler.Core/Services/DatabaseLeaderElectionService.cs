@@ -21,6 +21,16 @@ namespace JobScheduler.Core.Services;
 /// </summary>
 public sealed class DatabaseLeaderElectionService : ILeaderElectionService
 {
+    /// <summary>
+    /// Lease duration used when the caller passes a non-positive value.
+    /// </summary>
+    private const int DefaultLeaseDurationSeconds = 30;
+
+    /// <summary>
+    /// Name of the lock row this service competes for.
+    /// </summary>
+    private const string LockName = SchedulerLeaderLock.DefaultLockName;
+
     private readonly JobSchedulerContext _context;
     private readonly string _instanceId;
     private readonly TimeSpan _leaseDuration;
@@ -42,12 +52,12 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
     public DatabaseLeaderElectionService(
         JobSchedulerContext context,
         string? instanceId = null,
-        int leaseDurationSeconds = 30,
+        int leaseDurationSeconds = DefaultLeaseDurationSeconds,
         ILogger<DatabaseLeaderElectionService>? logger = null)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _instanceId = string.IsNullOrWhiteSpace(instanceId) ? Environment.MachineName : instanceId;
-        _leaseDuration = TimeSpan.FromSeconds(leaseDurationSeconds > 0 ? leaseDurationSeconds : 30);
+        _leaseDuration = TimeSpan.FromSeconds(leaseDurationSeconds > 0 ? leaseDurationSeconds : DefaultLeaseDurationSeconds);
         _logger = logger;
     }
 
@@ -68,13 +78,13 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
 
             // Ensure table row exists.
             var lockRow = await _context.SchedulerLeaderLocks
-                .FirstOrDefaultAsync(r => r.LockName == SchedulerLeaderLock.DefaultLockName, cancellationToken);
+                .FirstOrDefaultAsync(r => r.LockName == LockName, cancellationToken);
 
             if (lockRow is null)
             {
                 lockRow = new SchedulerLeaderLock
                 {
-                    LockName = SchedulerLeaderLock.DefaultLockName,
+                    LockName = LockName,
                     LeaderInstanceId = _instanceId,
                     LeaseExpiresAt = leaseExpiry,
                     AcquiredAt = now
@@ -135,7 +145,7 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
         {
             var lockRow = await _context.SchedulerLeaderLocks
                 .FirstOrDefaultAsync(
-                    r => r.LockName == SchedulerLeaderLock.DefaultLockName && r.LeaderInstanceId == _instanceId,
+                    r => r.LockName == LockName && r.LeaderInstanceId == _instanceId,
                     cancellationToken);
 
             if (lockRow is not null)
@@ -161,7 +171,7 @@ public sealed class DatabaseLeaderElectionService : ILeaderElectionService
     /// <returns>The JobSchedulerContext instance.</returns>
     public JobSchedulerContext GetContextForTesting() => _context;
 
-    public override string ToString() => $"DatabaseLeaderElectionService {{ Id = {_context?.SchedulerLeaderLocks?.FirstOrDefault()?.Id ?? 0}, LockName = {SchedulerLeaderLock.DefaultLockName}, LeaderInstanceId = {_instanceId}, LeaseExpiresAt = {_context?.SchedulerLeaderLocks?.FirstOrDefault()?.LeaseExpiresAt ?? default}, AcquiredAt = {_context?.SchedulerLeaderLocks?.FirstOrDefault()?.AcquiredAt ?? default} }}";
+    public override string ToString() => $"DatabaseLeaderElectionService {{ Id = {_context?.SchedulerLeaderLocks?.FirstOrDefault()?.Id ?? 0}, LockName = {LockName}, LeaderInstanceId = {_instanceId}, LeaseExpiresAt = {_context?.SchedulerLeaderLocks?.FirstOrDefault()?.LeaseExpiresAt ?? default}, AcquiredAt = {_context?.SchedulerLeaderLocks?.FirstOrDefault()?.AcquiredAt ?? default} }}";
 }
 
 /// <summary>
