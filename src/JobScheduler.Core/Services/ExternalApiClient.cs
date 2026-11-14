@@ -31,6 +31,17 @@ public sealed class ExternalApiClient
     private const int AvailabilityTimeoutSeconds = 5;
 
     /// <summary>
+    /// Default number of attempts for requests made with automatic retry.
+    /// </summary>
+    private const int DefaultMaxRetries = 3;
+
+    /// <summary>
+    /// Base delay in milliseconds for exponential backoff between retry attempts.
+    /// The delay before attempt N+1 is <c>2^N * RetryBackoffBaseMs</c>.
+    /// </summary>
+    private const int RetryBackoffBaseMs = 1000;
+
+    /// <summary>
     /// Bearer token scheme for authorization headers.
     /// </summary>
     private const string BearerScheme = "Bearer";
@@ -238,7 +249,7 @@ public sealed class ExternalApiClient
         catch (OperationCanceledException)
         {
             _logger.LogWarning("DELETE request timed out to {Url}", url);
-            return new ApiResponse<bool>(false, false, "Request timeout");
+            return new ApiResponse<bool>(false, false, RequestTimeoutMessage);
         }
         catch (Exception ex)
         {
@@ -253,7 +264,7 @@ public sealed class ExternalApiClient
     /// </summary>
     /// <exception cref="ArgumentException">Thrown when <paramref name="url"/> is null or whitespace.</exception>
     public async Task<ApiResponse<T>> GetWithRetryAsync<T>(
-        string url, int maxRetries = 3, string? authToken = null) where T : class
+        string url, int maxRetries = DefaultMaxRetries, string? authToken = null) where T : class
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
         for (int attempt = 0; attempt < maxRetries; attempt++)
@@ -265,7 +276,7 @@ public sealed class ExternalApiClient
 
             if (attempt < maxRetries - 1)
             {
-                var backoffMs = (int)Math.Pow(2, attempt) * 1000; // Exponential backoff
+                var backoffMs = (int)Math.Pow(2, attempt) * RetryBackoffBaseMs; // Exponential backoff
                 await Task.Delay(backoffMs);
             }
         }
